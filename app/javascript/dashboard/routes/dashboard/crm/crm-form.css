@@ -1,0 +1,42 @@
+.crm-modal-form {
+  @apply flex flex-col gap-5;
+}
+
+.crm-modal-form > label:not(.crm-form-checkbox) {
+  @apply flex flex-col gap-2 text-sm font-medium text-n-slate-12;
+}
+
+.crm-modal-form > label:not(.crm-form-checkbox) > input,
+.crm-modal-form > label:not(.crm-form-checkbox) > select,
+.crm-modal-form > label:not(.crm-form-checkbox) > textarea {
+  @apply block w-full min-w-0 h-10 px-3 py-2.5 text-sm text-n-slate-12 bg-n-alpha-black2 outline outline-1 outline-n-weak outline-offset-[-1px] rounded-lg transition-all duration-200 ease-in-out;
+  @apply hover:outline-n-slate-6 focus:outline-n-brand disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+.crm-modal-form > label:not(.crm-form-checkbox) > textarea {
+  @apply h-auto min-h-28 resize-y;
+}
+
+.crm-form-checkbox {
+  @apply flex items-center gap-2 pt-1 text-sm text-n-slate-12;
+}
+
+.crm-form-checkbox > input {
+  @apply size-4 rounded border-n-weak text-n-brand focus:ring-n-brand;
+}
+
+.crm-form-help {
+  @apply -mt-3 text-sm text-n-slate-11;
+}
+
+.crm-form-actions {
+  @apply flex justify-end gap-3 pt-1 mt-1;
+}
+
+.crm-table-actions {
+  @apply flex flex-wrap items-center justify-end gap-2 min-w-max;
+}
+
+.crm-table-actions > * {
+  @apply shrink-0;
+}

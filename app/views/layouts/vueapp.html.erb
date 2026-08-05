@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      <%= @global_config['INSTALLATION_NAME'] %>
+    </title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, user-scalable=0"/>
+    <% if @global_config['DISPLAY_MANIFEST'] %>
+      <meta name="msapplication-TileColor" content="#0C3A98">
+      <meta name="msapplication-TileImage" content="/brand-assets/alvorada-icon.png">
+      <meta name="theme-color" content="#0C3A98">
+      <meta name="description" content="<%= @global_config['INSTALLATION_NAME'] %> centraliza atendimentos, contatos, conversas e oportunidades comerciais em uma única plataforma.">
+      <meta property="og:title" content="<%= @global_config['INSTALLATION_NAME'] %>">
+      <meta property="og:description" content="Atendimento omnichannel e gestão comercial em uma única plataforma.">
+      <meta property="og:image" content="/brand-assets/alvorada-logo.png">
+      <meta name="twitter:card" content="summary">
+      <% if ENV['IOS_APP_IDENTIFIER'].present? %>
+        <meta name="apple-itunes-app" content='app-id=<%= ENV['IOS_APP_IDENTIFIER'] %>'>
+      <% end %>
+      <link rel="apple-touch-icon" sizes="180x180" href="/brand-assets/alvorada-icon-180x180.png?v=20260804">
+      <link rel="icon" type="image/png" sizes="192x192" href="/brand-assets/alvorada-icon-192x192.png?v=20260804">
+      <link class="favicon" rel="icon" type="image/png" sizes="32x32" href="/brand-assets/alvorada-icon-32x32.png?v=20260804" data-default-href="/brand-assets/alvorada-icon-32x32.png?v=20260804" data-badge-href="/brand-assets/alvorada-icon-badge-32x32.png?v=20260804">
+      <link class="favicon" rel="icon" type="image/png" sizes="96x96" href="/brand-assets/alvorada-icon-96x96.png?v=20260804" data-default-href="/brand-assets/alvorada-icon-96x96.png?v=20260804" data-badge-href="/brand-assets/alvorada-icon-badge-96x96.png?v=20260804">
+      <link class="favicon" rel="icon" type="image/png" sizes="16x16" href="/brand-assets/alvorada-icon-16x16.png?v=20260804" data-default-href="/brand-assets/alvorada-icon-16x16.png?v=20260804" data-badge-href="/brand-assets/alvorada-icon-badge-16x16.png?v=20260804">
+      <link rel="manifest" href="/manifest.json?v=20260804">
+    <% end %>
+    <link rel="icon" type="image/png" sizes="512x512" href="/brand-assets/alvorada-icon-512x512.png?v=20260804">
+    <%= csrf_meta_tags %>
+    <script>
+      window.chatwootConfig = {
+        hostURL: '<%= ENV.fetch('FRONTEND_URL', '') %>',
+        helpCenterURL: '<%= ENV.fetch('HELPCENTER_URL', '') %>',
+        fbAppId: '<%= @global_config['FB_APP_ID'] %>',
+        instagramAppId: '<%= @global_config['INSTAGRAM_APP_ID'] %>',
+        tiktokAppId: '<%= @global_config['TIKTOK_APP_ID'] %>',
+        googleOAuthClientId: '<%= ENV.fetch('GOOGLE_OAUTH_CLIENT_ID', nil) %>',
+        googleOAuthCallbackUrl: '<%= ENV.fetch('GOOGLE_OAUTH_CALLBACK_URL', nil) %>',
+        allowedLoginMethods: <%= @global_config['ALLOWED_LOGIN_METHODS'].to_json.html_safe %>,
+        fbApiVersion: '<%= @global_config['FACEBOOK_API_VERSION'] %>',
+        whatsappAppId: '<%= @global_config['WHATSAPP_APP_ID'] %>',
+        whatsappConfigurationId: '<%= @global_config['WHATSAPP_CONFIGURATION_ID'] %>',
+        whatsappApiVersion: '<%= @global_config['WHATSAPP_API_VERSION'] %>',
+        signupEnabled: '<%= @global_config['ENABLE_ACCOUNT_SIGNUP'] %>',
+        isEnterprise: '<%= @global_config['IS_ENTERPRISE'] %>',
+        isMfaEnabled: '<%= Chatwoot.mfa_enabled? %>',
+        <% if @global_config['IS_ENTERPRISE'] %>
+        enterprisePlanName: '<%= @global_config['INSTALLATION_PRICING_PLAN'] %>',
+        <% end %>
+        <% if @global_config['VAPID_PUBLIC_KEY'] %>
+        vapidPublicKey: new Uint8Array(<%= Base64.urlsafe_decode64(@global_config['VAPID_PUBLIC_KEY']).bytes %>),
+        <% end %>
+        enabledLanguages: <%= available_locales_with_name.to_json.html_safe %>,
+        helpUrls: <%= feature_help_urls.to_json.html_safe %>,
+        inboxEventsEnabled: '<%= ENV['ENABLE_INBOX_EVENTS'].present? %>',
+        selectedLocale: '<%= I18n.locale %>'
+      }
+      window.globalConfig = <%= raw @global_config.to_json %>
+      window.browserConfig = {
+        browser_name: '<%= browser.name %>',
+      }
+      window.errorLoggingConfig = '<%= ENV.fetch('SENTRY_FRONTEND_DSN', '') || ENV.fetch('SENTRY_DSN', '') %>'
+    </script>
+    <% if @global_config['CLOUD_ANALYTICS_TOKEN'].present? %>
+    <script>
+      window.analyticsConfig = {
+        token: '<%= @global_config['CLOUD_ANALYTICS_TOKEN'] %>',
+      }
+    </script>
+    <% end %>
+    <%= vite_client_tag %>
+    <%= vite_javascript_tag @application_pack %>
+  </head>
+  <body class="text-slate-600">
+    <div id="app"></div>
+    <noscript id="noscript">This app works best with JavaScript enabled.</noscript>
+    <%= yield %>
+    <% if @dashboard_scripts.present? %>
+      <%= @dashboard_scripts.html_safe %>
+    <% end %>
+  </body>
+</html>

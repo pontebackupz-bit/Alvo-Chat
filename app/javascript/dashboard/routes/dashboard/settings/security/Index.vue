@@ -1,0 +1,35 @@
+<script setup>
+import { computed } from 'vue';
+import BaseSettingsHeader from '../components/BaseSettingsHeader.vue';
+import SettingsLayout from '../SettingsLayout.vue';
+import SamlSettings from './components/SamlSettings.vue';
+
+const allowedLoginMethods = computed(
+  () => window.chatwootConfig.allowedLoginMethods || ['email']
+);
+
+const isSamlSsoEnabled = computed(() =>
+  allowedLoginMethods.value.includes('saml')
+);
+
+const shouldShowSaml = computed(() => isSamlSsoEnabled.value);
+</script>
+
+<template>
+  <SettingsLayout :loading-message="$t('ATTRIBUTES_MGMT.LOADING')">
+    <template #header>
+      <BaseSettingsHeader
+        :title="$t('SECURITY_SETTINGS.TITLE')"
+        :description="$t('SECURITY_SETTINGS.DESCRIPTION')"
+        :link-text="$t('SECURITY_SETTINGS.LINK_TEXT')"
+        feature-name="saml"
+      />
+    </template>
+    <template #body>
+      <SamlSettings v-if="shouldShowSaml" />
+      <div v-else class="mt-6 text-sm text-slate-600">
+        {{ $t('SECURITY_SETTINGS.SAML_DISABLED_MESSAGE') }}
+      </div>
+    </template>
+  </SettingsLayout>
+</template>
