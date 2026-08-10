@@ -31,6 +31,28 @@ app.use((request, response, next) => {
 });
 const maxMediaBytes = 12 * 1024 * 1024;
 
+const mediaFileName = (messageKey, media) => {
+  if (media.fileName) return media.fileName;
+
+  const extension = {
+    audioMessage: 'ogg',
+    imageMessage: 'jpg',
+    videoMessage: 'mp4',
+    documentMessage: 'bin',
+    stickerMessage: 'webp',
+  }[messageKey] || 'bin';
+
+  return `${messageKey}.${extension}`;
+};
+
+const normalizedMediaMimeType = (messageKey, media) => {
+  if (messageKey === 'stickerMessage') return 'image/webp';
+
+  // Baileys can include codec parameters (for example, "audio/ogg; codecs=opus").
+  // Active Storage and the dashboard work more reliably with the canonical MIME type.
+  return media.mimetype?.split(';')[0]?.trim() || 'application/octet-stream';
+};
+
 app.use(express.json({ limit: '18mb' }));
 
 const authenticate = (request, response, next) => {
@@ -108,8 +130,8 @@ const mediaDetails = message => {
   return {
     content,
     fileType,
-    mimeType: media.mimetype || (messageKey === 'stickerMessage' ? 'image/webp' : 'application/octet-stream'),
-    fileName: media.fileName || `${messageKey}.${messageKey === 'stickerMessage' ? 'webp' : 'bin'}`,
+    mimeType: normalizedMediaMimeType(messageKey, media),
+    fileName: mediaFileName(messageKey, media),
     isSticker: messageKey === 'stickerMessage',
     isAnimatedSticker: Boolean(media.isAnimated),
     isVoiceMessage: Boolean(media.ptt),
@@ -137,12 +159,18 @@ const contactDetails = (session, message) => {
 const outgoingMediaMessage = (media, text) => {
   const buffer = Buffer.from(media.data, 'base64');
   const caption = text?.trim() || undefined;
-  const mimetype = media.mime_type || 'application/octet-stream';
+  // WhatsApp voice notes use an Ogg container with the Opus codec. Active
+  // Storage identifies these recordings as `audio/opus`, but Baileys/WhatsApp
+  // expects the wire MIME type below when `ptt` is set.
+  const isVoiceMessage = Boolean(media.is_voice_message);
+  const mimetype = isVoiceMessage && media.mime_type === 'audio/opus'
+    ? 'audio/ogg; codecs=opus'
+    : (media.mime_type || 'application/octet-stream');
 
   if (!buffer.length) throw new Error('media payload is empty');
   if (media.is_sticker || mimetype === 'image/webp') return { sticker: buffer };
   if (media.file_type === 'image') return { image: buffer, caption, mimetype };
-  if (media.file_type === 'audio') return { audio: buffer, mimetype, ptt: true };
+  if (media.file_type === 'audio') return { audio: buffer, mimetype, ptt: isVoiceMessage };
   if (media.file_type === 'video') return { video: buffer, caption, mimetype };
 
   return {
@@ -195,8 +223,16 @@ const publishIncomingMessage = async (session, message) => {
     const mediaMessage = media.content === message.message ? message : { ...message, message: media.content };
     const buffer = await downloadMediaMessage(mediaMessage, 'buffer', {}, {
       logger,
-      reuploadRequest: session.socket.updateMediaMessage,
+      // Keep the socket context. Passing the method directly may break media
+      // re-upload requests for expired audio/sticker URLs.
+      reuploadRequest: mediaToReupload => session.socket.updateMediaMessage(mediaToReupload),
     });
+    if (!Buffer.isBuffer(buffer) || !buffer.length) {
+      throw new Error('WhatsApp returned an empty media payload');
+    }
+    if (buffer.length > maxMediaBytes) {
+      throw new Error(`Incoming media exceeds the ${maxMediaBytes / 1024 / 1024} MB limit`);
+    }
     payload.media = {
       data: buffer.toString('base64'),
       file_type: media.fileType,
@@ -227,10 +263,21 @@ const publicSession = session => ({
   phone: session.phone,
   qr: session.qr,
   error: session.error,
+  webhook_configured: Boolean(session.webhookUrl && session.webhookSecret),
   updated_at: session.updatedAt,
 });
 
 const startSession = async session => {
+  if (session.isDestroyed) return;
+
+  if (session.socket) {
+    try {
+      session.socket.ev.removeAllListeners();
+      session.socket.end(undefined);
+    } catch (_) {}
+    session.socket = null;
+  }
+
   const { state, saveCreds } = await useMultiFileAuthState(sessionDirectory(session.id));
   session.phoneNumbers ||= {};
   session.messages ||= new Map();
@@ -250,6 +297,7 @@ const startSession = async session => {
 
   socket.ev.on('creds.update', saveCreds);
   socket.ev.on('chats.phoneNumberShare', ({ jid, lid }) => {
+    if (session.isDestroyed || !sessions.has(session.id)) return;
     const sourceId = jidUser(lid);
     const phoneNumber = jidUser(jid);
     if (!sourceId || !phoneNumber) return;
@@ -260,6 +308,7 @@ const startSession = async session => {
     publishPhoneNumber(session, sourceId, phoneNumber).catch(error => logger.warn(error));
   });
   socket.ev.on('connection.update', async update => {
+    if (session.isDestroyed || !sessions.has(session.id)) return;
     const { connection, lastDisconnect, qr } = update;
     session.updatedAt = new Date().toISOString();
 
@@ -272,7 +321,7 @@ const startSession = async session => {
     if (connection !== 'close') return;
 
     const statusCode = lastDisconnect?.error?.output?.statusCode;
-    if (statusCode === DisconnectReason.loggedOut) {
+    if (statusCode === DisconnectReason.loggedOut || session.isDestroyed) {
       session.status = 'logged_out';
       session.qr = null;
       return;
@@ -280,9 +329,13 @@ const startSession = async session => {
 
     session.status = 'reconnecting';
     session.error = lastDisconnect?.error?.message || 'connection closed';
-    setTimeout(() => startSession(session).catch(error => logger.error(error)), 3000);
+    setTimeout(() => {
+      if (session.isDestroyed || !sessions.has(session.id)) return;
+      startSession(session).catch(error => logger.error(error));
+    }, 3000);
   });
   socket.ev.on('messages.upsert', ({ type, messages }) => {
+    if (session.isDestroyed || !sessions.has(session.id)) return;
     messages
       .filter(message => !message.key.remoteJid?.endsWith('@g.us'))
       .forEach(message => rememberMessage(session, message));
@@ -296,15 +349,17 @@ const startSession = async session => {
 app.get('/health', (_, response) => response.json({ status: 'ok' }));
 app.use(authenticate);
 
-app.get('/sessions', (_, response) => response.json([...sessions.values()].map(publicSession)));
+app.get('/sessions', (_, response) => response.json([...sessions.values()].filter(s => !s.isDestroyed).map(publicSession)));
 app.get('/sessions/:sessionId', (request, response) => {
   const session = sessions.get(request.params.sessionId);
-  return session ? response.json(publicSession(session)) : response.status(404).json({ error: 'not found' });
+  return session && !session.isDestroyed ? response.json(publicSession(session)) : response.status(404).json({ error: 'not found' });
 });
 app.post('/sessions', async (request, response, next) => {
   try {
     const { session_id: sessionId, webhook_url: webhookUrl, webhook_secret: webhookSecret } = request.body;
-    if (!sessionId || sessions.has(sessionId)) return response.status(422).json({ error: 'invalid or duplicate session_id' });
+    if (!sessionId) return response.status(422).json({ error: 'invalid session_id' });
+    const existing = sessions.get(sessionId);
+    if (existing && !existing.isDestroyed) return response.status(422).json({ error: 'duplicate session_id' });
     const session = {
       id: sessionId,
       webhookUrl,
@@ -325,7 +380,7 @@ app.post('/sessions/:sessionId/messages', async (request, response, next) => {
   try {
     const session = sessions.get(request.params.sessionId);
     const { to, text, media } = request.body;
-    if (!session || session.status !== 'connected') return response.status(409).json({ error: 'session is not connected' });
+    if (!session || session.isDestroyed || session.status !== 'connected') return response.status(409).json({ error: 'session is not connected' });
     const recipient = /^\d{8,20}@(s\.whatsapp\.net|lid)$/.test(String(to)) ? to : `${to}@s.whatsapp.net`;
     if (!/^\d{8,20}@(s\.whatsapp\.net|lid)$/.test(recipient) || (!text?.trim() && !media?.data)) {
       return response.status(422).json({ error: 'to and text or media are required' });
@@ -344,7 +399,7 @@ app.post('/sessions/:sessionId/messages', async (request, response, next) => {
 });
 app.put('/sessions/:sessionId/webhook', (request, response) => {
   const session = sessions.get(request.params.sessionId);
-  if (!session) return response.status(404).json({ error: 'not found' });
+  if (!session || session.isDestroyed) return response.status(404).json({ error: 'not found' });
   session.webhookUrl = request.body.webhook_url;
   session.webhookSecret = request.body.webhook_secret;
   persistSessions()
@@ -355,9 +410,16 @@ app.delete('/sessions/:sessionId', async (request, response, next) => {
   try {
     const session = sessions.get(request.params.sessionId);
     if (!session) return response.status(404).json({ error: 'not found' });
-    session.socket?.end(undefined);
-    await fs.rm(sessionDirectory(session.id), { recursive: true, force: true });
+    session.isDestroyed = true;
+    if (session.socket) {
+      try {
+        session.socket.ev.removeAllListeners();
+        session.socket.end(undefined);
+      } catch (_) {}
+      session.socket = null;
+    }
     sessions.delete(session.id);
+    await fs.rm(sessionDirectory(session.id), { recursive: true, force: true });
     await persistSessions();
     return response.status(204).end();
   } catch (error) {

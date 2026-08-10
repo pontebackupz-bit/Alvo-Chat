@@ -1035,7 +1035,10 @@ export default {
       return file && this.onFileUpload(autoRecordedFile);
     },
     onRecordError() {
-      this.toggleAudioRecorder();
+      // Reset rather than toggle. A permission failure can happen before the
+      // recorder has entered its active state; toggling in that case leaves a
+      // blank recorder mounted and makes the microphone appear unavailable.
+      this.resetAudioRecorderInput();
       useAlert(this.$t('CONVERSATION.REPLYBOX.AUDIO_CONVERSION_FAILED'));
     },
     onRecordLimitReached() {

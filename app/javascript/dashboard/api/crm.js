@@ -50,12 +50,20 @@ class CrmAPI extends ApiClient {
     );
   }
 
-  getBaileysSession(accountId) {
-    return axios.get(`${this.accountUrl(accountId)}/baileys_session`);
+  getBaileysSession(accountId, params = {}) {
+    return axios.get(`${this.accountUrl(accountId)}/baileys_session`, {
+      params,
+    });
   }
 
-  createBaileysSession(accountId) {
-    return axios.post(`${this.accountUrl(accountId)}/baileys_session`);
+  createBaileysSession(accountId, data = {}) {
+    return axios.post(`${this.accountUrl(accountId)}/baileys_session`, data);
+  }
+
+  deleteBaileysSession(accountId, params = {}) {
+    return axios.delete(`${this.accountUrl(accountId)}/baileys_session`, {
+      params,
+    });
   }
 
   getN8nWorkflows(accountId, connectionId) {

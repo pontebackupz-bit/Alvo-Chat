@@ -21,6 +21,10 @@ class OmnichannelCrm::BaileysBridgeClient
     request(:put, "/sessions/#{session_id}/webhook", { webhook_url: webhook_url, webhook_secret: webhook_secret })
   end
 
+  def delete_session(session_id)
+    request(:delete, "/sessions/#{session_id}")
+  end
+
   def send_message(session_id, recipient, content, attachment = nil)
     payload = { to: recipient, text: content }
     payload[:media] = media_payload(attachment) if attachment
@@ -54,7 +58,11 @@ class OmnichannelCrm::BaileysBridgeClient
     request.body = body.to_json if body
 
     response = Net::HTTP.start(uri.hostname, uri.port) { |http| http.request(request) }
-    return JSON.parse(response.body) if response.is_a?(Net::HTTPSuccess)
+    if response.is_a?(Net::HTTPSuccess)
+      return {} if response.body.blank?
+
+      return JSON.parse(response.body)
+    end
 
     raise "Baileys bridge request failed with status #{response.code}"
   end

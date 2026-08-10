@@ -13,7 +13,10 @@ const props = defineProps({
   },
   maxDurationSeconds: {
     type: Number,
-    default: 600,
+    // Keep the client-side recording below the bridge's media payload limit.
+    // Longer recordings are more likely to exhaust browser/server memory once
+    // encoded as Base64 for the Baileys callback.
+    default: 300,
   },
 });
 
@@ -134,12 +137,28 @@ const stopRecording = () => {
 };
 
 const startRecording = () => {
-  record.value.startRecording();
-  isRecording.value = true;
-  recordingLimitTimer = setTimeout(() => {
-    stopRecording();
-    emit('recordLimitReached');
-  }, props.maxDurationSeconds * 1000);
+  if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+    emit('recordError', {
+      error: new Error('Audio recording requires a secure browser context and microphone support.'),
+    });
+    return;
+  }
+
+  // RecordPlugin requests the microphone itself. Its start method is async;
+  // awaiting it prevents the UI from claiming a recording is in progress when
+  // the user denied the permission or no input device is available.
+  Promise.resolve(record.value.startRecording())
+    .then(() => {
+      isRecording.value = true;
+      recordingLimitTimer = setTimeout(() => {
+        stopRecording();
+        emit('recordLimitReached');
+      }, props.maxDurationSeconds * 1000);
+    })
+    .catch(error => {
+      isRecording.value = false;
+      emit('recordError', { error });
+    });
 };
 
 const playPause = () => {

@@ -16,7 +16,7 @@ OmnichannelCrm::Engine.routes.draw do
       get :executions, on: :member
       post 'workflows/:workflow_id/execute', to: 'n8n_connections#execute_workflow', on: :member
     end
-    resource :baileys_session, only: [:show, :create]
+    resource :baileys_session, only: [:show, :create, :destroy]
     resource :dashboard, only: [:show]
     resources :audit_logs, only: [:index]
   end

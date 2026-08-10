@@ -260,7 +260,11 @@
             "TOKEN": "Token da ponte",
             "SESSION": "Identificador da sessão",
             "CONNECT": "Gerar QR Code",
+            "REPLACE": "Trocar número",
+            "REPLACE_TITLE": "Trocar o número conectado?",
+            "REPLACE_DESCRIPTION": "A sessão atual do WhatsApp será desconectada e um novo QR Code será gerado.",
             "STATUS": "Status da conexão",
+            "STATUS_WITH_VALUE": "Status da conexão: {status}",
             "QR_ALT": "QR Code para conectar WhatsApp",
             "ERROR": "Não foi possível conectar à ponte Baileys. Verifique se o serviço está em execução e se o token está correto."
           }

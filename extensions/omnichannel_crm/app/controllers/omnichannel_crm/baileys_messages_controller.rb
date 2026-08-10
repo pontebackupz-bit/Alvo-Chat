@@ -2,6 +2,9 @@ require 'base64'
 require 'stringio'
 
 class OmnichannelCrm::BaileysMessagesController < ActionController::API
+  MAX_MEDIA_BYTES = 12.megabytes
+  MAX_BASE64_MEDIA_BYTES = ((MAX_MEDIA_BYTES + 2) / 3) * 4
+
   before_action :authenticate_bridge!
 
   def create
@@ -94,6 +97,8 @@ class OmnichannelCrm::BaileysMessagesController < ActionController::API
   def attach_media(message)
     return if media_params[:data].blank?
 
+    raise ActionController::BadRequest, 'Arquivo de mídia excede o limite permitido' if media_params[:data].bytesize > MAX_BASE64_MEDIA_BYTES
+
     attachment = build_attachment(message)
     attachment.file.attach(
       io: StringIO.new(Base64.strict_decode64(media_params[:data])),
@@ -110,7 +115,7 @@ class OmnichannelCrm::BaileysMessagesController < ActionController::API
 
   def attachment_metadata
     return { is_sticker: true, is_animated_sticker: animated_sticker? } if sticker?
-    return { is_voice_message: true } if media_params[:is_voice_message] == true
+    return { is_voice_message: true } if voice_message?
 
     {}
   end
@@ -126,11 +131,19 @@ class OmnichannelCrm::BaileysMessagesController < ActionController::API
   end
 
   def sticker?
-    media_params[:is_sticker] == true
+    boolean_media_value(:is_sticker)
   end
 
   def animated_sticker?
-    media_params[:is_animated_sticker] == true
+    boolean_media_value(:is_animated_sticker)
+  end
+
+  def voice_message?
+    boolean_media_value(:is_voice_message)
+  end
+
+  def boolean_media_value(key)
+    ActiveModel::Type::Boolean.new.cast(media_params[key])
   end
 
   def message_source_id

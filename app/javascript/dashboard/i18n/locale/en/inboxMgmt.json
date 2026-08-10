@@ -258,7 +258,11 @@
             "TOKEN": "Bridge token",
             "SESSION": "Session identifier",
             "CONNECT": "Generate QR Code",
+            "REPLACE": "Replace number",
+            "REPLACE_TITLE": "Replace the connected number?",
+            "REPLACE_DESCRIPTION": "The current WhatsApp session will be disconnected and a new QR Code will be generated.",
             "STATUS": "Connection status",
+            "STATUS_WITH_VALUE": "Connection status: {status}",
             "QR_ALT": "QR Code to connect WhatsApp",
             "ERROR": "Unable to connect to the Baileys bridge. Confirm that the service is running and the token is correct."
           }
