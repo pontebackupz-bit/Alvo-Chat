@@ -49,6 +49,15 @@ services:
     entrypoint: docker/entrypoints/rails.sh
     command: ["bundle", "exec", "rails", "s", "-p", "3000", "-b", "0.0.0.0"]
 
+  # Deliberately has no host port. It is the only container exposed through the
+  # temporary Meta tunnel and forwards only WhatsApp webhook requests to Rails.
+  meta-webhook-proxy:
+    image: nginx:1.27-alpine
+    depends_on:
+      - rails
+    volumes:
+      - ./docker/nginx/meta-webhook-proxy.conf:/etc/nginx/nginx.conf:ro
+
   sidekiq:
     <<: *base
     image: chatwoot-rails:development
