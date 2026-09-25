@@ -30,6 +30,7 @@ const IMPERSONATION_URL_SEARCH_KEY = 'impersonation';
 const USER_NOT_CONFIRMED_ERROR_CODE = 'user_not_confirmed';
 const BRAND = {
   initial: 'A',
+  logoUrl: '/brand-assets/alvorada-logo-white.svg',
   platform: 'AlvoChat',
   company: 'Comercial Alvorada',
   eyebrow: 'Central comercial',
@@ -311,17 +312,8 @@ export default {
       <div
         class="absolute bottom-0 left-0 h-80 w-80 translate-x-[-35%] translate-y-[40%] rounded-full border border-white/10"
       />
-      <div class="relative z-10 flex items-center gap-3">
-        <span
-          class="flex size-11 items-center justify-center rounded-xl bg-white text-lg font-bold text-[#0C327F] shadow-lg shadow-blue-950/20"
-          >{{ brand.initial }}</span
-        >
-        <div>
-          <p class="text-lg font-semibold tracking-tight">
-            {{ brand.platform }}
-          </p>
-          <p class="text-xs text-blue-200">{{ brand.company }}</p>
-        </div>
+      <div class="relative z-10">
+        <img :src="brand.logoUrl" :alt="brand.company" class="h-12 w-auto" />
       </div>
       <div class="relative z-10 max-w-xl motion-safe:animate-fade-in-up">
         <p

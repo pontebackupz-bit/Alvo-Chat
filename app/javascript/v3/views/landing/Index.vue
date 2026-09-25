@@ -1,6 +1,7 @@
 <script setup>
 const content = {
   initial: 'A',
+  logoUrl: '/brand-assets/alvorada-logo-white.svg',
   platform: 'AlvoChat',
   company: 'Comercial Alvorada',
   eyebrow: 'Central de atendimento e vendas',
@@ -47,23 +48,12 @@ const content = {
       <header
         class="flex items-center justify-between motion-safe:animate-fade-in-up"
       >
-        <a
-          href="/"
-          class="flex items-center gap-3"
-          :aria-label="content.platform"
-        >
-          <span
-            class="flex size-10 items-center justify-center rounded-xl bg-white text-base font-bold text-[#0C327F] shadow-lg shadow-blue-950/20"
-            >{{ content.initial }}</span
-          >
-          <span>
-            <span class="block text-lg font-semibold tracking-tight">{{
-              content.platform
-            }}</span>
-            <span class="block text-xs text-blue-200">{{
-              content.company
-            }}</span>
-          </span>
+        <a href="/" class="flex items-center" :aria-label="content.company">
+          <img
+            :src="content.logoUrl"
+            :alt="content.company"
+            class="h-12 w-auto"
+          />
         </a>
         <a
           href="/app/login"
