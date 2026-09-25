@@ -152,8 +152,12 @@ const contactDetails = (session, message) => {
   const sourceId = jidUser(remoteJid);
   const phoneNumber = jidUser(message.key.senderPn) || session.phoneNumbers?.[sourceId] ||
     (remoteJid?.endsWith('@s.whatsapp.net') ? sourceId : null);
+  // WhatsApp may send a LID through an s.whatsapp.net JID while it is syncing
+  // a linked device. A phone number has at most 15 digits, whereas LIDs are
+  // longer. Treating them as phone numbers makes Chatwoot reject the contact.
+  const isLid = remoteJid?.endsWith('@lid') || sourceId?.length > 15;
 
-  return { sourceId, phoneNumber, isLid: remoteJid?.endsWith('@lid') || false };
+  return { sourceId, phoneNumber: isLid ? null : phoneNumber, isLid };
 };
 
 const outgoingMediaMessage = (media, text) => {
@@ -220,28 +224,36 @@ const publishIncomingMessage = async (session, message) => {
     timestamp: message.messageTimestamp,
   };
   if (media) {
-    const mediaMessage = media.content === message.message ? message : { ...message, message: media.content };
-    const buffer = await downloadMediaMessage(mediaMessage, 'buffer', {}, {
-      logger,
-      // Keep the socket context. Passing the method directly may break media
-      // re-upload requests for expired audio/sticker URLs.
-      reuploadRequest: mediaToReupload => session.socket.updateMediaMessage(mediaToReupload),
-    });
-    if (!Buffer.isBuffer(buffer) || !buffer.length) {
-      throw new Error('WhatsApp returned an empty media payload');
+    try {
+      const mediaMessage = media.content === message.message ? message : { ...message, message: media.content };
+      const buffer = await downloadMediaMessage(mediaMessage, 'buffer', {}, {
+        logger,
+        // Keep the socket context. Passing the method directly may break media
+        // re-upload requests for expired audio/sticker URLs.
+        reuploadRequest: mediaToReupload => session.socket.updateMediaMessage(mediaToReupload),
+      });
+      if (!Buffer.isBuffer(buffer) || !buffer.length) {
+        throw new Error('WhatsApp returned an empty media payload');
+      }
+      if (buffer.length > maxMediaBytes) {
+        throw new Error(`Incoming media exceeds the ${maxMediaBytes / 1024 / 1024} MB limit`);
+      }
+      payload.media = {
+        data: buffer.toString('base64'),
+        file_type: media.fileType,
+        mime_type: media.mimeType,
+        file_name: media.fileName,
+        is_sticker: media.isSticker,
+        is_animated_sticker: media.isAnimatedSticker,
+        is_voice_message: media.isVoiceMessage,
+      };
+    } catch (error) {
+      logger.warn(
+        { err: error, session: session.id, messageId: message.key.id },
+        'Could not download incoming WhatsApp media; delivering its text instead'
+      );
+      payload.content ||= '[Mídia recebida sem anexo disponível]';
     }
-    if (buffer.length > maxMediaBytes) {
-      throw new Error(`Incoming media exceeds the ${maxMediaBytes / 1024 / 1024} MB limit`);
-    }
-    payload.media = {
-      data: buffer.toString('base64'),
-      file_type: media.fileType,
-      mime_type: media.mimeType,
-      file_name: media.fileName,
-      is_sticker: media.isSticker,
-      is_animated_sticker: media.isAnimatedSticker,
-      is_voice_message: media.isVoiceMessage,
-    };
   }
 
   const response = await fetch(session.webhookUrl, {
