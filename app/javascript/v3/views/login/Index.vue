@@ -30,6 +30,8 @@ const ERROR_MESSAGES = {
 
 const IMPERSONATION_URL_SEARCH_KEY = 'impersonation';
 const USER_NOT_CONFIRMED_ERROR_CODE = 'user_not_confirmed';
+const logoUrl = '/brand-assets/logo.svg';
+const logoDarkUrl = '/brand-assets/logo_dark.svg';
 
 export default {
   components: {
@@ -294,7 +296,7 @@ export default {
       <div class="absolute w-96 h-96 rounded-full -top-40 -right-32 bg-white/10 blur-3xl" />
       <div class="absolute w-80 h-80 border rounded-full -bottom-32 -left-28 border-white/15" />
       <div class="relative z-10">
-        <img src="/brand-assets/logo_dark.svg" :alt="globalConfig.installationName" class="w-auto h-11" />
+        <img :src="logoDarkUrl" :alt="globalConfig.installationName" class="w-auto h-11" />
       </div>
       <div class="relative z-10 max-w-md motion-safe:animate-fade-in-up">
         <span class="inline-flex items-center px-3 py-1 text-xs font-semibold tracking-widest uppercase rounded-full bg-white/15 ring-1 ring-white/20">{{ globalConfig.installationName }}</span>
@@ -320,7 +322,7 @@ export default {
 
     <section class="flex items-center justify-center px-6 py-12 sm:px-10">
       <div class="w-full max-w-md motion-safe:animate-fade-in-up">
-        <img src="/brand-assets/logo.svg" :alt="globalConfig.installationName" class="w-auto h-9 lg:hidden" />
+        <img :src="logoUrl" :alt="globalConfig.installationName" class="w-auto h-9 lg:hidden" />
         <p class="mt-8 text-sm font-medium tracking-wide text-[#0C3A98] uppercase">{{ globalConfig.installationName }}</p>
         <h2 class="mt-2 text-3xl font-semibold tracking-tight text-n-slate-12">
           {{ replaceInstallationName($t('LOGIN.TITLE')) }}

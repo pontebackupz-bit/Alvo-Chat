@@ -25,6 +25,7 @@ const content = {
 };
 
 const installationName = window.globalConfig.installationName;
+const logoDarkUrl = '/brand-assets/logo_dark.svg';
 </script>
 
 <template>
@@ -33,7 +34,7 @@ const installationName = window.globalConfig.installationName;
     <div class="relative mx-auto flex min-h-screen max-w-7xl flex-col px-6 py-7 sm:px-10 lg:px-12">
       <header class="flex items-center justify-between motion-safe:animate-fade-in-up">
         <a href="/" class="flex items-center" :aria-label="installationName">
-          <img src="/brand-assets/logo_dark.svg" :alt="installationName" class="h-9 w-auto" />
+          <img :src="logoDarkUrl" :alt="installationName" class="h-9 w-auto" />
         </a>
         <a href="/app/login" class="rounded-full border border-white/20 bg-white/10 px-5 py-2.5 text-sm font-semibold text-white backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-[#071B4D]">
           {{ content.access }}
