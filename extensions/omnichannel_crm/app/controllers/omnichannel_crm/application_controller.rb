@@ -10,11 +10,11 @@ class OmnichannelCrm::ApplicationController < Api::V1::Accounts::BaseController
   end
 
   def authorization
-    @authorization ||= Authorization.new(account: current_account, user: current_user)
+    @authorization ||= OmnichannelCrm::Authorization.new(account: current_account, user: current_user)
   end
 
   def audit!(event_type, subject: nil, metadata: {})
-    AuditLog.create!(account: current_account, actor: current_user, event_type: event_type,
-                     subject_type: subject&.class&.name, subject_id: subject&.id, metadata: metadata)
+    OmnichannelCrm::AuditLog.create!(account: current_account, actor: current_user, event_type: event_type,
+                                     subject_type: subject&.class&.name, subject_id: subject&.id, metadata: metadata)
   end
 end

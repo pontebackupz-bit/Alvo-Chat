@@ -6,7 +6,7 @@ class OmnichannelCrm::UsersController < OmnichannelCrm::ApplicationController
     account_users = current_account.account_users.includes(:user).order('users.name ASC')
     render json: {
       users: account_users.map { |record| user_payload(record) },
-      counts: account_users.group(:availability).count
+      counts: account_users.reorder(nil).group(:availability).count
     }
   end
 
@@ -75,7 +75,7 @@ class OmnichannelCrm::UsersController < OmnichannelCrm::ApplicationController
     raise ActionController::BadRequest, 'Only a platform administrator can receive the CRM administrator role' if
       crm_role.key == 'administrator' && !@account_user.administrator?
 
-    RoleAssignment.find_or_initialize_by(account: current_account, user: user).update!(role: crm_role)
+    OmnichannelCrm::RoleAssignment.find_or_initialize_by(account: current_account, user: user).update!(role: crm_role)
     replace_memberships(user, current_account.teams, user_params[:team_ids])
     replace_memberships(user, current_account.inboxes, user_params[:inbox_ids])
     replace_supervised_teams(user, crm_role)
@@ -89,11 +89,11 @@ class OmnichannelCrm::UsersController < OmnichannelCrm::ApplicationController
   end
 
   def replace_supervised_teams(user, crm_role)
-    TeamSupervisor.where(account: current_account, user: user).destroy_all
+    OmnichannelCrm::TeamSupervisor.where(account: current_account, user: user).destroy_all
     return unless crm_role.key == 'supervisor'
 
     records_for(current_account.teams, user_params[:supervised_team_ids]).each do |team|
-      TeamSupervisor.create!(account: current_account, user: user, team: team)
+      OmnichannelCrm::TeamSupervisor.create!(account: current_account, user: user, team: team)
     end
   end
 
@@ -106,7 +106,7 @@ class OmnichannelCrm::UsersController < OmnichannelCrm::ApplicationController
   end
 
   def current_account_roles
-    Role.where(account: current_account)
+    OmnichannelCrm::Role.where(account: current_account)
   end
 
   def temporary_password
@@ -122,10 +122,10 @@ class OmnichannelCrm::UsersController < OmnichannelCrm::ApplicationController
       email: user.email,
       native_role: record.role,
       availability: record.availability,
-      crm_role_id: RoleAssignment.find_by(account: current_account, user: user)&.role_id,
+      crm_role_id: OmnichannelCrm::RoleAssignment.find_by(account: current_account, user: user)&.role_id,
       team_ids: user.teams.where(account: current_account).ids,
       inbox_ids: user.inboxes.where(account: current_account).ids,
-      supervised_team_ids: TeamSupervisor.where(account: current_account, user: user).pluck(:team_id)
+      supervised_team_ids: OmnichannelCrm::TeamSupervisor.where(account: current_account, user: user).pluck(:team_id)
     }
   end
 end

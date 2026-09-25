@@ -289,60 +289,71 @@ export default {
 </script>
 
 <template>
-  <main
-    class="flex flex-col w-full min-h-screen py-20 bg-n-brand/5 dark:bg-n-background sm:px-6 lg:px-8"
-  >
-    <section class="max-w-5xl mx-auto">
-      <img
-        :src="globalConfig.logo"
-        :alt="globalConfig.installationName"
-        class="block w-auto h-8 mx-auto dark:hidden"
-      />
-      <img
-        v-if="globalConfig.logoDark"
-        :src="globalConfig.logoDark"
-        :alt="globalConfig.installationName"
-        class="hidden w-auto h-8 mx-auto dark:block"
-      />
-      <h2 class="mt-6 text-3xl font-medium text-center text-n-slate-12">
-        {{ replaceInstallationName($t('LOGIN.TITLE')) }}
-      </h2>
-      <p v-if="showSignupLink" class="mt-3 text-sm text-center text-n-slate-11">
-        {{ $t('COMMON.OR') }}
-        <router-link to="auth/signup" class="lowercase text-link text-n-brand">
-          {{ $t('LOGIN.CREATE_NEW_ACCOUNT') }}
-        </router-link>
-      </p>
+  <main class="grid min-h-screen bg-white dark:bg-n-background lg:grid-cols-2">
+    <section class="relative hidden overflow-hidden bg-gradient-to-br from-[#0C3A98] via-[#164EBA] to-[#1E63D8] p-12 text-white lg:flex lg:flex-col lg:justify-between">
+      <div class="absolute w-96 h-96 rounded-full -top-40 -right-32 bg-white/10 blur-3xl" />
+      <div class="absolute w-80 h-80 border rounded-full -bottom-32 -left-28 border-white/15" />
+      <div class="relative z-10">
+        <img src="/brand-assets/logo_dark.svg" :alt="globalConfig.installationName" class="w-auto h-11" />
+      </div>
+      <div class="relative z-10 max-w-md motion-safe:animate-fade-in-up">
+        <span class="inline-flex items-center px-3 py-1 text-xs font-semibold tracking-widest uppercase rounded-full bg-white/15 ring-1 ring-white/20">{{ globalConfig.installationName }}</span>
+        <h1 class="mt-7 text-5xl font-semibold leading-tight tracking-tight">{{ replaceInstallationName($t('LOGIN.TITLE')) }}</h1>
+        <p class="mt-5 text-lg leading-8 text-blue-100">{{ $t('CRM.DESCRIPTION') }}</p>
+        <div class="grid grid-cols-3 gap-3 mt-10">
+          <div class="rounded-2xl bg-white/10 p-4 backdrop-blur-sm ring-1 ring-white/10 transition duration-300 hover:-translate-y-1 hover:bg-white/15">
+            <span class="i-lucide-message-square-more block size-5 text-blue-100" />
+            <p class="mt-3 text-sm font-medium">{{ $t('CONVERSATION.HEADER') }}</p>
+          </div>
+          <div class="rounded-2xl bg-white/10 p-4 backdrop-blur-sm ring-1 ring-white/10 transition duration-300 hover:-translate-y-1 hover:bg-white/15">
+            <span class="i-lucide-chart-no-axes-combined block size-5 text-blue-100" />
+            <p class="mt-3 text-sm font-medium">{{ $t('CRM.NAV.DASHBOARD') }}</p>
+          </div>
+          <div class="rounded-2xl bg-white/10 p-4 backdrop-blur-sm ring-1 ring-white/10 transition duration-300 hover:-translate-y-1 hover:bg-white/15">
+            <span class="i-lucide-shield-check block size-5 text-blue-100" />
+            <p class="mt-3 text-sm font-medium">{{ $t('CRM.NAV.ACCESS') }}</p>
+          </div>
+        </div>
+      </div>
+      <p class="relative z-10 text-sm text-blue-200">{{ globalConfig.installationName }}</p>
     </section>
 
-    <!-- Session Limit Section -->
-    <section v-if="sessionsLimitReached" class="mt-11">
-      <SessionLimitOverlay
-        :sessions="limitedSessions"
-        @revoke="handleSessionRevoke"
-        @revoke-all="handleSessionRevokeAll"
-        @cancel="handleSessionLimitCancel"
-      />
-    </section>
+    <section class="flex items-center justify-center px-6 py-12 sm:px-10">
+      <div class="w-full max-w-md motion-safe:animate-fade-in-up">
+        <img src="/brand-assets/logo.svg" :alt="globalConfig.installationName" class="w-auto h-9 lg:hidden" />
+        <p class="mt-8 text-sm font-medium tracking-wide text-[#0C3A98] uppercase">{{ globalConfig.installationName }}</p>
+        <h2 class="mt-2 text-3xl font-semibold tracking-tight text-n-slate-12">
+          {{ replaceInstallationName($t('LOGIN.TITLE')) }}
+        </h2>
+        <p v-if="showSignupLink" class="mt-3 text-sm text-n-slate-11">
+          {{ $t('COMMON.OR') }}
+          <router-link to="auth/signup" class="text-link text-n-brand">
+            {{ $t('LOGIN.CREATE_NEW_ACCOUNT') }}
+          </router-link>
+        </p>
 
-    <!-- MFA Verification Section -->
-    <section v-else-if="mfaRequired" class="mt-11">
-      <MfaVerification
-        :mfa-token="mfaToken"
-        @verified="handleMfaVerified"
-        @cancel="handleMfaCancel"
-      />
-    </section>
+        <section v-if="sessionsLimitReached" class="mt-10">
+          <SessionLimitOverlay
+            :sessions="limitedSessions"
+            @revoke="handleSessionRevoke"
+            @revoke-all="handleSessionRevokeAll"
+            @cancel="handleSessionLimitCancel"
+          />
+        </section>
 
-    <!-- Regular Login Section -->
-    <section
-      v-else
-      class="bg-white shadow sm:mx-auto mt-11 sm:w-full sm:max-w-lg dark:bg-n-solid-2 p-11 sm:shadow-lg sm:rounded-lg"
-      :class="{
-        'mb-8 mt-15': !showGoogleOAuth,
-        'animate-wiggle': loginApi.hasErrored,
-      }"
-    >
+        <section v-else-if="mfaRequired" class="mt-10">
+          <MfaVerification
+            :mfa-token="mfaToken"
+            @verified="handleMfaVerified"
+            @cancel="handleMfaCancel"
+          />
+        </section>
+
+        <section
+          v-else
+          class="p-7 mt-10 bg-white border shadow-xl border-n-slate-3 rounded-3xl shadow-blue-950/5 dark:bg-n-solid-2 dark:border-n-slate-4 sm:p-9"
+          :class="{ 'animate-wiggle': loginApi.hasErrored }"
+        >
       <div v-if="!email">
         <div class="flex flex-col gap-4">
           <GoogleOAuthButton v-if="showGoogleOAuth" />
@@ -366,7 +377,7 @@ export default {
             class="uppercase"
           />
         </div>
-        <form class="space-y-5" @submit.prevent="submitFormLogin">
+        <form class="mt-6 space-y-5" @submit.prevent="submitFormLogin">
           <FormInput
             v-model="credentials.email"
             name="email_address"
@@ -415,6 +426,8 @@ export default {
       </div>
       <div v-else class="flex items-center justify-center">
         <Spinner color-scheme="primary" size="" />
+      </div>
+        </section>
       </div>
     </section>
   </main>
