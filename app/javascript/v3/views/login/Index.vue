@@ -30,7 +30,7 @@ const IMPERSONATION_URL_SEARCH_KEY = 'impersonation';
 const USER_NOT_CONFIRMED_ERROR_CODE = 'user_not_confirmed';
 const BRAND = {
   initial: 'A',
-  logoUrl: '/brand-assets/alvorada-logo-white.svg',
+  logoUrl: '/brand-assets/alvorada-logo.png',
   platform: 'AlvoChat',
   company: 'Comercial Alvorada',
   eyebrow: 'Central comercial',
@@ -313,7 +313,11 @@ export default {
         class="absolute bottom-0 left-0 h-80 w-80 translate-x-[-35%] translate-y-[40%] rounded-full border border-white/10"
       />
       <div class="relative z-10">
-        <img :src="brand.logoUrl" :alt="brand.company" class="h-12 w-auto" />
+        <span
+          class="inline-flex rounded-xl bg-white px-3 py-2 shadow-lg shadow-blue-950/20"
+        >
+          <img :src="brand.logoUrl" :alt="brand.company" class="h-12 w-auto" />
+        </span>
       </div>
       <div class="relative z-10 max-w-xl motion-safe:animate-fade-in-up">
         <p
@@ -361,6 +365,11 @@ export default {
         >
           {{ brand.platform }}
         </p>
+        <span
+          class="mt-4 inline-flex rounded-xl border border-[#E2E8F0] bg-white px-3 py-2 shadow-sm"
+        >
+          <img :src="brand.logoUrl" :alt="brand.company" class="h-10 w-auto" />
+        </span>
         <h2 class="mt-3 text-4xl font-semibold tracking-tight text-[#132343]">
           {{ brand.loginTitle }}
         </h2>
@@ -405,6 +414,7 @@ export default {
               <FormInput
                 v-model="credentials.email"
                 class="!rounded-xl !bg-[#F5F7FB] !px-4 !py-3.5 !text-[#132343] !outline-[#D7DFEC] placeholder:!text-[#93A1B8] focus:!outline-[#1E5ED8] dark:!bg-[#F5F7FB] dark:!text-[#132343]"
+                label-class="!font-semibold !text-[#1E293B]"
                 name="email_address"
                 type="text"
                 data-testid="email_input"
@@ -418,6 +428,7 @@ export default {
               <FormInput
                 v-model="credentials.password"
                 class="!rounded-xl !bg-[#F5F7FB] !px-4 !py-3.5 !text-[#132343] !outline-[#D7DFEC] placeholder:!text-[#93A1B8] focus:!outline-[#1E5ED8] dark:!bg-[#F5F7FB] dark:!text-[#132343]"
+                label-class="!font-semibold !text-[#1E293B]"
                 type="password"
                 name="password"
                 data-testid="password_input"
