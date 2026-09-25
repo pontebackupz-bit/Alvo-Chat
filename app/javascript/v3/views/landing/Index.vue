@@ -1,7 +1,8 @@
 <script setup>
+import AlvoradaWordmark from 'shared/components/AlvoradaWordmark.vue';
+
 const content = {
   initial: 'A',
-  logoUrl: '/brand-assets/alvorada-logo.png',
   platform: 'AlvoChat',
   company: 'Comercial Alvorada',
   eyebrow: 'Central de atendimento e vendas',
@@ -49,15 +50,7 @@ const content = {
         class="flex items-center justify-between motion-safe:animate-fade-in-up"
       >
         <a href="/" class="flex items-center" :aria-label="content.company">
-          <span
-            class="inline-flex rounded-xl bg-white px-3 py-2 shadow-lg shadow-blue-950/20"
-          >
-            <img
-              :src="content.logoUrl"
-              :alt="content.company"
-              class="h-12 w-auto"
-            />
-          </span>
+          <AlvoradaWordmark tone="light" />
         </a>
         <a
           href="/app/login"

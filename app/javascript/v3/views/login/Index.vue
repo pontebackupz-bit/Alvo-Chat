@@ -18,6 +18,7 @@ import Spinner from 'shared/components/Spinner.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import MfaVerification from 'dashboard/components/auth/MfaVerification.vue';
 import SessionLimitOverlay from 'dashboard/components/auth/SessionLimitOverlay.vue';
+import AlvoradaWordmark from 'shared/components/AlvoradaWordmark.vue';
 
 const ERROR_MESSAGES = {
   'no-account-found': 'LOGIN.OAUTH.NO_ACCOUNT_FOUND',
@@ -30,7 +31,6 @@ const IMPERSONATION_URL_SEARCH_KEY = 'impersonation';
 const USER_NOT_CONFIRMED_ERROR_CODE = 'user_not_confirmed';
 const BRAND = {
   initial: 'A',
-  logoUrl: '/brand-assets/alvorada-logo.png',
   platform: 'AlvoChat',
   company: 'Comercial Alvorada',
   eyebrow: 'Central comercial',
@@ -56,6 +56,7 @@ export default {
     SimpleDivider,
     MfaVerification,
     SessionLimitOverlay,
+    AlvoradaWordmark,
   },
   props: {
     ssoAuthToken: { type: String, default: '' },
@@ -313,11 +314,7 @@ export default {
         class="absolute bottom-0 left-0 h-80 w-80 translate-x-[-35%] translate-y-[40%] rounded-full border border-white/10"
       />
       <div class="relative z-10">
-        <span
-          class="inline-flex rounded-xl bg-white px-3 py-2 shadow-lg shadow-blue-950/20"
-        >
-          <img :src="brand.logoUrl" :alt="brand.company" class="h-12 w-auto" />
-        </span>
+        <AlvoradaWordmark tone="light" size="large" />
       </div>
       <div class="relative z-10 max-w-xl motion-safe:animate-fade-in-up">
         <p
@@ -352,24 +349,14 @@ export default {
     >
       <div class="w-full max-w-md motion-safe:animate-fade-in-up">
         <div class="flex items-center gap-3 lg:hidden">
-          <span
-            class="flex size-10 items-center justify-center rounded-xl bg-[#0C327F] text-base font-bold text-white"
-            >{{ brand.initial }}</span
-          >
-          <p class="text-lg font-semibold tracking-tight text-[#132343]">
-            {{ brand.platform }}
-          </p>
+          <AlvoradaWordmark />
         </div>
         <p
           class="mt-10 text-sm font-semibold tracking-[0.14em] text-[#2764CF] uppercase"
         >
           {{ brand.platform }}
         </p>
-        <span
-          class="mt-4 inline-flex rounded-xl border border-[#E2E8F0] bg-white px-3 py-2 shadow-sm"
-        >
-          <img :src="brand.logoUrl" :alt="brand.company" class="h-10 w-auto" />
-        </span>
+        <AlvoradaWordmark class="mt-4" />
         <h2 class="mt-3 text-4xl font-semibold tracking-tight text-[#132343]">
           {{ brand.loginTitle }}
         </h2>
