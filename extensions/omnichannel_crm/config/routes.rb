@@ -10,6 +10,13 @@ OmnichannelCrm::Engine.routes.draw do
     resources :role_assignments, only: [:index, :create, :destroy]
     resources :team_supervisors, only: [:index, :create, :destroy]
     resources :automation_rules
+    resources :workflows, only: [:index, :show, :update] do
+      get :export, on: :member
+      collection do
+        post :preview
+        post :import
+      end
+    end
     resources :distribution_rules
     resources :n8n_connections, only: [:index, :create, :update, :destroy] do
       get :workflows, on: :member

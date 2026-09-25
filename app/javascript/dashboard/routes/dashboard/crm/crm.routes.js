@@ -6,6 +6,7 @@ import DistributionView from './DistributionView.vue';
 import RolesView from './RolesView.vue';
 import DashboardView from './DashboardView.vue';
 import AuditLogsView from './AuditLogsView.vue';
+import WorkflowsView from './WorkflowsView.vue';
 import { frontendURL } from '../../../helper/URLHelper';
 
 export const routes = [
@@ -32,6 +33,12 @@ export const routes = [
         path: 'automation',
         name: 'crm_automation',
         component: AutomationView,
+        meta: { permissions: ['administrator', 'agent', 'custom_role'] },
+      },
+      {
+        path: 'workflows',
+        name: 'crm_workflows',
+        component: WorkflowsView,
         meta: { permissions: ['administrator', 'agent', 'custom_role'] },
       },
       {

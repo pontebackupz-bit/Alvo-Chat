@@ -737,6 +737,12 @@ const menuItems = computed(() => {
           to: accountScopedRoute('crm_automation'),
           activeOn: ['crm_automation'],
         },
+        {
+          name: 'CRM Workflows',
+          label: t('CRM.NAV.WORKFLOWS'),
+          to: accountScopedRoute('crm_workflows'),
+          activeOn: ['crm_workflows'],
+        },
       ],
     },
     {

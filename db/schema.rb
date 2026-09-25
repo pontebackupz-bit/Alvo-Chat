@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_08_04_000000) do
+ActiveRecord::Schema[7.1].define(version: 2026_08_10_000000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -963,6 +963,23 @@ ActiveRecord::Schema[7.1].define(version: 2026_08_04_000000) do
     t.datetime "updated_at", null: false
     t.index ["account_id", "created_at"], name: "index_crm_workflow_executions_on_account_id_and_created_at"
     t.index ["n8n_connection_id", "status"], name: "index_crm_workflow_executions_on_n8n_connection_id_and_status"
+  end
+
+  create_table "crm_workflows", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "name", null: false
+    t.text "description"
+    t.string "source", default: "native", null: false
+    t.string "source_workflow_id"
+    t.jsonb "nodes", default: [], null: false
+    t.jsonb "connections", default: [], null: false
+    t.jsonb "variables", default: [], null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.jsonb "import_report", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "name"], name: "index_crm_workflows_on_account_id_and_name"
+    t.index ["account_id", "source", "source_workflow_id"], name: "index_crm_workflows_by_import_source", unique: true, where: "(source_workflow_id IS NOT NULL)"
   end
 
   create_table "csat_survey_responses", force: :cascade do |t|

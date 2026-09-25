@@ -6,6 +6,7 @@
       "LEADS": "Leads",
       "AUTOMATION": "Integração n8n",
       "RULES": "Regras de automação",
+      "WORKFLOWS": "Fluxos",
       "DISTRIBUTION": "Distribuição",
       "ACCESS": "Controle de acesso",
       "DASHBOARD": "Painel comercial",
@@ -114,6 +115,21 @@
       "DELETE_SUCCESS": "Regra de automação removida.",
       "SAVE_ERROR": "Não foi possível salvar a regra de automação.",
       "FETCH_ERROR": "Não foi possível carregar as regras de automação."
+    },
+    "WORKFLOWS": {
+      "TITLE": "Fluxos",
+      "DESCRIPTION": "Importe fluxos do EZ.Chat para revisão e migração gradual.",
+      "IMPORT": "Importar fluxo", "EXPORT": "Exportar .alvo",
+      "IMPORT_TITLE": "Importar fluxo",
+      "IMPORT_HELP": "Selecione um arquivo .flow do EZ.Chat ou .alvo da Comercial Alvorada. O conteúdo não é executado durante a importação.",
+      "IMPORT_SUCCESS": "Fluxo importado com sucesso.",
+      "IMPORT_ERROR": "Não foi possível importar o fluxo.", "EXPORT_ERROR": "Não foi possível exportar o fluxo.",
+      "PREVIEW_ERROR": "Não foi possível analisar o arquivo selecionado.",
+      "FETCH_ERROR": "Não foi possível carregar os fluxos.",
+      "EMPTY": "Nenhum fluxo interno foi importado.",
+      "NAME": "Nome", "SOURCE": "Origem", "NODES": "nodes", "CONNECTIONS": "conexões", "OPEN": "Abrir fluxo", "BACK": "Voltar para fluxos",
+      "ORIGIN": "Origem", "ORIGIN_VALUE": "Origem: {source}", "CONVERTED": "convertidos", "NEEDS_REVIEW": "precisam de revisão", "CREDENTIALS": "credenciais necessárias", "SUBFLOWS": "subfluxos pendentes",
+      "CANVAS_LABEL": "Editor visual do fluxo importado", "WARNING": "⚠ {message}", "UNSUPPORTED_NODE": "Node importado não suportado: {type}", "CREDENTIAL_REQUIRED": "Credencial necessária", "SUBFLOW_PENDING": "Subfluxo pendente: {name}"
     },
     "DISTRIBUTION": {
       "TITLE": "Distribuição automática",

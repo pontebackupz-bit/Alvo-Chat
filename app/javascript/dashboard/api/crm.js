@@ -171,6 +171,42 @@ class CrmAPI extends ApiClient {
     );
   }
 
+  getWorkflows(accountId) {
+    return axios.get(`${this.accountUrl(accountId)}/workflows`);
+  }
+
+  getWorkflow(accountId, workflowId) {
+    return axios.get(`${this.accountUrl(accountId)}/workflows/${workflowId}`);
+  }
+
+  previewWorkflowImport(accountId, file) {
+    const data = new FormData();
+    data.append('file', file);
+    return axios.post(`${this.accountUrl(accountId)}/workflows/preview`, data);
+  }
+
+  importWorkflow(accountId, file) {
+    const data = new FormData();
+    data.append('file', file);
+    return axios.post(`${this.accountUrl(accountId)}/workflows/import`, data);
+  }
+
+  updateWorkflow(accountId, workflowId, data) {
+    return axios.patch(
+      `${this.accountUrl(accountId)}/workflows/${workflowId}`,
+      {
+        workflow: data,
+      }
+    );
+  }
+
+  exportWorkflow(accountId, workflowId) {
+    return axios.get(
+      `${this.accountUrl(accountId)}/workflows/${workflowId}/export`,
+      { responseType: 'blob' }
+    );
+  }
+
   getDashboardMetrics(accountId) {
     return axios.get(`${this.accountUrl(accountId)}/dashboard`);
   }
