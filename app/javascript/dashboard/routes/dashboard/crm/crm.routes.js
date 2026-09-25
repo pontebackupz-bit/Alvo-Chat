@@ -51,7 +51,7 @@ export const routes = [
         path: 'roles',
         name: 'crm_roles',
         component: RolesView,
-        meta: { permissions: ['administrator', 'agent', 'custom_role'] },
+        meta: { permissions: ['administrator'] },
       },
       {
         path: 'dashboard',

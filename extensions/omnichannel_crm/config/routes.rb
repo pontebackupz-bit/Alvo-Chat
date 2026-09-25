@@ -7,6 +7,9 @@ OmnichannelCrm::Engine.routes.draw do
     end
 
     resources :roles, only: [:index, :create, :update]
+    resources :users, only: [:index, :create, :update] do
+      post :reset_password, on: :member
+    end
     resources :role_assignments, only: [:index, :create, :destroy]
     resources :team_supervisors, only: [:index, :create, :destroy]
     resources :automation_rules

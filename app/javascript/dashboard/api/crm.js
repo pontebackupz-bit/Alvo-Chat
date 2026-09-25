@@ -114,6 +114,24 @@ class CrmAPI extends ApiClient {
     return axios.get(`${this.accountUrl(accountId)}/roles`);
   }
 
+  getUsers(accountId) {
+    return axios.get(`${this.accountUrl(accountId)}/users`);
+  }
+
+  createUser(accountId, data) {
+    return axios.post(`${this.accountUrl(accountId)}/users`, { user: data });
+  }
+
+  updateUser(accountId, userId, data) {
+    return axios.patch(`${this.accountUrl(accountId)}/users/${userId}`, {
+      user: data,
+    });
+  }
+
+  resetUserPassword(accountId, userId) {
+    return axios.post(`${this.accountUrl(accountId)}/users/${userId}/reset_password`);
+  }
+
   getRoleAssignments(accountId) {
     return axios.get(`${this.accountUrl(accountId)}/role_assignments`);
   }

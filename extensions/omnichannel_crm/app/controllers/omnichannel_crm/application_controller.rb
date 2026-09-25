@@ -1,20 +1,20 @@
-module OmnichannelCrm
-  class ApplicationController < ::Api::V1::Accounts::BaseController
-    private
+class OmnichannelCrm::ApplicationController < Api::V1::Accounts::BaseController
+  include ::EnsureCurrentAccountHelper
 
-    def authorize_crm!(permission)
-      return if authorization.allows?(permission)
+  private
 
-      render json: { error: 'You are not allowed to perform this CRM action' }, status: :forbidden
-    end
+  def authorize_crm!(permission)
+    return if authorization.allows?(permission)
 
-    def authorization
-      @authorization ||= Authorization.new(account: current_account, user: current_user)
-    end
+    render json: { error: 'You are not allowed to perform this CRM action' }, status: :forbidden
+  end
 
-    def audit!(event_type, subject: nil, metadata: {})
-      AuditLog.create!(account: current_account, actor: current_user, event_type: event_type,
-                       subject_type: subject&.class&.name, subject_id: subject&.id, metadata: metadata)
-    end
+  def authorization
+    @authorization ||= Authorization.new(account: current_account, user: current_user)
+  end
+
+  def audit!(event_type, subject: nil, metadata: {})
+    AuditLog.create!(account: current_account, actor: current_user, event_type: event_type,
+                     subject_type: subject&.class&.name, subject_id: subject&.id, metadata: metadata)
   end
 end
