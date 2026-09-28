@@ -1,6 +1,6 @@
 <script setup>
 /* global axios */
-import { computed, onActivated, ref } from 'vue';
+import { computed, onActivated, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
 import { picoSearch } from '@scmmishra/pico-search';
@@ -28,6 +28,7 @@ const searchQuery = ref('');
 const selectedWhatsAppInbox = ref(null);
 const baileysSession = ref(null);
 const isLoadingBaileysSession = ref(false);
+const baileysSessions = ref({});
 
 const inboxes = useMapGetter('inboxes/getInboxes');
 
@@ -47,17 +48,75 @@ const filteredInboxesList = computed(() => {
 
 const uiFlags = computed(() => getters['inboxes/getUIFlags'].value);
 const accountId = computed(() => store.getters.getCurrentAccountId);
-const isBaileysInbox = inbox =>
-  inbox.channel_type === 'Channel::Api' && inbox.name.startsWith('WhatsApp ');
+const isBaileysInbox = inbox => inbox.name?.startsWith('WhatsApp ');
+const baileysSessionUrl = () =>
+  `/api/v1/accounts/${accountId.value}/crm/baileys_session`;
+const baileysSessionParams = inboxId => ({ params: { inbox_id: inboxId } });
+const baileysStatus = inbox => baileysSessions.value[inbox.id]?.status || 'not_started';
+const baileysStatusLabel = inbox => {
+  const labels = {
+    connected: 'Ativo',
+    connecting: 'Conectando',
+    reconnecting: 'Reconectando',
+    qr_available: 'Aguardando leitura do QR',
+    not_started: 'Desconectado',
+  };
+
+  return labels[baileysStatus(inbox)] || 'Desconectado';
+};
+const baileysStatusClass = inbox => {
+  const status = baileysStatus(inbox);
+  if (status === 'connected') return 'bg-n-teal-9';
+  if (['connecting', 'reconnecting', 'qr_available'].includes(status)) return 'bg-n-amber-9';
+
+  return 'bg-n-ruby-9';
+};
+
+const fetchBaileysSession = async inbox => {
+  try {
+    const response = await axios.get(
+      baileysSessionUrl(),
+      baileysSessionParams(inbox.id)
+    );
+    baileysSessions.value = { ...baileysSessions.value, [inbox.id]: response.data };
+  } catch (error) {
+    baileysSessions.value = {
+      ...baileysSessions.value,
+      [inbox.id]: { status: 'not_started' },
+    };
+  }
+};
+
+watch(
+  inboxes,
+  currentInboxes => {
+    (currentInboxes || [])
+      .filter(isBaileysInbox)
+      .forEach(inbox => fetchBaileysSession(inbox));
+  },
+  { immediate: true }
+);
 
 const loadBaileysSession = async ({ create = false } = {}) => {
   if (!selectedWhatsAppInbox.value) return;
 
   isLoadingBaileysSession.value = true;
-  const url = `/api/v1/accounts/${accountId.value}/crm/baileys_session?inbox_id=${selectedWhatsAppInbox.value.id}`;
   try {
-    const response = create ? await axios.post(url) : await axios.get(url);
+    const response = create
+      ? await axios.post(
+          baileysSessionUrl(),
+          null,
+          baileysSessionParams(selectedWhatsAppInbox.value.id)
+        )
+      : await axios.get(
+          baileysSessionUrl(),
+          baileysSessionParams(selectedWhatsAppInbox.value.id)
+        );
     baileysSession.value = response.data;
+    baileysSessions.value = {
+      ...baileysSessions.value,
+      [selectedWhatsAppInbox.value.id]: response.data,
+    };
   } catch (error) {
     useAlert('Não foi possível gerar o QR code do WhatsApp.');
   } finally {
@@ -65,11 +124,24 @@ const loadBaileysSession = async ({ create = false } = {}) => {
   }
 };
 
-const openWhatsAppConnection = async inbox => {
+const refreshWhatsAppQr = async inbox => {
   selectedWhatsAppInbox.value = inbox;
   baileysSession.value = null;
-  await loadBaileysSession();
-  if (baileysSession.value?.status === 'not_started') await loadBaileysSession({ create: true });
+  isLoadingBaileysSession.value = true;
+
+  try {
+    const response = await axios.post(
+      `${baileysSessionUrl()}/refresh`,
+      null,
+      baileysSessionParams(inbox.id)
+    );
+    baileysSession.value = response.data;
+    baileysSessions.value = { ...baileysSessions.value, [inbox.id]: response.data };
+  } catch (error) {
+    useAlert('Não foi possível renovar o QR code do WhatsApp.');
+  } finally {
+    isLoadingBaileysSession.value = false;
+  }
 };
 
 const closeWhatsAppConnection = () => {
@@ -186,16 +258,23 @@ const openDelete = inbox => {
                 :voice-enabled="inbox.voice_enabled"
                 class="text-body-main text-n-slate-11"
               />
+              <span
+                v-if="isBaileysInbox(inbox)"
+                class="flex items-center gap-1.5 text-xs font-medium text-n-slate-11"
+              >
+                <span class="size-2 rounded-full" :class="baileysStatusClass(inbox)" />
+                {{ baileysStatusLabel(inbox) }}
+              </span>
             </div>
           </div>
           <div class="flex gap-3 justify-end">
             <Button
               v-if="isAdmin && isBaileysInbox(inbox)"
-              v-tooltip.top="'Conectar WhatsApp'"
-              icon="i-lucide-qr-code"
+              label="Renovar QR"
+              icon="i-lucide-refresh-cw"
               slate
               sm
-              @click="openWhatsAppConnection(inbox)"
+              @click="refreshWhatsAppQr(inbox)"
             />
             <router-link
               :to="{
@@ -256,7 +335,13 @@ const openDelete = inbox => {
             No WhatsApp do celular: Configurações → Aparelhos conectados → Conectar aparelho.
           </p>
           <div class="mt-6 flex justify-end gap-3">
-            <Button label="Atualizar QR" slate sm :is-loading="isLoadingBaileysSession" @click="loadBaileysSession" />
+            <Button
+              label="Atualizar status"
+              slate
+              sm
+              :is-loading="isLoadingBaileysSession"
+              @click="loadBaileysSession"
+            />
             <Button label="Fechar" sm @click="closeWhatsAppConnection" />
           </div>
         </div>

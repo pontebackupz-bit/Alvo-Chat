@@ -24,6 +24,17 @@ class OmnichannelCrm::BaileysSessionsController < OmnichannelCrm::ApplicationCon
     render json: { error: e.message }, status: :unprocessable_entity
   end
 
+  def refresh
+    # Renewing the QR intentionally resets only the linked-device session. The
+    # inbox and its conversations remain in Chatwoot.
+    bridge.delete_session(session_id)
+    bridge.create_session(session_id)
+    configure_inbox!
+    render json: bridge.session(session_id), status: :created
+  rescue StandardError => e
+    render json: { error: e.message }, status: :unprocessable_entity
+  end
+
   def destroy
     target_id = session_id
     bridge.delete_session(target_id)
