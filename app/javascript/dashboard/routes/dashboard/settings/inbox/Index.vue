@@ -1,6 +1,13 @@
 <script setup>
 /* global axios */
-import { computed, onActivated, ref, watch } from 'vue';
+import {
+  computed,
+  onActivated,
+  onBeforeUnmount,
+  onDeactivated,
+  ref,
+  watch,
+} from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
 import { picoSearch } from '@scmmishra/pico-search';
@@ -29,12 +36,9 @@ const selectedWhatsAppInbox = ref(null);
 const baileysSession = ref(null);
 const isLoadingBaileysSession = ref(false);
 const baileysSessions = ref({});
+let baileysStatusPolling;
 
 const inboxes = useMapGetter('inboxes/getInboxes');
-
-onActivated(() => {
-  store.dispatch('inboxes/get');
-});
 
 const inboxesList = computed(() => {
   return inboxes.value?.slice().sort((a, b) => a.name.localeCompare(b.name));
@@ -48,11 +52,17 @@ const filteredInboxesList = computed(() => {
 
 const uiFlags = computed(() => getters['inboxes/getUIFlags'].value);
 const accountId = computed(() => store.getters.getCurrentAccountId);
-const isBaileysInbox = inbox => inbox.name?.startsWith('WhatsApp ');
+const isBaileysInbox = inbox =>
+  String(inbox.name || '').toLocaleLowerCase().includes('whatsapp');
 const baileysSessionUrl = () =>
   `/api/v1/accounts/${accountId.value}/crm/baileys_session`;
 const baileysSessionParams = inboxId => ({ params: { inbox_id: inboxId } });
 const baileysStatus = inbox => baileysSessions.value[inbox.id]?.status || 'not_started';
+const supportsBrowserNotifications =
+  typeof window !== 'undefined' && 'Notification' in window;
+const notificationsEnabled = computed(
+  () => supportsBrowserNotifications && window.Notification.permission === 'granted'
+);
 const baileysStatusLabel = inbox => {
   const labels = {
     connected: 'Ativo',
@@ -73,18 +83,46 @@ const baileysStatusClass = inbox => {
 };
 
 const fetchBaileysSession = async inbox => {
+  const previousStatus = baileysStatus(inbox);
   try {
     const response = await axios.get(
       baileysSessionUrl(),
       baileysSessionParams(inbox.id)
     );
     baileysSessions.value = { ...baileysSessions.value, [inbox.id]: response.data };
+    notifyDisconnectedInbox(inbox, previousStatus, response.data.status);
   } catch (error) {
     baileysSessions.value = {
       ...baileysSessions.value,
       [inbox.id]: { status: 'not_started' },
     };
   }
+};
+
+const notifyDisconnectedInbox = (inbox, previousStatus, currentStatus) => {
+  if (previousStatus !== 'connected' || currentStatus === 'connected') return;
+
+  const message = `${inbox.name} foi desconectado. Renove o QR code para voltar a atender.`;
+  useAlert(message);
+  if (notificationsEnabled.value) {
+    new window.Notification('WhatsApp desconectado', { body: message });
+  }
+};
+
+const enableBrowserNotifications = async () => {
+  if (!supportsBrowserNotifications) {
+    useAlert('Este navegador não oferece suporte a notificações.');
+    return;
+  }
+
+  const permission = await window.Notification.requestPermission();
+  if (permission === 'granted') {
+    useAlert('Notificações de conexão do WhatsApp ativadas.');
+  }
+};
+
+const refreshBaileysStatuses = () => {
+  (inboxes.value || []).filter(isBaileysInbox).forEach(fetchBaileysSession);
 };
 
 watch(
@@ -96,6 +134,21 @@ watch(
   },
   { immediate: true }
 );
+
+const clearBaileysStatusPolling = () => {
+  if (baileysStatusPolling) window.clearInterval(baileysStatusPolling);
+  baileysStatusPolling = null;
+};
+
+onActivated(() => {
+  store.dispatch('inboxes/get');
+  refreshBaileysStatuses();
+  clearBaileysStatusPolling();
+  baileysStatusPolling = window.setInterval(refreshBaileysStatuses, 30000);
+});
+
+onDeactivated(clearBaileysStatusPolling);
+onBeforeUnmount(clearBaileysStatusPolling);
 
 const loadBaileysSession = async ({ create = false } = {}) => {
   if (!selectedWhatsAppInbox.value) return;
@@ -211,6 +264,14 @@ const openDelete = inbox => {
           </span>
         </template>
         <template #actions>
+          <Button
+            v-if="supportsBrowserNotifications && !notificationsEnabled"
+            label="Ativar notificações"
+            icon="i-lucide-bell-ring"
+            slate
+            size="sm"
+            @click="enableBrowserNotifications"
+          />
           <router-link v-if="isAdmin" :to="{ name: 'settings_inbox_new' }">
             <Button :label="$t('SETTINGS.INBOXES.NEW_INBOX')" size="sm" />
           </router-link>
