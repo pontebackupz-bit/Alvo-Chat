@@ -47,10 +47,15 @@ class OmnichannelCrm::BaileysSessionsController < OmnichannelCrm::ApplicationCon
 
   def session_id
     return params[:session_id] if params[:session_id].present?
-    return "account-#{current_account.id}-inbox-#{params[:inbox_id]}" if params[:inbox_id].present?
+    return inbox_session_id if params[:inbox_id].present?
 
     key = params[:session_key].presence || 'default'
     "account-#{current_account.id}-session-#{key}"
+  end
+
+  def inbox_session_id
+    inbox = current_account.inboxes.find(params[:inbox_id])
+    inbox.channel.additional_attributes['session_id'].presence || "account-#{current_account.id}-inbox-#{inbox.id}"
   end
 
   def configure_inbox!

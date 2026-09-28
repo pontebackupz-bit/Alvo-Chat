@@ -1,4 +1,5 @@
 <script setup>
+/* global axios */
 import { computed, onActivated, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useAlert } from 'dashboard/composables';
@@ -24,6 +25,9 @@ const { isAdmin } = useAdmin();
 const showDeletePopup = ref(false);
 const selectedInbox = ref({});
 const searchQuery = ref('');
+const selectedWhatsAppInbox = ref(null);
+const baileysSession = ref(null);
+const isLoadingBaileysSession = ref(false);
 
 const inboxes = useMapGetter('inboxes/getInboxes');
 
@@ -42,6 +46,36 @@ const filteredInboxesList = computed(() => {
 });
 
 const uiFlags = computed(() => getters['inboxes/getUIFlags'].value);
+const accountId = computed(() => store.getters.getCurrentAccountId);
+const isBaileysInbox = inbox =>
+  inbox.channel_type === 'Channel::Api' && inbox.name.startsWith('WhatsApp ');
+
+const loadBaileysSession = async ({ create = false } = {}) => {
+  if (!selectedWhatsAppInbox.value) return;
+
+  isLoadingBaileysSession.value = true;
+  const url = `/api/v1/accounts/${accountId.value}/crm/baileys_session?inbox_id=${selectedWhatsAppInbox.value.id}`;
+  try {
+    const response = create ? await axios.post(url) : await axios.get(url);
+    baileysSession.value = response.data;
+  } catch (error) {
+    useAlert('Não foi possível gerar o QR code do WhatsApp.');
+  } finally {
+    isLoadingBaileysSession.value = false;
+  }
+};
+
+const openWhatsAppConnection = async inbox => {
+  selectedWhatsAppInbox.value = inbox;
+  baileysSession.value = null;
+  await loadBaileysSession();
+  if (baileysSession.value?.status === 'not_started') await loadBaileysSession({ create: true });
+};
+
+const closeWhatsAppConnection = () => {
+  selectedWhatsAppInbox.value = null;
+  baileysSession.value = null;
+};
 
 const deleteConfirmText = computed(
   () => `${t('INBOX_MGMT.DELETE.CONFIRM.YES')} ${selectedInbox.value.name}`
@@ -155,6 +189,14 @@ const openDelete = inbox => {
             </div>
           </div>
           <div class="flex gap-3 justify-end">
+            <Button
+              v-if="isAdmin && isBaileysInbox(inbox)"
+              v-tooltip.top="'Conectar WhatsApp'"
+              icon="i-lucide-qr-code"
+              slate
+              sm
+              @click="openWhatsAppConnection(inbox)"
+            />
             <router-link
               :to="{
                 name: 'settings_inbox_show',
@@ -182,6 +224,44 @@ const openDelete = inbox => {
         </div>
       </div>
     </template>
+
+    <Teleport to="body">
+      <div
+        v-if="selectedWhatsAppInbox"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-n-slate-12/70 p-4"
+        @click.self="closeWhatsAppConnection"
+      >
+        <div class="w-full max-w-md rounded-2xl bg-n-solid-1 p-6 shadow-xl">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <p class="text-heading-3 text-n-slate-12">Conectar WhatsApp</p>
+              <p class="mt-1 text-sm text-n-slate-11">{{ selectedWhatsAppInbox.name }}</p>
+            </div>
+            <Button icon="i-lucide-x" slate sm @click="closeWhatsAppConnection" />
+          </div>
+          <div class="mt-6 flex min-h-72 items-center justify-center rounded-xl bg-n-alpha-2 p-4">
+            <img
+              v-if="baileysSession?.qr"
+              :src="baileysSession.qr"
+              alt="QR code para conectar o WhatsApp"
+              class="size-72 max-w-full rounded-lg bg-white p-2"
+            />
+            <div v-else class="text-center text-sm text-n-slate-11">
+              <span v-if="isLoadingBaileysSession">Gerando QR code...</span>
+              <span v-else-if="baileysSession?.status === 'connected'">WhatsApp conectado.</span>
+              <span v-else>O QR code ainda não está disponível.</span>
+            </div>
+          </div>
+          <p class="mt-5 text-sm leading-6 text-n-slate-11">
+            No WhatsApp do celular: Configurações → Aparelhos conectados → Conectar aparelho.
+          </p>
+          <div class="mt-6 flex justify-end gap-3">
+            <Button label="Atualizar QR" slate sm :is-loading="isLoadingBaileysSession" @click="loadBaileysSession" />
+            <Button label="Fechar" sm @click="closeWhatsAppConnection" />
+          </div>
+        </div>
+      </div>
+    </Teleport>
 
     <woot-confirm-delete-modal
       v-if="showDeletePopup"
