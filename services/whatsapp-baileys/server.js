@@ -293,10 +293,16 @@ const startSession = async session => {
   const { state, saveCreds } = await useMultiFileAuthState(sessionDirectory(session.id));
   session.phoneNumbers ||= {};
   session.messages ||= new Map();
-  const { version } = await fetchLatestBaileysVersion();
+  const latestVersion = await Promise.race([
+    fetchLatestBaileysVersion(),
+    new Promise(resolve => setTimeout(() => resolve({}), 10_000)),
+  ]).catch(error => {
+    logger.warn({ err: error, session: session.id }, 'Could not fetch the latest Baileys version');
+    return {};
+  });
   const socket = makeWASocket({
     auth: state,
-    version,
+    ...(latestVersion.version && { version: latestVersion.version }),
     browser: Browsers.ubuntu('Comercial Alvorada'),
     printQRInTerminal: false,
     logger: logger.child({ session: session.id, level: 'warn' }),

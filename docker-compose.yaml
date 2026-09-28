@@ -137,6 +137,7 @@ services:
       - BAILEYS_API_TOKEN=${BAILEYS_API_TOKEN:-local-development-token-change-before-production}
     volumes:
       - baileys_data:/data
+      - ./services/whatsapp-baileys/server.js:/service/server.js:ro
     ports:
       - '3001:3001'
 
