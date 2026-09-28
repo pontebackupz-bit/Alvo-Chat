@@ -5,6 +5,8 @@ class OmnichannelCrm::BaileysMessageDeliveryJob < ApplicationJob
 
   def perform(message_id, attempt = 0)
     message = Message.find(message_id)
+    return unless message.outgoing?
+
     OmnichannelCrm::BaileysMessageDeliveryService.new(message).perform
   rescue ActiveStorage::FileNotFoundError => e
     return retry_after_upload(message_id, attempt) if attempt < MAX_FILE_AVAILABILITY_RETRIES
