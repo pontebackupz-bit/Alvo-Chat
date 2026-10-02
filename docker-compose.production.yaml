@@ -34,7 +34,7 @@ services:
       - BAILEYS_BRIDGE_URL=http://baileys:3001
       - BAILEYS_API_TOKEN=${BAILEYS_API_TOKEN:?Set BAILEYS_API_TOKEN in .env}
       - BAILEYS_CHATWOOT_CALLBACK_URL=http://rails:3000/api/v1/baileys
-    entrypoint: docker/entrypoints/rails.sh
+    entrypoint: ['sh', 'docker/entrypoints/rails.sh']
     command: ['bundle', 'exec', 'rails', 's', '-p', '3000', '-b', '0.0.0.0']
     restart: always
 
