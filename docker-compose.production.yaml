@@ -1,23 +1,34 @@
-version: '3'
+x-base: &base
+  build:
+    context: .
+    dockerfile: ./docker/Dockerfile
+    args:
+      BUNDLE_WITHOUT: 'development:test'
+      EXECJS_RUNTIME: Disabled
+      RAILS_ENV: production
+      RAILS_SERVE_STATIC_FILES: 'true'
+  image: crm-omnichannel:production
+  env_file: .env
+  volumes:
+    - storage_data:/app/storage
 
 services:
-  base: &base
-    image: chatwoot/chatwoot:latest
-    env_file: .env ## Change this file for customized env variables
-    volumes:
-      - storage_data:/app/storage
 
   rails:
     <<: *base
     depends_on:
       - postgres
       - redis
+      - baileys
     ports:
-      - '127.0.0.1:3000:3000'
+      - '8069:3000'
     environment:
       - NODE_ENV=production
       - RAILS_ENV=production
       - INSTALLATION_ENV=docker
+      - BAILEYS_BRIDGE_URL=http://baileys:3001
+      - BAILEYS_API_TOKEN=${BAILEYS_API_TOKEN:?Set BAILEYS_API_TOKEN in .env}
+      - BAILEYS_CHATWOOT_CALLBACK_URL=http://rails:3000/api/v1/baileys
     entrypoint: docker/entrypoints/rails.sh
     command: ['bundle', 'exec', 'rails', 's', '-p', '3000', '-b', '0.0.0.0']
     restart: always
@@ -27,25 +38,22 @@ services:
     depends_on:
       - postgres
       - redis
+      - baileys
     environment:
       - NODE_ENV=production
       - RAILS_ENV=production
       - INSTALLATION_ENV=docker
+      - BAILEYS_BRIDGE_URL=http://baileys:3001
+      - BAILEYS_API_TOKEN=${BAILEYS_API_TOKEN:?Set BAILEYS_API_TOKEN in .env}
     command: ['bundle', 'exec', 'sidekiq', '-C', 'config/sidekiq.yml']
     restart: always
 
   postgres:
     image: pgvector/pgvector:pg16
     restart: always
-    ports:
-      - '127.0.0.1:5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_DB=chatwoot
-      - POSTGRES_USER=postgres
-      # Please provide your own password.
-      - POSTGRES_PASSWORD=
+    env_file: .env
 
   redis:
     image: redis:alpine
@@ -54,10 +62,21 @@ services:
     env_file: .env
     volumes:
       - redis_data:/data
-    ports:
-      - '127.0.0.1:6379:6379'
+
+  baileys:
+    build:
+      context: ./services/whatsapp-baileys
+    restart: always
+    environment:
+      - PORT=3001
+      - BAILEYS_DATA_DIR=/data
+      - BAILEYS_API_TOKEN=${BAILEYS_API_TOKEN:?Set BAILEYS_API_TOKEN in .env}
+    volumes:
+      - baileys_data:/data
+      - ./services/whatsapp-baileys/server.js:/service/server.js:ro
 
 volumes:
   storage_data:
   postgres_data:
   redis_data:
+  baileys_data:
