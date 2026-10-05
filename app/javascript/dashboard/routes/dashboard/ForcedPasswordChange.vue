@@ -1,9 +1,10 @@
 <script setup>
+/* global axios */
+
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { useStore } from 'vuex';
-import axios from 'axios';
 import { useAlert } from 'dashboard/composables';
 import Button from 'dashboard/components-next/button/Button.vue';
 import { frontendURL } from 'dashboard/helper/URLHelper';
