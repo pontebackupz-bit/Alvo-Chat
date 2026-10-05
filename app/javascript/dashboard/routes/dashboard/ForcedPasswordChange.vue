@@ -20,8 +20,10 @@ const errorMessage = ref('');
 const isValid = computed(
   () =>
     password.value.length >= 6 &&
+    /[A-Z]/.test(password.value) &&
     /[a-z]/.test(password.value) &&
     /\d/.test(password.value) &&
+    /[!@#$%^&*()_+\-=\[\]{}|']/.test(password.value) &&
     password.value === passwordConfirmation.value
 );
 
@@ -47,7 +49,9 @@ const changePassword = async () => {
     );
   } catch (error) {
     errorMessage.value =
-      error.response?.data?.error || t('CRM.FORCED_PASSWORD.SAVE_ERROR');
+      error.response?.data?.error ||
+      error.response?.data?.message ||
+      t('CRM.FORCED_PASSWORD.SAVE_ERROR');
   } finally {
     isSaving.value = false;
   }

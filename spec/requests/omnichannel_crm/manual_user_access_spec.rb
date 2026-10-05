@@ -142,5 +142,15 @@ RSpec.describe 'Manual CRM user access', type: :request do
       expect(response).to have_http_status(:unprocessable_entity)
       expect(user.reload.force_password_change).to be(true)
     end
+
+    it 'returns the password requirements before attempting the update' do
+      post '/api/v1/password_change',
+           params: { password_change: { password: 'novasenha1', password_confirmation: 'novasenha1' } },
+           headers: user.create_new_auth_token,
+           as: :json
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body['error']).to include('letra maiúscula')
+    end
   end
 end

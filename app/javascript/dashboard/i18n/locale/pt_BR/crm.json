@@ -210,7 +210,7 @@
       "NEW_PASSWORD": "Nova senha",
       "CONFIRM_PASSWORD": "Confirme a nova senha",
       "SUBMIT": "Salvar nova senha",
-      "VALIDATION_ERROR": "Use pelo menos 6 caracteres, incluindo uma letra minúscula e um número. As senhas devem ser iguais.",
+      "VALIDATION_ERROR": "Use pelo menos 6 caracteres, incluindo letra maiúscula, minúscula, número e símbolo especial. As senhas devem ser iguais.",
       "SAVE_ERROR": "Não foi possível alterar a senha. Tente novamente.",
       "SUCCESS": "Senha alterada com sucesso."
     },
