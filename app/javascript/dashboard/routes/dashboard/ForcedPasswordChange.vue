@@ -6,6 +6,7 @@ import { useStore } from 'vuex';
 import { useAlert } from 'dashboard/composables';
 import Button from 'dashboard/components-next/button/Button.vue';
 import { frontendURL } from 'dashboard/helper/URLHelper';
+import Auth from 'dashboard/api/auth';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -35,12 +36,16 @@ const changePassword = async () => {
 
   isSaving.value = true;
   try {
-    await window.axios.post('/api/v1/password_change', {
-      password_change: {
-        password: password.value,
-        password_confirmation: passwordConfirmation.value,
+    await window.axios.post(
+      '/api/v1/password_change',
+      {
+        password_change: {
+          password: password.value,
+          password_confirmation: passwordConfirmation.value,
+        },
       },
-    });
+      { headers: Auth.getAuthData() }
+    );
     await store.dispatch('setUser');
     useAlert(t('CRM.FORCED_PASSWORD.SUCCESS'));
     router.replace(
