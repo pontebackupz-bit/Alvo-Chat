@@ -1,6 +1,4 @@
 <script setup>
-/* global axios */
-
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
@@ -37,7 +35,7 @@ const changePassword = async () => {
 
   isSaving.value = true;
   try {
-    await axios.post('/api/v1/password_change', {
+    await window.axios.post('/api/v1/password_change', {
       password_change: {
         password: password.value,
         password_confirmation: passwordConfirmation.value,
