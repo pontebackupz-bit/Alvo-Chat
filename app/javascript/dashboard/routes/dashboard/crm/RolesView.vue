@@ -8,7 +8,6 @@ import Button from 'dashboard/components-next/button/Button.vue';
 import crmAPI from 'dashboard/api/crm';
 import agentsAPI from 'dashboard/api/agents';
 import teamsAPI from 'dashboard/api/teams';
-import inboxesAPI from 'dashboard/api/inboxes';
 import CrmPageHeader from './CrmPageHeader.vue';
 
 const { t } = useI18n();
@@ -19,7 +18,6 @@ const supervisors = ref([]);
 const assignments = ref([]);
 const agents = ref([]);
 const teams = ref([]);
-const inboxes = ref([]);
 const users = ref([]);
 const userCounts = ref({});
 const isLoading = ref(false);
@@ -29,21 +27,19 @@ const showModal = ref(false);
 const showAssignmentModal = ref(false);
 const showUserModal = ref(false);
 const showPasswordModal = ref(false);
-const temporaryPassword = ref('');
+const credentials = ref({ login: '', temporary_password: '' });
 const form = ref({ user_id: '', team_id: '' });
 const assignmentForm = ref({ user_id: '', role_id: '' });
 const userForm = ref({
   name: '',
   email: '',
-  native_role: 'agent',
-  role_id: '',
-  team_ids: [],
-  inbox_ids: [],
-  supervised_team_ids: [],
+  codusur: '',
+  access_profile: 'agent',
 });
 const userHeaders = computed(() => [
   t('CRM.ACCESS.USER'),
-  t('CRM.ACCESS.ROLE'),
+  t('CRM.ACCESS.ACCESS_PROFILE'),
+  t('CRM.ACCESS.CODUSUR'),
   t('CRM.ACCESS.TEAM'),
   t('CRM.ACCESS.STATUS'),
   t('CRM.COMMON.ACTIONS'),
@@ -69,13 +65,6 @@ const supervisorUserIds = computed(() =>
 const supervisorAgents = computed(() =>
   agents.value.filter(agent => supervisorUserIds.value.includes(agent.id))
 );
-const isSupervisorRole = roleId => Number(roleId) === supervisorRoleId.value;
-const availableCrmRoles = computed(() =>
-  roles.value.filter(
-    role => userForm.value.native_role === 'administrator' || role.key !== 'administrator'
-  )
-);
-
 const agentLabel = agent =>
   agent ? `${agent.name || agent.available_name} — ${agent.email}` : '';
 const agentName = userId => {
@@ -96,7 +85,6 @@ const fetchData = async () => {
       assignmentsResponse,
       agentsResponse,
       teamsResponse,
-      inboxesResponse,
       usersResponse,
     ] = await Promise.all([
       crmAPI.getRoles(accountId.value),
@@ -104,7 +92,6 @@ const fetchData = async () => {
       crmAPI.getRoleAssignments(accountId.value),
       agentsAPI.get(),
       teamsAPI.get(),
-      inboxesAPI.get(),
       crmAPI.getUsers(accountId.value),
     ]);
     roles.value = Array.isArray(rolesResponse.data)
@@ -120,7 +107,6 @@ const fetchData = async () => {
       ? agentsResponse.data
       : [];
     teams.value = Array.isArray(teamsResponse.data) ? teamsResponse.data : [];
-    inboxes.value = Array.isArray(inboxesResponse.data) ? inboxesResponse.data : [];
     users.value = usersResponse.data.users || [];
     userCounts.value = usersResponse.data.counts || {};
   } catch (error) {
@@ -166,11 +152,8 @@ const openUserModal = () => {
   userForm.value = {
     name: '',
     email: '',
-    native_role: 'agent',
-    role_id: roles.value.find(role => role.key === 'seller')?.id || '',
-    team_ids: [],
-    inbox_ids: [],
-    supervised_team_ids: [],
+    codusur: '',
+    access_profile: 'agent',
   };
   showUserModal.value = true;
 };
@@ -184,19 +167,16 @@ const createUser = async () => {
     const response = await crmAPI.createUser(accountId.value, {
       name: userForm.value.name,
       email: userForm.value.email,
-      native_role: userForm.value.native_role,
-      crm_role_id: Number(userForm.value.role_id),
-      team_ids: userForm.value.team_ids.map(Number),
-      inbox_ids: userForm.value.inbox_ids.map(Number),
-      supervised_team_ids: userForm.value.supervised_team_ids.map(Number),
+      codusur: userForm.value.codusur,
+      access_profile: userForm.value.access_profile,
     });
-    temporaryPassword.value = response.data.temporary_password || '';
+    credentials.value = response.data.credentials;
     closeUserModal();
     await fetchData();
     useAlert(t('CRM.ACCESS.USER_CREATE_SUCCESS'));
-    showPasswordModal.value = temporaryPassword.value !== '';
+    showPasswordModal.value = Boolean(credentials.value?.temporary_password);
   } catch (error) {
-    useAlert(t('CRM.ACCESS.USER_CREATE_ERROR'));
+    useAlert(error.response?.data?.error || t('CRM.ACCESS.USER_CREATE_ERROR'));
   } finally {
     isCreatingUser.value = false;
   }
@@ -204,26 +184,28 @@ const createUser = async () => {
 const resetPassword = async user => {
   try {
     const response = await crmAPI.resetUserPassword(accountId.value, user.id);
-    temporaryPassword.value = response.data.temporary_password;
+    credentials.value = response.data.credentials;
     showPasswordModal.value = true;
     useAlert(t('CRM.ACCESS.PASSWORD_RESET_SUCCESS'));
   } catch (error) {
-    useAlert(t('CRM.ACCESS.PASSWORD_RESET_ERROR'));
+    useAlert(error.response?.data?.error || t('CRM.ACCESS.PASSWORD_RESET_ERROR'));
   }
 };
-const userRoleName = user =>
-  roles.value.find(role => role.id === user.crm_role_id)?.name || '—';
 const userTeamNames = user =>
   teams.value.filter(team => user.team_ids.includes(team.id)).map(team => team.name).join(', ') || '—';
 const availabilityLabel = availability =>
   t(`CRM.ACCESS.${availability.toUpperCase()}`);
-const copyTemporaryPassword = async () => {
-  await navigator.clipboard.writeText(temporaryPassword.value);
-  useAlert(t('CRM.ACCESS.PASSWORD_COPIED'));
+const accessProfileLabel = profile =>
+  t(`CRM.ACCESS.PROFILE_${profile?.toUpperCase() || 'AGENT'}`);
+const copyCredentials = async () => {
+  await navigator.clipboard.writeText(
+    `${t('CRM.ACCESS.USER_EMAIL')}: ${credentials.value.login}\n${t('CRM.ACCESS.TEMPORARY_PASSWORD')}: ${credentials.value.temporary_password}`
+  );
+  useAlert(t('CRM.ACCESS.CREDENTIALS_COPIED'));
 };
 const closePasswordModal = () => {
   showPasswordModal.value = false;
-  temporaryPassword.value = '';
+  credentials.value = { login: '', temporary_password: '' };
 };
 const saveAssignment = async () => {
   isSaving.value = true;
@@ -292,7 +274,8 @@ onMounted(fetchData);
                 <div>{{ user.name }}</div>
                 <div class="text-sm text-n-slate-11">{{ user.email }}</div>
               </td>
-              <td class="py-4 ltr:pr-4 rtl:pl-4 text-body-main text-n-slate-11">{{ userRoleName(user) }}</td>
+              <td class="py-4 ltr:pr-4 rtl:pl-4 text-body-main text-n-slate-11">{{ accessProfileLabel(user.access_profile) }}</td>
+              <td class="py-4 ltr:pr-4 rtl:pl-4 text-body-main text-n-slate-11">{{ user.codusur || '—' }}</td>
               <td class="py-4 ltr:pr-4 rtl:pl-4 text-body-main text-n-slate-11">{{ userTeamNames(user) }}</td>
               <td class="py-4 ltr:pr-4 rtl:pl-4 text-body-main text-n-slate-11">
                 <span class="inline-flex items-center gap-2"><span class="size-2 rounded-full" :class="user.availability === 'online' ? 'bg-n-teal-10' : user.availability === 'busy' ? 'bg-n-amber-10' : 'bg-n-slate-9'" />{{ availabilityLabel(user.availability) }}</span>
@@ -434,52 +417,22 @@ onMounted(fetchData);
           />
         </label>
         <label
-          >{{ $t('CRM.ACCESS.NATIVE_ROLE')
-          }}<select v-model="userForm.native_role" required>
-            <option value="agent">{{ $t('CRM.ACCESS.NATIVE_AGENT') }}</option>
-            <option value="administrator">
-              {{ $t('CRM.ACCESS.NATIVE_ADMINISTRATOR') }}
-            </option>
-          </select></label
-        >
+          >{{ $t('CRM.ACCESS.CODUSUR')
+          }}<input
+            v-model.trim="userForm.codusur"
+            type="text"
+            inputmode="numeric"
+            :aria-label="$t('CRM.ACCESS.CODUSUR')"
+          />
+        </label>
         <label
-          >{{ $t('CRM.ACCESS.ROLE')
-          }}<select v-model="userForm.role_id" required>
-            <option disabled value="">
-              {{ $t('CRM.ACCESS.SELECT_ROLE') }}
-            </option>
-            <option v-for="role in availableCrmRoles" :key="role.id" :value="role.id">
-              {{ role.name }}
-            </option>
+          >{{ $t('CRM.ACCESS.ACCESS_PROFILE')
+          }}<select v-model="userForm.access_profile" required>
+            <option value="administrator">{{ $t('CRM.ACCESS.PROFILE_ADMINISTRATOR') }}</option>
+            <option value="supervisor">{{ $t('CRM.ACCESS.PROFILE_SUPERVISOR') }}</option>
+            <option value="agent">{{ $t('CRM.ACCESS.PROFILE_AGENT') }}</option>
           </select></label
         >
-        <label
-          >{{ $t('CRM.ACCESS.TEAM_OPTIONAL')
-          }}<select v-model="userForm.team_ids" multiple>
-            <option v-for="team in teams" :key="team.id" :value="team.id">
-              {{ team.name }}
-            </option>
-          </select></label
-        >
-        <label
-          >{{ $t('CRM.ACCESS.INBOXES')
-          }}<select v-model="userForm.inbox_ids" multiple required>
-            <option v-for="inbox in inboxes" :key="inbox.id" :value="inbox.id">
-              {{ inbox.name }}
-            </option>
-          </select></label
-        >
-        <label v-if="isSupervisorRole(userForm.role_id)"
-          >{{ $t('CRM.ACCESS.SUPERVISED_TEAMS')
-          }}<select v-model="userForm.supervised_team_ids" multiple>
-            <option v-for="team in teams" :key="team.id" :value="team.id">
-              {{ team.name }}
-            </option>
-          </select></label
-        >
-        <p class="crm-form-help">
-          {{ $t('CRM.ACCESS.TEAM_HELP') }}
-        </p>
         <div class="crm-form-actions">
           <Button
             variant="faded"
@@ -498,11 +451,14 @@ onMounted(fetchData);
     </woot-modal>
     <woot-modal v-model:show="showPasswordModal" :on-close="closePasswordModal">
       <div class="p-6">
-        <woot-modal-header :header-title="$t('CRM.ACCESS.TEMPORARY_PASSWORD')" />
+        <woot-modal-header :header-title="$t('CRM.ACCESS.CREDENTIALS_READY')" />
         <p class="mt-2 text-sm text-n-slate-11">{{ $t('CRM.ACCESS.TEMPORARY_PASSWORD_HELP') }}</p>
-        <code class="mt-4 block rounded-lg bg-n-slate-3 p-3 text-base text-n-slate-12 break-all">{{ temporaryPassword }}</code>
+        <dl class="mt-4 space-y-3 rounded-lg bg-n-slate-3 p-3 text-sm text-n-slate-12">
+          <div><dt class="text-n-slate-11">{{ $t('CRM.ACCESS.USER_EMAIL') }}</dt><dd class="mt-1 break-all font-medium">{{ credentials.login }}</dd></div>
+          <div><dt class="text-n-slate-11">{{ $t('CRM.ACCESS.TEMPORARY_PASSWORD') }}</dt><dd class="mt-1 break-all font-medium">{{ credentials.temporary_password }}</dd></div>
+        </dl>
         <div class="mt-4 flex justify-end">
-          <Button :label="$t('CRM.ACCESS.COPY_PASSWORD')" icon="i-lucide-copy" @click="copyTemporaryPassword" />
+          <Button :label="$t('CRM.ACCESS.COPY_CREDENTIALS')" icon="i-lucide-copy" @click="copyCredentials" />
         </div>
       </div>
     </woot-modal>

@@ -1,4 +1,5 @@
 OmnichannelCrm::Engine.routes.draw do
+  resource :password_change, only: [:create]
   post 'baileys/:session_id/messages', to: 'baileys_messages#create'
   put 'baileys/:session_id/contacts/:source_id', to: 'baileys_messages#update_contact'
   scope 'accounts/:account_id/crm' do

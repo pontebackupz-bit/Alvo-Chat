@@ -1,4 +1,12 @@
 class OmnichannelCrm::UsersController < OmnichannelCrm::ApplicationController
+  ACCESS_PROFILES = {
+    'administrator' => { account_role: :administrator, crm_role_key: 'administrator' },
+    'supervisor' => { account_role: :agent, crm_role_key: 'supervisor' },
+    'agent' => { account_role: :agent, crm_role_key: 'seller' }
+  }.freeze
+
+  TEMPORARY_PASSWORD_WORDS = %w[brisa cedro farol jardim lagoa nuvem pedra ponte safira trigo].freeze
+
   before_action :authorize_account_administrator!
   before_action :account_user, only: [:update, :reset_password]
 
@@ -11,22 +19,23 @@ class OmnichannelCrm::UsersController < OmnichannelCrm::ApplicationController
   end
 
   def create
-    temporary_password = temporary_password()
-    user = User.from_email(user_params[:email])
-    new_user = user.nil?
+    return duplicate_email_error if User.from_email(user_params[:email]).present?
+
+    password = temporary_password
+    profile = access_profile
 
     ActiveRecord::Base.transaction do
-      user ||= create_user(temporary_password)
-      raise ActiveRecord::RecordInvalid, AccountUser.new if current_account.account_users.exists?(user: user)
+      user = create_user(password)
+      user.update!(codusur: user_params[:codusur], force_password_change: true)
 
       @account_user = current_account.account_users.create!(
-        user: user, inviter: current_user, role: user_params[:native_role], availability: :offline
+        user: user, inviter: current_user, role: profile[:account_role], availability: :offline
       )
-      apply_assignments(user)
+      apply_profile_assignment(user, profile)
       audit!('crm_user.created', subject: user, metadata: { account_user_id: @account_user.id })
     end
 
-    render json: { user: user_payload(@account_user), temporary_password: new_user ? temporary_password : nil },
+    render json: { user: user_payload(@account_user), credentials: credentials_payload(@account_user.user, password) },
            status: :created
   end
 
@@ -40,10 +49,15 @@ class OmnichannelCrm::UsersController < OmnichannelCrm::ApplicationController
 
   def reset_password
     password = temporary_password
-    @account_user.user.update!(password: password, password_confirmation: password, tokens: {})
+    @account_user.user.update!(
+      password: password,
+      password_confirmation: password,
+      tokens: {},
+      force_password_change: true
+    )
     @account_user.user.user_sessions.destroy_all
     audit!('crm_user.password_reset', subject: @account_user.user, metadata: { account_user_id: @account_user.id })
-    render json: { temporary_password: password }
+    render json: { credentials: credentials_payload(@account_user.user, password) }
   end
 
   private
@@ -51,7 +65,7 @@ class OmnichannelCrm::UsersController < OmnichannelCrm::ApplicationController
   def authorize_account_administrator!
     return if current_account.account_users.find_by(user: current_user)&.administrator?
 
-    render json: { error: 'Only account administrators can manage users' }, status: :forbidden
+    render json: { error: 'Apenas administradores podem gerenciar usuários.' }, status: :forbidden
   end
 
   def account_user
@@ -59,7 +73,7 @@ class OmnichannelCrm::UsersController < OmnichannelCrm::ApplicationController
   end
 
   def user_params
-    params.require(:user).permit(:name, :email, :native_role, :crm_role_id, :availability,
+    params.require(:user).permit(:name, :email, :codusur, :access_profile, :native_role, :crm_role_id, :availability,
                                  team_ids: [], inbox_ids: [], supervised_team_ids: [])
   end
 
@@ -79,6 +93,19 @@ class OmnichannelCrm::UsersController < OmnichannelCrm::ApplicationController
     replace_memberships(user, current_account.teams, user_params[:team_ids])
     replace_memberships(user, current_account.inboxes, user_params[:inbox_ids])
     replace_supervised_teams(user, crm_role)
+  end
+
+  def apply_profile_assignment(user, profile)
+    crm_role = current_account_roles.find_by(key: profile[:crm_role_key]) || create_default_role(profile[:crm_role_key])
+    OmnichannelCrm::RoleAssignment.find_or_initialize_by(account: current_account, user: user).update!(role: crm_role)
+  end
+
+  def create_default_role(key)
+    definition = OmnichannelCrm::RoleDefaults::DEFINITIONS.fetch(key.to_sym)
+    OmnichannelCrm::RoleDefaults.install_permissions!
+    role = OmnichannelCrm::Role.create!(account: current_account, key: key, name: definition[:name])
+    role.permissions = OmnichannelCrm::Permission.where(key: definition[:permissions])
+    role
   end
 
   def replace_memberships(user, scope, ids)
@@ -110,7 +137,23 @@ class OmnichannelCrm::UsersController < OmnichannelCrm::ApplicationController
   end
 
   def temporary_password
-    "1!aA#{SecureRandom.alphanumeric(12)}"
+    first_word = TEMPORARY_PASSWORD_WORDS.fetch(SecureRandom.random_number(TEMPORARY_PASSWORD_WORDS.length)).capitalize
+    second_word = TEMPORARY_PASSWORD_WORDS.fetch(SecureRandom.random_number(TEMPORARY_PASSWORD_WORDS.length))
+    "#{first_word}-#{second_word}-#{SecureRandom.random_number(90) + 10}-#{SecureRandom.base58(12)}"
+  end
+
+  def access_profile
+    ACCESS_PROFILES.fetch(user_params[:access_profile])
+  rescue KeyError
+    raise ActionController::BadRequest, 'Perfil de acesso inválido.'
+  end
+
+  def duplicate_email_error
+    render json: { error: 'Já existe uma conta com este e-mail.' }, status: :unprocessable_entity
+  end
+
+  def credentials_payload(user, password)
+    { login: user.email, temporary_password: password }
   end
 
   def user_payload(record)
@@ -120,6 +163,8 @@ class OmnichannelCrm::UsersController < OmnichannelCrm::ApplicationController
       user_id: user.id,
       name: user.name,
       email: user.email,
+      codusur: user.codusur,
+      access_profile: profile_for(record, user),
       native_role: record.role,
       availability: record.availability,
       crm_role_id: OmnichannelCrm::RoleAssignment.find_by(account: current_account, user: user)&.role_id,
@@ -127,5 +172,11 @@ class OmnichannelCrm::UsersController < OmnichannelCrm::ApplicationController
       inbox_ids: user.inboxes.where(account: current_account).ids,
       supervised_team_ids: OmnichannelCrm::TeamSupervisor.where(account: current_account, user: user).pluck(:team_id)
     }
+  end
+
+  def profile_for(record, user)
+    return 'administrator' if record.administrator?
+
+    OmnichannelCrm::RoleAssignment.find_by(account: current_account, user: user)&.role&.key == 'supervisor' ? 'supervisor' : 'agent'
   end
 end

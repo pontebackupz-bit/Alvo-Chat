@@ -25,6 +25,17 @@ export const validateAuthenticateRoutePermission = async (to, next) => {
 
   const { accounts = [], account_id: accountId } = user;
 
+  if (user.force_password_change) {
+    if (to.name === 'force_password_change') {
+      return next();
+    }
+    return next(frontendURL(`accounts/${accountId}/change-password`));
+  }
+
+  if (to.name === 'force_password_change') {
+    return next(frontendURL(`accounts/${accountId}/dashboard`));
+  }
+
   if (!accounts.length) {
     if (to.name === 'no_accounts') {
       return next();
