@@ -55,6 +55,24 @@ RSpec.describe 'Manual CRM user access', type: :request do
       end
     end
 
+    it 'allows an administrator to define the initial password without forcing a password change' do
+      post "/api/v1/accounts/#{account.id}/crm/users",
+           params: {
+             user: {
+               name: 'Joana Costa', email: 'joana@example.com', access_profile: 'agent', password_mode: 'administrator',
+               password: 'SenhaInicial123!', password_confirmation: 'SenhaInicial123!'
+             }
+           },
+           headers: administrator.create_new_auth_token,
+           as: :json
+
+      expect(response).to have_http_status(:created)
+      created_user = User.find_by!(email: 'joana@example.com')
+      expect(created_user.force_password_change).to be(false)
+      expect(created_user.valid_password?('SenhaInicial123!')).to be(true)
+      expect(response.parsed_body.dig('credentials', 'temporary_password')).to be_nil
+    end
+
     it 'rejects an email that is already registered' do
       create(:user, email: 'maria@example.com')
 
@@ -103,6 +121,24 @@ RSpec.describe 'Manual CRM user access', type: :request do
            as: :json
 
       expect(response).to have_http_status(:forbidden)
+    end
+
+    it 'allows an administrator to set a replacement password directly' do
+      user = create(:user, account: account, password: 'SenhaAntiga123')
+
+      post "/api/v1/accounts/#{account.id}/crm/users/#{account.account_users.find_by!(user: user).id}/reset_password",
+           params: {
+             user: {
+               password_mode: 'administrator', password: 'SenhaNova123!', password_confirmation: 'SenhaNova123!'
+             }
+           },
+           headers: administrator.create_new_auth_token,
+           as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(user.reload.force_password_change).to be(false)
+      expect(user.valid_password?('SenhaNova123!')).to be(true)
+      expect(response.parsed_body.dig('credentials', 'temporary_password')).to be_nil
     end
   end
 

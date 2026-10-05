@@ -6,6 +6,7 @@ class OmnichannelCrm::UsersController < OmnichannelCrm::ApplicationController
   }.freeze
 
   TEMPORARY_PASSWORD_WORDS = %w[brisa cedro farol jardim lagoa nuvem pedra ponte safira trigo].freeze
+  PASSWORD_MODES = %w[temporary administrator].freeze
 
   before_action :authorize_account_administrator!
   before_action :account_user, only: [:update, :reset_password]
@@ -21,12 +22,14 @@ class OmnichannelCrm::UsersController < OmnichannelCrm::ApplicationController
   def create
     return duplicate_email_error if User.from_email(user_params[:email]).present?
 
-    password = temporary_password
+    password_configuration = password_setup
+    return unless password_configuration
+
     profile = access_profile
 
     ActiveRecord::Base.transaction do
-      user = create_user(password)
-      user.update!(codusur: user_params[:codusur], force_password_change: true)
+      user = create_user(password_configuration[:password])
+      user.update!(codusur: user_params[:codusur], force_password_change: password_configuration[:force_password_change])
 
       @account_user = current_account.account_users.create!(
         user: user, inviter: current_user, role: profile[:account_role], availability: :offline
@@ -35,7 +38,7 @@ class OmnichannelCrm::UsersController < OmnichannelCrm::ApplicationController
       audit!('crm_user.created', subject: user, metadata: { account_user_id: @account_user.id })
     end
 
-    render json: { user: user_payload(@account_user), credentials: credentials_payload(@account_user.user, password) },
+    render json: { user: user_payload(@account_user), credentials: credentials_payload(@account_user.user, password_configuration) },
            status: :created
   end
 
@@ -48,16 +51,18 @@ class OmnichannelCrm::UsersController < OmnichannelCrm::ApplicationController
   end
 
   def reset_password
-    password = temporary_password
+    password_configuration = password_setup
+    return unless password_configuration
+
     @account_user.user.update!(
-      password: password,
-      password_confirmation: password,
+      password: password_configuration[:password],
+      password_confirmation: password_configuration[:password],
       tokens: {},
-      force_password_change: true
+      force_password_change: password_configuration[:force_password_change]
     )
     @account_user.user.user_sessions.destroy_all
     audit!('crm_user.password_reset', subject: @account_user.user, metadata: { account_user_id: @account_user.id })
-    render json: { credentials: credentials_payload(@account_user.user, password) }
+    render json: { credentials: credentials_payload(@account_user.user, password_configuration) }
   end
 
   private
@@ -75,6 +80,10 @@ class OmnichannelCrm::UsersController < OmnichannelCrm::ApplicationController
   def user_params
     params.require(:user).permit(:name, :email, :codusur, :access_profile, :native_role, :crm_role_id, :availability,
                                  team_ids: [], inbox_ids: [], supervised_team_ids: [])
+  end
+
+  def password_options_params
+    params.fetch(:user, ActionController::Parameters.new).permit(:password_mode, :password, :password_confirmation)
   end
 
   def create_user(password)
@@ -142,6 +151,37 @@ class OmnichannelCrm::UsersController < OmnichannelCrm::ApplicationController
     "#{first_word}-#{second_word}-#{SecureRandom.random_number(90) + 10}-#{SecureRandom.base58(12)}"
   end
 
+  def password_setup
+    mode = password_options_params[:password_mode].presence || 'temporary'
+    return temporary_password_setup if mode == 'temporary'
+    return password_mode_error('Modo de senha inválido.') unless PASSWORD_MODES.include?(mode)
+
+    password = password_options_params[:password].to_s
+    confirmation = password_options_params[:password_confirmation].to_s
+    return password_mode_error(password_requirements_message) unless password_meets_requirements?(password)
+    return password_mode_error('A confirmação da senha não confere.') unless password == confirmation
+
+    { password: password, mode: mode, force_password_change: false }
+  end
+
+  def temporary_password_setup
+    { password: temporary_password, mode: 'temporary', force_password_change: true }
+  end
+
+  def password_meets_requirements?(password)
+    password.length >= 6 && password.match?(/[A-Z]/) && password.match?(/[a-z]/) && password.match?(/\d/) &&
+      password.match?(/[!@#$%^&*()_+\-=\[\]{}|']/)
+  end
+
+  def password_requirements_message
+    'Use pelo menos 6 caracteres, incluindo letra maiúscula, minúscula, número e símbolo especial.'
+  end
+
+  def password_mode_error(message)
+    render json: { error: message }, status: :unprocessable_entity
+    nil
+  end
+
   def access_profile
     ACCESS_PROFILES.fetch(user_params[:access_profile])
   rescue KeyError
@@ -152,8 +192,10 @@ class OmnichannelCrm::UsersController < OmnichannelCrm::ApplicationController
     render json: { error: 'Já existe uma conta com este e-mail.' }, status: :unprocessable_entity
   end
 
-  def credentials_payload(user, password)
-    { login: user.email, temporary_password: password }
+  def credentials_payload(user, password_setup)
+    payload = { login: user.email, password_mode: password_setup[:mode] }
+    payload[:temporary_password] = password_setup[:password] if password_setup[:mode] == 'temporary'
+    payload
   end
 
   def user_payload(record)

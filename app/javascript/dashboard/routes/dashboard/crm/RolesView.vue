@@ -23,10 +23,12 @@ const userCounts = ref({});
 const isLoading = ref(false);
 const isSaving = ref(false);
 const isCreatingUser = ref(false);
+const isResettingPassword = ref(false);
 const showModal = ref(false);
 const showAssignmentModal = ref(false);
 const showUserModal = ref(false);
 const showPasswordModal = ref(false);
+const showResetPasswordModal = ref(false);
 const credentials = ref({ login: '', temporary_password: '' });
 const form = ref({ user_id: '', team_id: '' });
 const assignmentForm = ref({ user_id: '', role_id: '' });
@@ -35,7 +37,16 @@ const userForm = ref({
   email: '',
   codusur: '',
   access_profile: 'agent',
+  password_mode: 'temporary',
+  password: '',
+  password_confirmation: '',
 });
+const passwordResetForm = ref({
+  password_mode: 'temporary',
+  password: '',
+  password_confirmation: '',
+});
+const passwordResetUser = ref(null);
 const userHeaders = computed(() => [
   t('CRM.ACCESS.USER'),
   t('CRM.ACCESS.ACCESS_PROFILE'),
@@ -64,6 +75,12 @@ const supervisorUserIds = computed(() =>
 );
 const supervisorAgents = computed(() =>
   agents.value.filter(agent => supervisorUserIds.value.includes(agent.id))
+);
+const administratorDefinesPassword = computed(
+  () => userForm.value.password_mode === 'administrator'
+);
+const administratorDefinesResetPassword = computed(
+  () => passwordResetForm.value.password_mode === 'administrator'
 );
 const agentLabel = agent =>
   agent ? `${agent.name || agent.available_name} — ${agent.email}` : '';
@@ -154,6 +171,9 @@ const openUserModal = () => {
     email: '',
     codusur: '',
     access_profile: 'agent',
+    password_mode: 'temporary',
+    password: '',
+    password_confirmation: '',
   };
   showUserModal.value = true;
 };
@@ -169,6 +189,9 @@ const createUser = async () => {
       email: userForm.value.email,
       codusur: userForm.value.codusur,
       access_profile: userForm.value.access_profile,
+      password_mode: userForm.value.password_mode,
+      password: userForm.value.password,
+      password_confirmation: userForm.value.password_confirmation,
     });
     credentials.value = response.data.credentials;
     closeUserModal();
@@ -181,14 +204,41 @@ const createUser = async () => {
     isCreatingUser.value = false;
   }
 };
-const resetPassword = async user => {
+const openResetPasswordModal = user => {
+  passwordResetUser.value = user;
+  passwordResetForm.value = {
+    password_mode: 'temporary',
+    password: '',
+    password_confirmation: '',
+  };
+  showResetPasswordModal.value = true;
+};
+const closeResetPasswordModal = () => {
+  showResetPasswordModal.value = false;
+  passwordResetUser.value = null;
+};
+const resetPassword = async () => {
+  if (!passwordResetUser.value) return;
+
+  isResettingPassword.value = true;
   try {
-    const response = await crmAPI.resetUserPassword(accountId.value, user.id);
+    const response = await crmAPI.resetUserPassword(
+      accountId.value,
+      passwordResetUser.value.id,
+      passwordResetForm.value
+    );
     credentials.value = response.data.credentials;
-    showPasswordModal.value = true;
-    useAlert(t('CRM.ACCESS.PASSWORD_RESET_SUCCESS'));
+    closeResetPasswordModal();
+    showPasswordModal.value = Boolean(credentials.value?.temporary_password);
+    useAlert(
+      credentials.value?.temporary_password
+        ? t('CRM.ACCESS.PASSWORD_RESET_SUCCESS')
+        : t('CRM.ACCESS.PASSWORD_SET_SUCCESS')
+    );
   } catch (error) {
     useAlert(error.response?.data?.error || t('CRM.ACCESS.PASSWORD_RESET_ERROR'));
+  } finally {
+    isResettingPassword.value = false;
   }
 };
 const userTeamNames = user =>
@@ -281,7 +331,7 @@ onMounted(fetchData);
                 <span class="inline-flex items-center gap-2"><span class="size-2 rounded-full" :class="user.availability === 'online' ? 'bg-n-teal-10' : user.availability === 'busy' ? 'bg-n-amber-10' : 'bg-n-slate-9'" />{{ availabilityLabel(user.availability) }}</span>
               </td>
               <td class="py-4 text-right">
-                <Button variant="link" size="sm" :label="$t('CRM.ACCESS.PASSWORD_RESET')" @click="resetPassword(user)" />
+                <Button variant="link" size="sm" :label="$t('CRM.ACCESS.PASSWORD_RESET')" @click="openResetPasswordModal(user)" />
               </td>
             </tr>
           </template>
@@ -433,6 +483,30 @@ onMounted(fetchData);
             <option value="agent">{{ $t('CRM.ACCESS.PROFILE_AGENT') }}</option>
           </select></label
         >
+        <fieldset>
+          <legend>{{ $t('CRM.ACCESS.PASSWORD_MODE') }}</legend>
+          <label>
+            <input v-model="userForm.password_mode" type="radio" value="temporary" />
+            {{ $t('CRM.ACCESS.PASSWORD_MODE_TEMPORARY') }}
+          </label>
+          <p class="crm-form-help">{{ $t('CRM.ACCESS.PASSWORD_MODE_TEMPORARY_HELP') }}</p>
+          <label>
+            <input v-model="userForm.password_mode" type="radio" value="administrator" />
+            {{ $t('CRM.ACCESS.PASSWORD_MODE_ADMINISTRATOR') }}
+          </label>
+          <p class="crm-form-help">{{ $t('CRM.ACCESS.PASSWORD_MODE_ADMINISTRATOR_HELP') }}</p>
+        </fieldset>
+        <template v-if="administratorDefinesPassword">
+          <label
+            >{{ $t('CRM.ACCESS.PASSWORD')
+            }}<input v-model="userForm.password" required type="password" autocomplete="new-password" />
+          </label>
+          <p class="crm-form-help">{{ $t('CRM.ACCESS.PASSWORD_HELP') }}</p>
+          <label
+            >{{ $t('CRM.ACCESS.PASSWORD_CONFIRMATION')
+            }}<input v-model="userForm.password_confirmation" required type="password" autocomplete="new-password" />
+          </label>
+        </template>
         <div class="crm-form-actions">
           <Button
             variant="faded"
@@ -461,6 +535,52 @@ onMounted(fetchData);
           <Button :label="$t('CRM.ACCESS.COPY_CREDENTIALS')" icon="i-lucide-copy" @click="copyCredentials" />
         </div>
       </div>
+    </woot-modal>
+    <woot-modal v-model:show="showResetPasswordModal" :on-close="closeResetPasswordModal">
+      <form class="crm-modal-form" @submit.prevent="resetPassword">
+        <woot-modal-header
+          :header-title="$t('CRM.ACCESS.PASSWORD_RESET_TITLE')"
+          :header-content="$t('CRM.ACCESS.PASSWORD_RESET_DESCRIPTION')"
+        />
+        <fieldset>
+          <legend>{{ $t('CRM.ACCESS.PASSWORD_MODE') }}</legend>
+          <label>
+            <input v-model="passwordResetForm.password_mode" type="radio" value="temporary" />
+            {{ $t('CRM.ACCESS.PASSWORD_MODE_TEMPORARY') }}
+          </label>
+          <p class="crm-form-help">{{ $t('CRM.ACCESS.PASSWORD_MODE_TEMPORARY_HELP') }}</p>
+          <label>
+            <input v-model="passwordResetForm.password_mode" type="radio" value="administrator" />
+            {{ $t('CRM.ACCESS.PASSWORD_MODE_ADMINISTRATOR') }}
+          </label>
+          <p class="crm-form-help">{{ $t('CRM.ACCESS.PASSWORD_MODE_ADMINISTRATOR_HELP') }}</p>
+        </fieldset>
+        <template v-if="administratorDefinesResetPassword">
+          <label
+            >{{ $t('CRM.ACCESS.PASSWORD')
+            }}<input v-model="passwordResetForm.password" required type="password" autocomplete="new-password" />
+          </label>
+          <p class="crm-form-help">{{ $t('CRM.ACCESS.PASSWORD_HELP') }}</p>
+          <label
+            >{{ $t('CRM.ACCESS.PASSWORD_CONFIRMATION')
+            }}<input v-model="passwordResetForm.password_confirmation" required type="password" autocomplete="new-password" />
+          </label>
+        </template>
+        <div class="crm-form-actions">
+          <Button
+            variant="faded"
+            color="slate"
+            :label="$t('CRM.COMMON.CANCEL')"
+            type="button"
+            @click="closeResetPasswordModal"
+          />
+          <Button
+            :label="$t('CRM.ACCESS.PASSWORD_RESET_SUBMIT')"
+            :is-loading="isResettingPassword"
+            type="submit"
+          />
+        </div>
+      </form>
     </woot-modal>
     <woot-modal v-model:show="showModal" :on-close="closeModal">
       <form class="crm-modal-form" @submit.prevent="saveSupervisor">

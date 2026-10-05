@@ -128,8 +128,10 @@ class CrmAPI extends ApiClient {
     });
   }
 
-  resetUserPassword(accountId, userId) {
-    return axios.post(`${this.accountUrl(accountId)}/users/${userId}/reset_password`);
+  resetUserPassword(accountId, userId, data = {}) {
+    return axios.post(`${this.accountUrl(accountId)}/users/${userId}/reset_password`, {
+      user: data,
+    });
   }
 
   getRoleAssignments(accountId) {
