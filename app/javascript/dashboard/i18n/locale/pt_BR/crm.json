@@ -208,6 +208,7 @@
       "TITLE": "Defina sua nova senha",
       "DESCRIPTION": "Por segurança, troque a senha temporária antes de acessar a plataforma.",
       "NEW_PASSWORD": "Nova senha",
+      "PASSWORD_HELP": "Use ao menos 6 caracteres, com letra maiúscula, minúscula, número e símbolo. Exemplo: SenhaNova2026!",
       "CONFIRM_PASSWORD": "Confirme a nova senha",
       "SUBMIT": "Salvar nova senha",
       "VALIDATION_ERROR": "Use pelo menos 6 caracteres, incluindo letra maiúscula, minúscula, número e símbolo especial. As senhas devem ser iguais.",

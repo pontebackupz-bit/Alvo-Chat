@@ -77,6 +77,9 @@ const changePassword = async () => {
             autocomplete="new-password"
             required
           />
+          <span class="mt-2 block text-xs font-normal text-n-slate-11">
+            {{ $t('CRM.FORCED_PASSWORD.PASSWORD_HELP') }}
+          </span>
         </label>
         <label class="block text-sm font-medium text-n-slate-12">
           {{ $t('CRM.FORCED_PASSWORD.CONFIRM_PASSWORD') }}
