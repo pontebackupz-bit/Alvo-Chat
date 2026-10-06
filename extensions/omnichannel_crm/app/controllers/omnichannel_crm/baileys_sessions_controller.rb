@@ -13,6 +13,7 @@ class OmnichannelCrm::BaileysSessionsController < OmnichannelCrm::ApplicationCon
   end
 
   def create
+    remove_orphaned_sessions! unless params[:inbox_id].present?
     begin
       bridge.create_session(session_id)
     rescue StandardError
@@ -93,5 +94,19 @@ class OmnichannelCrm::BaileysSessionsController < OmnichannelCrm::ApplicationCon
     return current_account.inboxes.find_by(id: params[:inbox_id])&.channel if params[:inbox_id].present?
 
     Channel::Api.where("additional_attributes ->> 'session_id' = ?", target_session_id).first
+  end
+
+  def remove_orphaned_sessions!
+    assigned_session_ids = current_account.channels.where("additional_attributes ->> 'session_id' IS NOT NULL")
+                                        .pluck(Arel.sql("additional_attributes ->> 'session_id'"))
+    session_prefix = "account-#{current_account.id}-session-"
+
+    bridge.sessions.each do |session|
+      id = session.fetch('id')
+      next unless id.start_with?(session_prefix)
+      next if id == session_id || assigned_session_ids.include?(id)
+
+      bridge.delete_session(id)
+    end
   end
 end

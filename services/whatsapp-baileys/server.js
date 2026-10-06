@@ -455,8 +455,11 @@ app.delete('/sessions/:sessionId', async (request, response, next) => {
     if (session.socket) {
       try {
         session.socket.ev.removeAllListeners();
+        await session.socket.logout();
         session.socket.end(undefined);
-      } catch (_) {}
+      } catch (error) {
+        logger.warn({ err: error, session: session.id }, 'Could not log out the WhatsApp linked device');
+      }
       session.socket = null;
     }
     sessions.delete(session.id);

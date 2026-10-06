@@ -13,6 +13,10 @@ class OmnichannelCrm::BaileysBridgeClient
     request(:get, "/sessions/#{session_id}")
   end
 
+  def sessions
+    request(:get, '/sessions')
+  end
+
   def create_session(session_id)
     request(:post, '/sessions', { session_id: session_id })
   end
