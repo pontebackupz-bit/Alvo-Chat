@@ -127,6 +127,11 @@ const mediaDetails = message => {
   if (!messageKey) return null;
 
   const media = content[messageKey];
+  // History synchronisation may contain a partial media object alongside the
+  // original text. It is not downloadable and must not replace that text with
+  // the fallback message in Chatwoot.
+  if (!media.mediaKey || !media.directPath) return null;
+
   return {
     content,
     fileType,
@@ -262,7 +267,13 @@ const publishIncomingMessage = async (session, message) => {
       };
     } catch (error) {
       logger.warn(
-        { err: error, session: session.id, messageId: message.key.id },
+        {
+          err: error,
+          session: session.id,
+          messageId: message.key.id,
+          messageTypes: Object.keys(media.content),
+          mediaType: media.fileType,
+        },
         'Could not download incoming WhatsApp media; delivering its text instead'
       );
       payload.content ||= '[Mídia recebida sem anexo disponível]';
@@ -367,7 +378,9 @@ const startSession = async session => {
     messages
       .filter(message => !message.key.remoteJid?.endsWith('@g.us'))
       .forEach(message => rememberMessage(session, message));
-    if (!['notify', 'append'].includes(type)) return;
+    // `append` is WhatsApp history synchronisation. Replaying it as an
+    // incoming event produces stale or incomplete messages after reconnects.
+    if (type !== 'notify') return;
     messages
       .filter(message => !message.key.fromMe && !message.key.remoteJid?.endsWith('@g.us'))
       .forEach(message => publishIncomingMessage(session, message).catch(error => logger.warn(error)));
