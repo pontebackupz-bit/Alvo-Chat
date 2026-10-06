@@ -20,6 +20,13 @@ const sessions = new Map();
 const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
 const maxCachedMessages = 1000;
 
+// Baileys can leave a retry receipt pending while a session is deliberately
+// logged out. That retry rejects after the socket closes; logging it keeps the
+// bridge alive so the replacement QR session can start normally.
+process.on('unhandledRejection', error => {
+  logger.error({ err: error }, 'Unhandled Baileys promise rejection');
+});
+
 if (!apiToken) throw new Error('BAILEYS_API_TOKEN must be configured');
 
 const app = express();
