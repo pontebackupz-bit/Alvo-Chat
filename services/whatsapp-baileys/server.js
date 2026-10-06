@@ -150,14 +150,25 @@ const rememberMessage = (session, message) => {
 const contactDetails = (session, message) => {
   const remoteJid = message.key.remoteJid;
   const sourceId = jidUser(remoteJid);
-  const phoneNumber = jidUser(message.key.senderPn) || session.phoneNumbers?.[sourceId] ||
+  // LID is the stable Chatwoot source identifier. WhatsApp can still provide
+  // the sender's actual phone number separately in senderPn, including for
+  // LID conversations. Never use the LID itself as a phone number, but keep a
+  // real number supplied by WhatsApp so the contact is identified correctly.
+  const senderPhoneNumber = jidUser(message.key.senderPn);
+  const phoneNumber = senderPhoneNumber || session.phoneNumbers?.[sourceId] ||
     (remoteJid?.endsWith('@s.whatsapp.net') ? sourceId : null);
-  // WhatsApp may send a LID through an s.whatsapp.net JID while it is syncing
-  // a linked device. A phone number has at most 15 digits, whereas LIDs are
-  // longer. Treating them as phone numbers makes Chatwoot reject the contact.
   const isLid = remoteJid?.endsWith('@lid') || sourceId?.length > 15;
 
-  return { sourceId, phoneNumber: isLid ? null : phoneNumber, isLid };
+  return { sourceId, phoneNumber, isLid };
+};
+
+const rememberPhoneNumber = (session, sourceId, phoneNumber) => {
+  if (!sourceId || !phoneNumber || session.phoneNumbers?.[sourceId] === phoneNumber) return;
+
+  session.phoneNumbers ||= {};
+  session.phoneNumbers[sourceId] = phoneNumber;
+  persistSessions().catch(error => logger.warn(error));
+  publishPhoneNumber(session, sourceId, phoneNumber).catch(error => logger.warn(error));
 };
 
 const outgoingMediaMessage = (media, text) => {
@@ -210,6 +221,8 @@ const publishIncomingMessage = async (session, message) => {
   const content = messageText(message.message || {});
   const media = mediaDetails(message.message || {});
   if (!sourceId || (!content && !media)) return;
+
+  if (isLid) rememberPhoneNumber(session, sourceId, phoneNumber);
 
   const payload = {
     event: 'message.received',
@@ -320,10 +333,7 @@ const startSession = async session => {
     const phoneNumber = jidUser(jid);
     if (!sourceId || !phoneNumber) return;
 
-    session.phoneNumbers ||= {};
-    session.phoneNumbers[sourceId] = phoneNumber;
-    persistSessions().catch(error => logger.warn(error));
-    publishPhoneNumber(session, sourceId, phoneNumber).catch(error => logger.warn(error));
+    rememberPhoneNumber(session, sourceId, phoneNumber);
   });
   socket.ev.on('connection.update', async update => {
     if (session.isDestroyed || !sessions.has(session.id)) return;
