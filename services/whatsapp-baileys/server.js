@@ -166,7 +166,7 @@ const contactDetails = (session, message) => {
   // the sender's actual phone number separately in senderPn, including for
   // LID conversations. Never use the LID itself as a phone number, but keep a
   // real number supplied by WhatsApp so the contact is identified correctly.
-  const senderPhoneNumber = jidUser(message.key.senderPn);
+  const senderPhoneNumber = jidUser(message.key.senderPn || message.key.participantPn);
   const phoneNumber = senderPhoneNumber || session.phoneNumbers?.[sourceId] ||
     (remoteJid?.endsWith('@s.whatsapp.net') ? sourceId : null);
   const isLid = remoteJid?.endsWith('@lid') || sourceId?.length > 15;
@@ -233,6 +233,18 @@ const publishIncomingMessage = async (session, message) => {
   const content = messageText(message.message || {});
   const media = mediaDetails(message.message || {});
   if (!sourceId || (!content && !media)) return;
+
+  if (isLid && !phoneNumber) {
+    logger.warn(
+      {
+        session: session.id,
+        messageId: message.key.id,
+        hasSenderPn: Boolean(message.key.senderPn),
+        hasParticipantPn: Boolean(message.key.participantPn),
+      },
+      'Incoming WhatsApp LID has no phone-number mapping'
+    );
+  }
 
   if (isLid) rememberPhoneNumber(session, sourceId, phoneNumber);
 
