@@ -25,6 +25,7 @@ services:
       - postgres
       - redis
       - baileys
+      - wppconnect
     ports:
       - '8069:3000'
     environment:
@@ -34,6 +35,8 @@ services:
       - BAILEYS_BRIDGE_URL=http://baileys:3001
       - BAILEYS_API_TOKEN=${BAILEYS_API_TOKEN:?Set BAILEYS_API_TOKEN in .env}
       - BAILEYS_CHATWOOT_CALLBACK_URL=http://rails:3000/api/v1/baileys
+      - WPPCONNECT_URL=http://wppconnect:21465
+      - WPPCONNECT_SECRET_KEY=${WPPCONNECT_SECRET_KEY:?Set WPPCONNECT_SECRET_KEY in .env}
     entrypoint: ['sh', 'docker/entrypoints/rails.sh']
     command: ['bundle', 'exec', 'rails', 's', '-p', '3000', '-b', '0.0.0.0']
     restart: always
@@ -44,12 +47,15 @@ services:
       - postgres
       - redis
       - baileys
+      - wppconnect
     environment:
       - NODE_ENV=production
       - RAILS_ENV=production
       - INSTALLATION_ENV=docker
       - BAILEYS_BRIDGE_URL=http://baileys:3001
       - BAILEYS_API_TOKEN=${BAILEYS_API_TOKEN:?Set BAILEYS_API_TOKEN in .env}
+      - WPPCONNECT_URL=http://wppconnect:21465
+      - WPPCONNECT_SECRET_KEY=${WPPCONNECT_SECRET_KEY:?Set WPPCONNECT_SECRET_KEY in .env}
     command: ['bundle', 'exec', 'sidekiq', '-C', 'config/sidekiq.yml']
     restart: always
 
@@ -83,8 +89,24 @@ services:
       - baileys_data:/data
       - ./services/whatsapp-baileys/server.js:/service/server.js:ro
 
+  wppconnect:
+    image: wppconnect/wppconnect-server:2.10.18
+    restart: always
+    logging: *default-logging
+    environment:
+      - PORT=21465
+      - SECRET_KEY=${WPPCONNECT_SECRET_KEY:?Set WPPCONNECT_SECRET_KEY in .env}
+      - WEBHOOK_URL=http://rails:3000/api/v1/wppconnect/${WPPCONNECT_WEBHOOK_TOKEN:?Set WPPCONNECT_WEBHOOK_TOKEN in .env}/messages
+      - MANAGER_ENABLED=false
+      - CUSTOM_USER_DATA_DIR=/usr/src/wpp-server/userDataDir/
+    volumes:
+      - wppconnect_tokens:/usr/src/wpp-server/tokens
+      - wppconnect_user_data:/usr/src/wpp-server/userDataDir
+
 volumes:
   storage_data:
   postgres_data:
   redis_data:
   baileys_data:
+  wppconnect_tokens:
+  wppconnect_user_data:

@@ -47,12 +47,7 @@ class OmnichannelCrm::BaileysMessageDeliveryService
   end
 
   def recipient
-    return contact.custom_attributes['baileys_jid'] if contact.custom_attributes['baileys_jid'].present?
-
-    source_id = ContactInbox.find_by!(contact: contact, inbox: message.inbox).source_id
-    return "#{source_id}@lid" if contact.phone_number == "+#{source_id}" && source_id.length > 14
-
-    contact.phone_number.gsub(/\D/, '')
+    contact.phone_number.to_s.gsub(/\D/, '')
   end
 
   def contact

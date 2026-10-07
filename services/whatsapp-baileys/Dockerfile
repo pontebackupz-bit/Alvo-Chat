@@ -2,7 +2,9 @@ FROM node:22-alpine
 
 WORKDIR /service
 COPY package.json ./
-RUN apk add --no-cache git && npm install --omit=dev
+COPY baileys-lid-pn-decrypt.patch /tmp/baileys-lid-pn-decrypt.patch
+RUN apk add --no-cache git && npm install --omit=dev && \
+    cd /service/node_modules/@whiskeysockets/baileys && git apply /tmp/baileys-lid-pn-decrypt.patch
 COPY server.js ./
 
 ENV BAILEYS_DATA_DIR=/data

@@ -2,6 +2,7 @@ OmnichannelCrm::Engine.routes.draw do
   resource :password_change, only: [:create]
   post 'baileys/:session_id/messages', to: 'baileys_messages#create'
   put 'baileys/:session_id/contacts/:source_id', to: 'baileys_messages#update_contact'
+  post 'wppconnect/:token/messages', to: 'wppconnect_messages#create'
   scope 'accounts/:account_id/crm' do
     resources :leads, only: [:index, :show, :create, :update] do
       post :convert, on: :member
@@ -28,6 +29,9 @@ OmnichannelCrm::Engine.routes.draw do
       post 'workflows/:workflow_id/execute', to: 'n8n_connections#execute_workflow', on: :member
     end
     resource :baileys_session, only: [:show, :create, :destroy] do
+      post :refresh
+    end
+    resource :wppconnect_session, only: [:show, :create, :destroy] do
       post :refresh
     end
     resource :dashboard, only: [:show]

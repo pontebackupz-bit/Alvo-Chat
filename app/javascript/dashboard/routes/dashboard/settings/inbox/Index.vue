@@ -52,8 +52,7 @@ const filteredInboxesList = computed(() => {
 
 const uiFlags = computed(() => getters['inboxes/getUIFlags'].value);
 const accountId = computed(() => store.getters.getCurrentAccountId);
-const isBaileysInbox = inbox =>
-  String(inbox.name || '').toLocaleLowerCase().includes('whatsapp');
+const isBaileysInbox = inbox => inbox.additional_attributes?.provider === 'baileys';
 const baileysSessionUrl = () =>
   `/api/v1/accounts/${accountId.value}/crm/baileys_session`;
 const baileysSessionParams = inboxId => ({ params: { inbox_id: inboxId } });

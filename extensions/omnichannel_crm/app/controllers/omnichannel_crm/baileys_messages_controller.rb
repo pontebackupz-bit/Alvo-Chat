@@ -24,6 +24,7 @@ class OmnichannelCrm::BaileysMessagesController < ActionController::API
     attributes = { phone_number: "+#{phone_number}" }
     attributes[:name] = phone_number if contact_inbox.contact.name == params[:source_id]
     contact_inbox.contact.update!(attributes)
+    contact_inbox.update!(source_id: phone_number) unless inbox.contact_inboxes.where.not(id: contact_inbox.id).exists?(source_id: phone_number)
     head :no_content
   end
 
@@ -46,7 +47,7 @@ class OmnichannelCrm::BaileysMessagesController < ActionController::API
   end
 
   def contact_inbox
-    @contact_inbox ||= ContactInboxWithContactBuilder.new(
+    @contact_inbox ||= contact_inbox_with_phone_number || ContactInboxWithContactBuilder.new(
       source_id: contact_source_id,
       inbox: inbox,
       contact_attributes: {
@@ -70,7 +71,7 @@ class OmnichannelCrm::BaileysMessagesController < ActionController::API
   end
 
   def phone_number
-    @phone_number ||= params[:phone_number].presence || (contact_source_id unless ActiveModel::Type::Boolean.new.cast(params[:is_lid]))
+    @phone_number ||= params[:phone_number].presence || contact_source_id
   end
 
   def contact_source_id
@@ -78,7 +79,7 @@ class OmnichannelCrm::BaileysMessagesController < ActionController::API
   end
 
   def sync_contact(contact_inbox)
-    attributes = { custom_attributes: (contact_inbox.contact.custom_attributes || {}).merge('baileys_jid' => recipient_jid) }
+    attributes = { custom_attributes: (contact_inbox.contact.custom_attributes || {}).except('baileys_jid') }
     return contact_inbox.contact.update!(attributes) if phone_number.blank? || contact_inbox.contact.phone_number == "+#{phone_number}"
 
     attributes[:phone_number] = "+#{phone_number}"
@@ -86,8 +87,10 @@ class OmnichannelCrm::BaileysMessagesController < ActionController::API
     contact_inbox.contact.update!(attributes)
   end
 
-  def recipient_jid
-    "#{contact_source_id}@#{ActiveModel::Type::Boolean.new.cast(params[:is_lid]) ? 'lid' : 's.whatsapp.net'}"
+  def contact_inbox_with_phone_number
+    return unless phone_number.present?
+
+    inbox.contact_inboxes.joins(:contact).find_by(contacts: { phone_number: "+#{phone_number}" })
   end
 
   def content

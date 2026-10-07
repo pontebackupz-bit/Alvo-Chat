@@ -7,7 +7,7 @@ class OmnichannelCrm::BaileysMessageDeliveryJob < ApplicationJob
     message = Message.find(message_id)
     return unless message.outgoing?
 
-    OmnichannelCrm::BaileysMessageDeliveryService.new(message).perform
+    delivery_service(message).perform
   rescue ActiveStorage::FileNotFoundError => e
     return retry_after_upload(message_id, attempt) if attempt < MAX_FILE_AVAILABILITY_RETRIES
 
@@ -17,6 +17,12 @@ class OmnichannelCrm::BaileysMessageDeliveryJob < ApplicationJob
   end
 
   private
+
+  def delivery_service(message)
+    return OmnichannelCrm::WppconnectMessageDeliveryService.new(message) if message.inbox.channel.additional_attributes['provider'] == 'wppconnect'
+
+    OmnichannelCrm::BaileysMessageDeliveryService.new(message)
+  end
 
   def retry_after_upload(message_id, attempt)
     self.class.set(wait: 2.seconds).perform_later(message_id, attempt + 1)

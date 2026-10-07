@@ -66,6 +66,22 @@ class CrmAPI extends ApiClient {
     });
   }
 
+  getWppconnectSession(accountId, params = {}) {
+    return axios.get(`${this.accountUrl(accountId)}/wppconnect_session`, {
+      params,
+    });
+  }
+
+  createWppconnectSession(accountId, data = {}) {
+    return axios.post(`${this.accountUrl(accountId)}/wppconnect_session`, data);
+  }
+
+  deleteWppconnectSession(accountId, params = {}) {
+    return axios.delete(`${this.accountUrl(accountId)}/wppconnect_session`, {
+      params,
+    });
+  }
+
   getN8nWorkflows(accountId, connectionId) {
     return axios.get(
       `${this.accountUrl(accountId)}/n8n_connections/${connectionId}/workflows`

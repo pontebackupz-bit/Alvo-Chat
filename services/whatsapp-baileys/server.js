@@ -162,14 +162,10 @@ const rememberMessage = (session, message) => {
 const contactDetails = (session, message) => {
   const remoteJid = message.key.remoteJid;
   const sourceId = jidUser(remoteJid);
-  // LID is the stable Chatwoot source identifier. WhatsApp can still provide
-  // the sender's actual phone number separately in senderPn, including for
-  // LID conversations. Never use the LID itself as a phone number, but keep a
-  // real number supplied by WhatsApp so the contact is identified correctly.
   const senderPhoneNumber = jidUser(message.key.senderPn || message.key.participantPn);
-  const phoneNumber = senderPhoneNumber || session.phoneNumbers?.[sourceId] ||
-    (remoteJid?.endsWith('@s.whatsapp.net') ? sourceId : null);
   const isLid = remoteJid?.endsWith('@lid') || sourceId?.length > 15;
+  const phoneNumber = senderPhoneNumber || session.phoneNumbers?.[sourceId] ||
+    (isLid ? null : sourceId);
 
   return { sourceId, phoneNumber, isLid };
 };
@@ -234,7 +230,7 @@ const publishIncomingMessage = async (session, message) => {
   const media = mediaDetails(message.message || {});
   if (!sourceId || (!content && !media)) return;
 
-  if (isLid && !phoneNumber) {
+  if (!phoneNumber) {
     logger.warn(
       {
         session: session.id,
@@ -242,8 +238,9 @@ const publishIncomingMessage = async (session, message) => {
         hasSenderPn: Boolean(message.key.senderPn),
         hasParticipantPn: Boolean(message.key.participantPn),
       },
-      'Incoming WhatsApp LID has no phone-number mapping'
+      'Ignoring WhatsApp message without a phone-number mapping'
     );
+    return;
   }
 
   if (isLid) rememberPhoneNumber(session, sourceId, phoneNumber);
@@ -252,10 +249,9 @@ const publishIncomingMessage = async (session, message) => {
     event: 'message.received',
     session_id: session.id,
     message_id: message.key.id,
-    from: phoneNumber || sourceId,
-    source_id: sourceId,
+    from: phoneNumber,
+    source_id: phoneNumber,
     phone_number: phoneNumber,
-    is_lid: isLid,
     name: message.pushName,
     content,
     timestamp: message.messageTimestamp,
