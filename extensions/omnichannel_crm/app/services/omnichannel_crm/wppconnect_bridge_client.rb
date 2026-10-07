@@ -1,4 +1,5 @@
 require 'base64'
+require 'cgi'
 require 'net/http'
 
 class OmnichannelCrm::WppconnectBridgeClient
@@ -15,6 +16,15 @@ class OmnichannelCrm::WppconnectBridgeClient
 
   def create_session(session_id)
     request(session_id, :post, "/api/#{session_id}/start-session", { waitQrCode: false })
+  end
+
+  def phone_number_for(session_id, phone_or_lid)
+    contact = request(
+      session_id,
+      :get,
+      "/api/#{session_id}/contact/pn-lid/#{CGI.escape(phone_or_lid)}"
+    )
+    contact.dig('phoneNumber', '_serialized').to_s.split('@').first.gsub(/\D/, '').presence
   end
 
   def delete_session(session_id)
