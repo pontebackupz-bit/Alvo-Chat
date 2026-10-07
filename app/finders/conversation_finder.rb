@@ -114,6 +114,7 @@ class ConversationFinder
 
   def find_all_conversations
     find_conversation_by_inbox
+    @conversations = @conversations.joins(:contact, :inbox)
     # Apply permission-based filtering
     @conversations = Conversations::PermissionFilterService.new(
       @conversations,

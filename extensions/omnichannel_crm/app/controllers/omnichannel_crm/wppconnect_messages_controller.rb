@@ -39,6 +39,8 @@ class OmnichannelCrm::WppconnectMessagesController < OmnichannelCrm::BaileysMess
   def phone_number
     return @phone_number if defined?(@phone_number)
 
+    return @phone_number = nil unless direct_message?
+
     @phone_number = lid? ? bridge.phone_number_for(session_id, params[:from].to_s) : jid_user(params[:from])
   rescue StandardError => e
     Rails.logger.warn("Unable to map WPPConnect LID to a phone number: #{e.message}")
@@ -76,6 +78,10 @@ class OmnichannelCrm::WppconnectMessagesController < OmnichannelCrm::BaileysMess
 
   def lid?
     params[:from].to_s.end_with?('@lid')
+  end
+
+  def direct_message?
+    lid? || params[:from].to_s.end_with?('@c.us', '@s.whatsapp.net')
   end
 
   def bridge
@@ -163,7 +169,15 @@ class OmnichannelCrm::WppconnectMessagesController < OmnichannelCrm::BaileysMess
   def wppconnect_contact_name
     return @wppconnect_contact_name if defined?(@wppconnect_contact_name)
 
-    @wppconnect_contact_name = bridge.contact_name_for(session_id, phone_number)
+    names = [
+      params[:notifyName],
+      params.dig(:sender, :pushname),
+      params.dig(:sender, :verifiedName),
+      params.dig(:sender, :name),
+      params.dig(:sender, :formattedName)
+    ].filter_map { |name| name.to_s.strip.presence }
+
+    @wppconnect_contact_name = names.find { |name| name.gsub(/\D/, '') != phone_number }
   end
 
   def generated_contact_name?(name)
