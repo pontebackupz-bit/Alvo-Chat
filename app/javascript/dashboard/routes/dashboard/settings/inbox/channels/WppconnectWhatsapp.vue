@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import Button from 'dashboard/components-next/button/Button.vue';
+import SelectInput from 'dashboard/components-next/select/Select.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import crmAPI from 'dashboard/api/crm';
 import { useStore } from 'dashboard/composables/store';
@@ -15,11 +16,17 @@ const session = ref(null);
 const error = ref('');
 const isLoading = ref(false);
 const replaceDialog = ref(null);
+const selectedTeamId = ref('');
 let poller;
 let isCreatingInbox = false;
 let createInbox;
 
 const accountId = computed(() => route.params.accountId);
+const teams = computed(() => store.getters['teams/getTeams']);
+const teamOptions = computed(() => [
+  { value: '', label: t('INBOX_MGMT.ADD.WHATSAPP.PROVIDERS.WPPCONNECT.NO_TEAM') },
+  ...teams.value.map(team => ({ value: team.id, label: team.name })),
+]);
 const currentSessionKey = ref(`wizard-${Date.now().toString(36)}`);
 const isConnected = computed(() => session.value?.status === 'connected');
 const stopPolling = () => clearInterval(poller);
@@ -52,12 +59,14 @@ createInbox = async () => {
         additional_attributes: {
           provider: 'wppconnect',
           session_id: activeSessionId,
+          default_team_id: selectedTeamId.value || null,
         },
       },
     });
     await crmAPI.createWppconnectSession(accountId.value, {
       inbox_id: inbox.id,
       session_id: activeSessionId,
+      team_id: selectedTeamId.value || null,
     });
     await router.replace({
       name: 'settings_inboxes_add_agents',
@@ -112,7 +121,10 @@ const replaceNumber = async () => {
     isLoading.value = false;
   }
 };
-onMounted(() => refresh().catch(() => {}));
+onMounted(() => {
+  store.dispatch('teams/get');
+  refresh().catch(() => {});
+});
 onBeforeUnmount(stopPolling);
 </script>
 
@@ -126,6 +138,15 @@ onBeforeUnmount(stopPolling);
     </p>
     <div class="p-4 mt-5 text-sm rounded-xl bg-n-ruby-2 text-n-ruby-11">
       {{ $t('INBOX_MGMT.ADD.WHATSAPP.PROVIDERS.WPPCONNECT.WARNING') }}
+    </div>
+    <div v-if="!isConnected" class="mt-5">
+      <label class="block text-sm font-medium text-n-slate-12 mb-2">
+        {{ $t('INBOX_MGMT.ADD.WHATSAPP.PROVIDERS.WPPCONNECT.TEAM') }}
+      </label>
+      <SelectInput v-model="selectedTeamId" :options="teamOptions" />
+      <p class="mt-2 text-sm text-n-slate-11">
+        {{ $t('INBOX_MGMT.ADD.WHATSAPP.PROVIDERS.WPPCONNECT.TEAM_HELP') }}
+      </p>
     </div>
     <form v-if="!isConnected" class="mt-6" @submit.prevent="connect">
       <Button
@@ -151,6 +172,9 @@ onBeforeUnmount(stopPolling);
             status: session.status,
           })
         }}
+      </p>
+      <p v-if="session.phone" class="mt-2 text-sm text-n-slate-11">
+        {{ $t('INBOX_MGMT.ADD.WHATSAPP.PROVIDERS.WPPCONNECT.PHONE', { phone: `+${session.phone}` }) }}
       </p>
       <img
         v-if="session.qr"

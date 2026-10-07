@@ -53,20 +53,30 @@ class OmnichannelCrm::WppconnectSessionsController < OmnichannelCrm::Application
 
   def configure_inbox!
     channel = current_account.inboxes.find(params[:inbox_id]).channel
-    channel.additional_attributes = (channel.additional_attributes || {}).merge(
+    attributes = (channel.additional_attributes || {}).merge(
       'provider' => 'wppconnect',
       'session_id' => session_id
     )
+    connected_phone_number = bridge.connected_phone_number(session_id)
+    attributes['phone_number'] = connected_phone_number if connected_phone_number.present?
+
+    default_team = current_account.teams.find_by(id: params[:team_id].presence || attributes['default_team_id'])
+    attributes['default_team_id'] = default_team.id if default_team
+
+    channel.additional_attributes = attributes
     channel.save!
   end
 
   def public_session(session)
     status = session['status'].to_s.downcase
+    connected = %w[connected islogged].include?(status)
     {
       id: session_id,
-      status: %w[connected islogged].include?(status) ? 'connected' : status.presence || 'connecting',
+      status: connected ? 'connected' : status.presence || 'connecting',
+      phone: connected ? bridge.connected_phone_number(session_id) : nil,
       qr: session['qrcode'],
       updated_at: Time.current.iso8601
     }
   end
+
 end

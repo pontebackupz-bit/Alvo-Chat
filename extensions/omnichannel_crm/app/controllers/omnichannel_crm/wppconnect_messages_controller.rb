@@ -23,7 +23,17 @@ class OmnichannelCrm::WppconnectMessagesController < OmnichannelCrm::BaileysMess
   end
 
   def inbox
-    @inbox ||= Channel::Api.where("additional_attributes ->> 'session_id' = ?", session_id).first!.inbox
+    @inbox ||= Channel::Api.where("additional_attributes ->> 'session_id' = ?", session_id).first!.inbox.tap do |record|
+      sync_inbox_phone_number(record)
+    end
+  end
+
+  def contact_inbox
+    super.tap { |record| sync_contact_name(record.contact) }
+  end
+
+  def conversation
+    super.tap { |record| assign_default_team(record) }
   end
 
   def phone_number
@@ -127,5 +137,44 @@ class OmnichannelCrm::WppconnectMessagesController < OmnichannelCrm::BaileysMess
     contact_inbox.contact.update!(attributes)
     contact_inbox.update!(source_id: phone_number)
     contact_inbox
+  end
+
+  def sync_inbox_phone_number(record)
+    attributes = record.channel.additional_attributes || {}
+    return if attributes['phone_number'].present?
+
+    connected_phone_number = bridge.connected_phone_number(session_id)
+    return if connected_phone_number.blank?
+
+    record.channel.update!(additional_attributes: attributes.merge('phone_number' => connected_phone_number))
+  rescue StandardError => e
+    Rails.logger.warn("Unable to fetch the WPPConnect session phone number: #{e.message}")
+  end
+
+  def sync_contact_name(contact)
+    name = wppconnect_contact_name
+    return if name.blank? || !generated_contact_name?(contact.name)
+
+    contact.update!(name: name)
+  rescue StandardError => e
+    Rails.logger.warn("Unable to fetch the WPPConnect contact name: #{e.message}")
+  end
+
+  def wppconnect_contact_name
+    return @wppconnect_contact_name if defined?(@wppconnect_contact_name)
+
+    @wppconnect_contact_name = bridge.contact_name_for(session_id, phone_number)
+  end
+
+  def generated_contact_name?(name)
+    name.to_s.gsub(/\D/, '') == phone_number
+  end
+
+  def assign_default_team(conversation)
+    return if conversation.team_id.present?
+
+    team_id = inbox.channel.additional_attributes&.fetch('default_team_id', nil)
+    team = inbox.account.teams.find_by(id: team_id)
+    conversation.update!(team: team) if team
   end
 end

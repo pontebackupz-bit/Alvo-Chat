@@ -27,6 +27,18 @@ class OmnichannelCrm::WppconnectBridgeClient
     contact.dig('phoneNumber', '_serialized').to_s.split('@').first.gsub(/\D/, '').presence
   end
 
+  def connected_phone_number(session_id)
+    request(session_id, :get, "/api/#{session_id}/get-phone-number").fetch('response', '').to_s.gsub(/\D/, '').presence
+  end
+
+  def contact_name_for(session_id, phone_number)
+    contact = request(session_id, :get, "/api/#{session_id}/contact/#{CGI.escape(phone_number)}").fetch('response', {})
+    contact = {} unless contact.is_a?(Hash)
+    names = [contact['pushname'], contact['formattedName']].filter_map { |name| name.to_s.strip.presence }
+
+    names.find { |name| name.gsub(/\D/, '') != phone_number }
+  end
+
   def delete_session(session_id)
     request(session_id, :post, "/api/#{session_id}/logout-session")
   rescue StandardError

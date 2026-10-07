@@ -53,6 +53,8 @@ const filteredInboxesList = computed(() => {
 const uiFlags = computed(() => getters['inboxes/getUIFlags'].value);
 const accountId = computed(() => store.getters.getCurrentAccountId);
 const isBaileysInbox = inbox => inbox.additional_attributes?.provider === 'baileys';
+const isWppconnectInbox = inbox => inbox.additional_attributes?.provider === 'wppconnect';
+const wppconnectPhoneNumber = inbox => inbox.additional_attributes?.phone_number;
 const baileysSessionUrl = () =>
   `/api/v1/accounts/${accountId.value}/crm/baileys_session`;
 const baileysSessionParams = inboxId => ({ params: { inbox_id: inboxId } });
@@ -312,7 +314,14 @@ const openDelete = inbox => {
               <span class="block text-heading-3 text-n-slate-12 capitalize">
                 {{ inbox.name }}
               </span>
+              <span
+                v-if="isWppconnectInbox(inbox) && wppconnectPhoneNumber(inbox)"
+                class="text-body-main text-n-slate-11"
+              >
+                {{ `+${wppconnectPhoneNumber(inbox)}` }}
+              </span>
               <ChannelName
+                v-else
                 :channel-type="inbox.channel_type"
                 :medium="inbox.medium"
                 :voice-enabled="inbox.voice_enabled"

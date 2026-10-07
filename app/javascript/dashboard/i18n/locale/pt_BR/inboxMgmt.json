@@ -279,7 +279,12 @@
             "REPLACE_DESCRIPTION": "A sessão atual do WhatsApp será desconectada e um novo QR Code será gerado.",
             "STATUS_WITH_VALUE": "Status da conexão: {status}",
             "QR_ALT": "QR Code para conectar WhatsApp",
-            "ERROR": "Não foi possível conectar ao WPPConnect. Verifique se o serviço está em execução e configurado."
+            "ERROR": "Não foi possível conectar ao WPPConnect. Verifique se o serviço está em execução e configurado.",
+            "PHONE": "Número conectado: {phone}",
+            "PHONE_LABEL": "Número do WhatsApp conectado",
+            "TEAM": "Time padrão",
+            "NO_TEAM": "Não atribuir time agora",
+            "TEAM_HELP": "Novas conversas recebidas neste número serão atribuídas a este time."
           }
         },
         "SELECT_PROVIDER": {

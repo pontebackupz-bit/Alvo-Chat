@@ -71,6 +71,12 @@ const isHMACVerified = computed(() => {
 const currentContact = computed(() =>
   store.getters['contacts/getContact'](props.chat.meta.sender.id)
 );
+const contactPhoneNumber = computed(() => currentContact.value?.phone_number);
+const showContactPhoneNumber = computed(
+  () =>
+    contactPhoneNumber.value &&
+    contactPhoneNumber.value.replace(/\D/g, '') !== currentContact.value?.name?.replace(/\D/g, '')
+);
 
 const isSnoozed = computed(
   () => currentChat.value.status === wootConstants.STATUS_TYPE.SNOOZED
@@ -135,6 +141,12 @@ const copyConversationId = async () => {
             class="text-sm font-medium truncate leading-tight text-n-slate-12"
           >
             {{ currentContact.name }}
+          </span>
+          <span
+            v-if="showContactPhoneNumber"
+            class="text-xs text-n-slate-11 truncate leading-tight"
+          >
+            {{ contactPhoneNumber }}
           </span>
           <fluent-icon
             v-if="!isHMACVerified"
