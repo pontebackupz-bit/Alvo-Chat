@@ -102,6 +102,8 @@ services:
     volumes:
       - wppconnect_tokens:/usr/src/wpp-server/tokens
       - wppconnect_user_data:/usr/src/wpp-server/userDataDir
+      - ./services/wppconnect/entrypoint.sh:/usr/src/wpp-server/boot-wppconnect.sh:ro
+    entrypoint: ['sh', '/usr/src/wpp-server/boot-wppconnect.sh']
 
 volumes:
   storage_data:
