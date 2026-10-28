@@ -36,6 +36,8 @@ const selectedWhatsAppInbox = ref(null);
 const baileysSession = ref(null);
 const isLoadingBaileysSession = ref(false);
 const baileysSessions = ref({});
+const wppconnectSession = ref(null);
+const isLoadingWppconnectSession = ref(false);
 let baileysStatusPolling;
 
 const inboxes = useMapGetter('inboxes/getInboxes');
@@ -55,8 +57,19 @@ const accountId = computed(() => store.getters.getCurrentAccountId);
 const isBaileysInbox = inbox => inbox.additional_attributes?.provider === 'baileys';
 const isWppconnectInbox = inbox => inbox.additional_attributes?.provider === 'wppconnect';
 const wppconnectPhoneNumber = inbox => inbox.additional_attributes?.phone_number;
+const isSelectedWppconnectInbox = computed(
+  () => selectedWhatsAppInbox.value && isWppconnectInbox(selectedWhatsAppInbox.value)
+);
+const selectedWhatsAppSession = computed(() =>
+  isSelectedWppconnectInbox.value ? wppconnectSession.value : baileysSession.value
+);
+const isLoadingSelectedWhatsAppSession = computed(
+  () => isLoadingBaileysSession.value || isLoadingWppconnectSession.value
+);
 const baileysSessionUrl = () =>
   `/api/v1/accounts/${accountId.value}/crm/baileys_session`;
+const wppconnectSessionUrl = () =>
+  `/api/v1/accounts/${accountId.value}/crm/wppconnect_session`;
 const baileysSessionParams = inboxId => ({ params: { inbox_id: inboxId } });
 const baileysStatus = inbox => baileysSessions.value[inbox.id]?.status || 'not_started';
 const supportsBrowserNotifications =
@@ -198,9 +211,58 @@ const refreshWhatsAppQr = async inbox => {
   }
 };
 
+const loadWppconnectSession = async ({ create = false } = {}) => {
+  if (!selectedWhatsAppInbox.value) return;
+
+  isLoadingWppconnectSession.value = true;
+  try {
+    const response = create
+      ? await axios.post(
+          wppconnectSessionUrl(),
+          null,
+          baileysSessionParams(selectedWhatsAppInbox.value.id)
+        )
+      : await axios.get(
+          wppconnectSessionUrl(),
+          baileysSessionParams(selectedWhatsAppInbox.value.id)
+        );
+    wppconnectSession.value = response.data;
+  } catch (error) {
+    useAlert('Não foi possível carregar a sessão WPPConnect.');
+  } finally {
+    isLoadingWppconnectSession.value = false;
+  }
+};
+
+const refreshWppconnectQr = async inbox => {
+  selectedWhatsAppInbox.value = inbox;
+  wppconnectSession.value = null;
+  isLoadingWppconnectSession.value = true;
+
+  try {
+    const response = await axios.post(
+      `${wppconnectSessionUrl()}/refresh`,
+      null,
+      baileysSessionParams(inbox.id)
+    );
+    wppconnectSession.value = response.data;
+  } catch (error) {
+    useAlert('Não foi possível gerar um novo QR code WPPConnect.');
+  } finally {
+    isLoadingWppconnectSession.value = false;
+  }
+};
+
+const refreshSelectedWhatsAppSession = () => {
+  if (isSelectedWppconnectInbox.value) return loadWppconnectSession();
+
+  return loadBaileysSession();
+};
+
 const closeWhatsAppConnection = () => {
   selectedWhatsAppInbox.value = null;
   baileysSession.value = null;
+  wppconnectSession.value = null;
 };
 
 const deleteConfirmText = computed(
@@ -345,6 +407,14 @@ const openDelete = inbox => {
               sm
               @click="refreshWhatsAppQr(inbox)"
             />
+            <Button
+              v-if="isAdmin && isWppconnectInbox(inbox)"
+              label="Reconectar"
+              icon="i-lucide-refresh-cw"
+              slate
+              sm
+              @click="refreshWppconnectQr(inbox)"
+            />
             <router-link
               :to="{
                 name: 'settings_inbox_show',
@@ -389,14 +459,14 @@ const openDelete = inbox => {
           </div>
           <div class="mt-6 flex min-h-72 items-center justify-center rounded-xl bg-n-alpha-2 p-4">
             <img
-              v-if="baileysSession?.qr"
-              :src="baileysSession.qr"
+              v-if="selectedWhatsAppSession?.qr"
+              :src="selectedWhatsAppSession.qr"
               alt="QR code para conectar o WhatsApp"
               class="size-72 max-w-full rounded-lg bg-white p-2"
             />
             <div v-else class="text-center text-sm text-n-slate-11">
-              <span v-if="isLoadingBaileysSession">Gerando QR code...</span>
-              <span v-else-if="baileysSession?.status === 'connected'">WhatsApp conectado.</span>
+              <span v-if="isLoadingSelectedWhatsAppSession">Gerando QR code...</span>
+              <span v-else-if="selectedWhatsAppSession?.status === 'connected'">WhatsApp conectado.</span>
               <span v-else>O QR code ainda não está disponível.</span>
             </div>
           </div>
@@ -408,8 +478,8 @@ const openDelete = inbox => {
               label="Atualizar status"
               slate
               sm
-              :is-loading="isLoadingBaileysSession"
-              @click="loadBaileysSession"
+              :is-loading="isLoadingSelectedWhatsAppSession"
+              @click="refreshSelectedWhatsAppSession"
             />
             <Button label="Fechar" sm @click="closeWhatsAppConnection" />
           </div>
