@@ -2,7 +2,9 @@ require 'base64'
 require 'stringio'
 
 class OmnichannelCrm::BaileysMessagesController < ActionController::API
-  MAX_MEDIA_BYTES = 12.megabytes
+  # Keep the inbound limit aligned with both bridge clients. WhatsApp documents
+  # commonly exceed 12 MB; 20 MB remains bounded after Base64 decoding.
+  MAX_MEDIA_BYTES = 20.megabytes
   MAX_BASE64_MEDIA_BYTES = ((MAX_MEDIA_BYTES + 2) / 3) * 4
 
   before_action :authenticate_bridge!

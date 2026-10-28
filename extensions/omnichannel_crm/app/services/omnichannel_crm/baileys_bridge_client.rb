@@ -2,7 +2,7 @@ require 'net/http'
 require 'base64'
 
 class OmnichannelCrm::BaileysBridgeClient
-  MAX_MEDIA_BYTES = 12.megabytes
+  MAX_MEDIA_BYTES = 20.megabytes
 
   def initialize
     @base_url = ENV.fetch('BAILEYS_BRIDGE_URL', 'http://baileys:3001')

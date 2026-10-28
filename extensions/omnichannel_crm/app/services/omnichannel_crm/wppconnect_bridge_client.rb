@@ -3,7 +3,7 @@ require 'cgi'
 require 'net/http'
 
 class OmnichannelCrm::WppconnectBridgeClient
-  MAX_MEDIA_BYTES = 12.megabytes
+  MAX_MEDIA_BYTES = 20.megabytes
   CONNECTED_SESSION_STATUSES = %w[connected islogged].freeze
 
   class SessionUnavailable < StandardError; end
