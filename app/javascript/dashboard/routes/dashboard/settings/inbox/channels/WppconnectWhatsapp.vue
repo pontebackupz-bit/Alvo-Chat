@@ -7,6 +7,7 @@ import SelectInput from 'dashboard/components-next/select/Select.vue';
 import Dialog from 'dashboard/components-next/dialog/Dialog.vue';
 import crmAPI from 'dashboard/api/crm';
 import { useStore } from 'dashboard/composables/store';
+import sessionStorage from 'shared/helpers/sessionStorage';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -27,7 +28,15 @@ const teamOptions = computed(() => [
   { value: '', label: t('INBOX_MGMT.ADD.WHATSAPP.PROVIDERS.WPPCONNECT.NO_TEAM') },
   ...teams.value.map(team => ({ value: team.id, label: team.name })),
 ]);
-const currentSessionKey = ref(`wizard-${Date.now().toString(36)}`);
+const wizardStorageKey = computed(
+  () => `wppconnect-wizard-session-${accountId.value}`
+);
+const newSessionKey = () => `wizard-${Date.now().toString(36)}`;
+const currentSessionKey = ref(
+  sessionStorage.get(wizardStorageKey.value) || newSessionKey()
+);
+const persistSessionKey = () =>
+  sessionStorage.set(wizardStorageKey.value, currentSessionKey.value);
 const isConnected = computed(() => session.value?.status === 'connected');
 const stopPolling = () => clearInterval(poller);
 const refresh = async () => {
@@ -72,12 +81,14 @@ createInbox = async () => {
       name: 'settings_inboxes_add_agents',
       params: { page: 'new', inbox_id: inbox.id },
     });
+    sessionStorage.remove(wizardStorageKey.value);
   } catch (_) {
     isCreatingInbox = false;
     error.value = t('INBOX_MGMT.ADD.WHATSAPP.PROVIDERS.WPPCONNECT.ERROR');
   }
 };
 const createSession = async () => {
+  persistSessionKey();
   await crmAPI.createWppconnectSession(accountId.value, {
     session_key: currentSessionKey.value,
   });
@@ -113,7 +124,8 @@ const replaceNumber = async () => {
       });
     }
     session.value = null;
-    currentSessionKey.value = `wizard-${Date.now().toString(36)}`;
+    currentSessionKey.value = newSessionKey();
+    persistSessionKey();
     await createSession();
   } catch (_) {
     error.value = t('INBOX_MGMT.ADD.WHATSAPP.PROVIDERS.WPPCONNECT.ERROR');

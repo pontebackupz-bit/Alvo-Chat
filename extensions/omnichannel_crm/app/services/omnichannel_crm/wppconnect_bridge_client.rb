@@ -32,10 +32,18 @@ class OmnichannelCrm::WppconnectBridgeClient
   end
 
   def delete_session(session_id)
-    request(session_id, :post, "/api/#{session_id}/logout-session")
+    # Closing the running browser first prevents an abandoned QR wizard from
+    # continuing to rotate codes after the user starts another connection.
+    request(session_id, :post, "/api/#{session_id}/close-session")
   rescue StandardError
-    clear_session_data(session_id)
-  else
+    # The session can already be closed or partially initialized. Logout below
+    # still removes its persisted authentication data in that case.
+  ensure
+    begin
+      request(session_id, :post, "/api/#{session_id}/logout-session")
+    rescue StandardError
+      # The administrative cleanup below is the final, idempotent fallback.
+    end
     clear_session_data(session_id)
   end
 
