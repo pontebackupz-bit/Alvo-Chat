@@ -7,7 +7,6 @@ import { required, email } from '@vuelidate/validators';
 import { useVuelidate } from '@vuelidate/core';
 import { SESSION_STORAGE_KEYS } from 'dashboard/constants/sessionStorage';
 import SessionStorage from 'shared/helpers/sessionStorage';
-import { useBranding } from 'shared/composables/useBranding';
 import AnalyticsHelper from 'dashboard/helper/AnalyticsHelper';
 import { SESSION_EVENTS } from 'dashboard/helper/AnalyticsHelper/events';
 
@@ -16,10 +15,10 @@ import SimpleDivider from '../../components/Divider/SimpleDivider.vue';
 import FormInput from '../../components/Form/Input.vue';
 import GoogleOAuthButton from '../../components/GoogleOauth/Button.vue';
 import Spinner from 'shared/components/Spinner.vue';
-import Icon from 'dashboard/components-next/icon/Icon.vue';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import MfaVerification from 'dashboard/components/auth/MfaVerification.vue';
 import SessionLimitOverlay from 'dashboard/components/auth/SessionLimitOverlay.vue';
+import AlvoradaWordmark from 'shared/components/AlvoradaWordmark.vue';
 
 const ERROR_MESSAGES = {
   'no-account-found': 'LOGIN.OAUTH.NO_ACCOUNT_FOUND',
@@ -30,6 +29,23 @@ const ERROR_MESSAGES = {
 
 const IMPERSONATION_URL_SEARCH_KEY = 'impersonation';
 const USER_NOT_CONFIRMED_ERROR_CODE = 'user_not_confirmed';
+const BRAND = {
+  initial: 'A',
+  platform: 'AlvoChat',
+  company: 'Comercial Alvorada',
+  eyebrow: 'Central comercial',
+  title: 'Toda conversa pode virar resultado.',
+  description:
+    'O AlvoChat reúne atendimento, oportunidades e sua equipe em uma única operação, com contexto do início ao fim.',
+  loginTitle: 'Acesse sua conta',
+  loginDescription: 'Entre com seu e-mail corporativo para continuar.',
+  security: 'Ambiente seguro para a equipe Comercial Alvorada.',
+  benefits: [
+    'Atenda clientes com histórico e contexto.',
+    'Acompanhe as oportunidades que movimentam o negócio.',
+    'Trabalhe em equipe com visibilidade e controle.',
+  ],
+};
 
 export default {
   components: {
@@ -40,7 +56,7 @@ export default {
     SimpleDivider,
     MfaVerification,
     SessionLimitOverlay,
-    Icon,
+    AlvoradaWordmark,
   },
   props: {
     ssoAuthToken: { type: String, default: '' },
@@ -50,9 +66,8 @@ export default {
     authError: { type: String, default: '' },
   },
   setup() {
-    const { replaceInstallationName } = useBranding();
     return {
-      replaceInstallationName,
+      brand: BRAND,
       v$: useVuelidate(),
     };
   },
@@ -102,9 +117,6 @@ export default {
     },
     showSignupLink() {
       return window.chatwootConfig.signupEnabled === 'true';
-    },
-    showSamlLogin() {
-      return this.allowedLoginMethods.includes('saml');
     },
   },
   created() {
@@ -290,131 +302,159 @@ export default {
 
 <template>
   <main
-    class="flex flex-col w-full min-h-screen py-20 bg-n-brand/5 dark:bg-n-background sm:px-6 lg:px-8"
+    class="grid min-h-screen bg-[#F7F9FC] lg:grid-cols-[minmax(0,1.06fr)_minmax(480px,0.94fr)]"
   >
-    <section class="max-w-5xl mx-auto">
-      <img
-        :src="globalConfig.logo"
-        :alt="globalConfig.installationName"
-        class="block w-auto h-8 mx-auto dark:hidden"
-      />
-      <img
-        v-if="globalConfig.logoDark"
-        :src="globalConfig.logoDark"
-        :alt="globalConfig.installationName"
-        class="hidden w-auto h-8 mx-auto dark:block"
-      />
-      <h2 class="mt-6 text-3xl font-medium text-center text-n-slate-12">
-        {{ replaceInstallationName($t('LOGIN.TITLE')) }}
-      </h2>
-      <p v-if="showSignupLink" class="mt-3 text-sm text-center text-n-slate-11">
-        {{ $t('COMMON.OR') }}
-        <router-link to="auth/signup" class="lowercase text-link text-n-brand">
-          {{ $t('LOGIN.CREATE_NEW_ACCOUNT') }}
-        </router-link>
-      </p>
-    </section>
-
-    <!-- Session Limit Section -->
-    <section v-if="sessionsLimitReached" class="mt-11">
-      <SessionLimitOverlay
-        :sessions="limitedSessions"
-        @revoke="handleSessionRevoke"
-        @revoke-all="handleSessionRevokeAll"
-        @cancel="handleSessionLimitCancel"
-      />
-    </section>
-
-    <!-- MFA Verification Section -->
-    <section v-else-if="mfaRequired" class="mt-11">
-      <MfaVerification
-        :mfa-token="mfaToken"
-        @verified="handleMfaVerified"
-        @cancel="handleMfaCancel"
-      />
-    </section>
-
-    <!-- Regular Login Section -->
     <section
-      v-else
-      class="bg-white shadow sm:mx-auto mt-11 sm:w-full sm:max-w-lg dark:bg-n-solid-2 p-11 sm:shadow-lg sm:rounded-lg"
-      :class="{
-        'mb-8 mt-15': !showGoogleOAuth,
-        'animate-wiggle': loginApi.hasErrored,
-      }"
+      class="relative hidden overflow-hidden bg-gradient-to-br from-[#071B4D] via-[#0C327F] to-[#1E5ED8] px-14 py-12 text-white lg:flex lg:flex-col lg:justify-between"
     >
-      <div v-if="!email">
-        <div class="flex flex-col gap-4">
-          <GoogleOAuthButton v-if="showGoogleOAuth" />
-          <div v-if="showSamlLogin" class="text-center">
-            <router-link
-              to="/app/login/sso"
-              class="inline-flex justify-center w-full px-4 py-3 items-center bg-n-background dark:bg-n-solid-3 rounded-md shadow-sm ring-1 ring-inset ring-n-container dark:ring-n-container focus:outline-offset-0 hover:bg-n-alpha-2 dark:hover:bg-n-alpha-2"
-            >
-              <Icon
-                icon="i-lucide-lock-keyhole"
-                class="size-5 text-n-slate-11"
-              />
-              <span class="ml-2 text-base font-medium text-n-slate-12">
-                {{ $t('LOGIN.SAML.LABEL') }}
-              </span>
-            </router-link>
-          </div>
-          <SimpleDivider
-            v-if="showGoogleOAuth || showSamlLogin"
-            :label="$t('COMMON.OR')"
-            class="uppercase"
-          />
-        </div>
-        <form class="space-y-5" @submit.prevent="submitFormLogin">
-          <FormInput
-            v-model="credentials.email"
-            name="email_address"
-            type="text"
-            data-testid="email_input"
-            :tabindex="1"
-            required
-            :label="$t('LOGIN.EMAIL.LABEL')"
-            :placeholder="$t('LOGIN.EMAIL.PLACEHOLDER')"
-            :has-error="v$.credentials.email.$error"
-            @input="v$.credentials.email.$touch"
-          />
-          <FormInput
-            v-model="credentials.password"
-            type="password"
-            name="password"
-            data-testid="password_input"
-            required
-            :tabindex="2"
-            :label="$t('LOGIN.PASSWORD.LABEL')"
-            :placeholder="$t('LOGIN.PASSWORD.PLACEHOLDER')"
-            :has-error="v$.credentials.password.$error"
-            @input="v$.credentials.password.$touch"
-          >
-            <p v-if="!globalConfig.disableUserProfileUpdate">
-              <router-link
-                to="auth/reset/password"
-                class="text-sm text-link"
-                tabindex="4"
-              >
-                {{ $t('LOGIN.FORGOT_PASSWORD') }}
-              </router-link>
-            </p>
-          </FormInput>
-          <NextButton
-            lg
-            type="submit"
-            data-testid="submit_button"
-            class="w-full"
-            :tabindex="3"
-            :label="$t('LOGIN.SUBMIT')"
-            :disabled="loginApi.showLoading"
-            :is-loading="loginApi.showLoading"
-          />
-        </form>
+      <div
+        class="absolute -top-32 right-0 h-96 w-96 rounded-full bg-blue-300/10 blur-3xl"
+      />
+      <div
+        class="absolute bottom-0 left-0 h-80 w-80 translate-x-[-35%] translate-y-[40%] rounded-full border border-white/10"
+      />
+      <div class="relative z-10">
+        <AlvoradaWordmark tone="light" size="large" />
       </div>
-      <div v-else class="flex items-center justify-center">
-        <Spinner color-scheme="primary" size="" />
+      <div class="relative z-10 max-w-xl motion-safe:animate-fade-in-up">
+        <p
+          class="text-sm font-medium tracking-[0.16em] text-blue-200 uppercase"
+        >
+          {{ brand.eyebrow }}
+        </p>
+        <h1 class="mt-5 text-5xl font-semibold leading-[1.08] tracking-tight">
+          {{ brand.title }}
+        </h1>
+        <p class="mt-6 max-w-lg text-lg leading-8 text-blue-100">
+          {{ brand.description }}
+        </p>
+        <ul class="mt-10 space-y-4">
+          <li
+            v-for="benefit in brand.benefits"
+            :key="benefit"
+            class="flex items-start gap-3 text-[15px] leading-6 text-blue-50"
+          >
+            <span
+              class="i-lucide-check-circle-2 mt-0.5 size-5 shrink-0 text-[#8DB7FF]"
+            />
+            <span>{{ benefit }}</span>
+          </li>
+        </ul>
+      </div>
+      <p class="relative z-10 text-sm text-blue-200">{{ brand.company }}</p>
+    </section>
+
+    <section
+      class="flex items-center justify-center px-6 py-12 sm:px-10 lg:px-16"
+    >
+      <div class="w-full max-w-md motion-safe:animate-fade-in-up">
+        <div class="flex items-center gap-3 lg:hidden">
+          <AlvoradaWordmark />
+        </div>
+        <p
+          class="mt-10 text-sm font-semibold tracking-[0.14em] text-[#2764CF] uppercase"
+        >
+          {{ brand.platform }}
+        </p>
+        <AlvoradaWordmark class="mt-4" />
+        <h2 class="mt-3 text-4xl font-semibold tracking-tight text-[#132343]">
+          {{ brand.loginTitle }}
+        </h2>
+        <p class="mt-3 text-base leading-7 text-[#64748B]">
+          {{ brand.loginDescription }}
+        </p>
+        <p v-if="showSignupLink" class="mt-3 text-sm text-n-slate-11">
+          {{ $t('COMMON.OR') }}
+          <router-link to="auth/signup" class="text-link text-n-brand">
+            {{ $t('LOGIN.CREATE_NEW_ACCOUNT') }}
+          </router-link>
+        </p>
+
+        <section v-if="sessionsLimitReached" class="mt-10">
+          <SessionLimitOverlay
+            :sessions="limitedSessions"
+            @revoke="handleSessionRevoke"
+            @revoke-all="handleSessionRevokeAll"
+            @cancel="handleSessionLimitCancel"
+          />
+        </section>
+
+        <section v-else-if="mfaRequired" class="mt-10">
+          <MfaVerification
+            :mfa-token="mfaToken"
+            @verified="handleMfaVerified"
+            @cancel="handleMfaCancel"
+          />
+        </section>
+
+        <section
+          v-else
+          class="p-7 mt-9 bg-white border border-[#E2E8F0] rounded-2xl shadow-xl shadow-slate-900/[0.05] sm:p-9"
+          :class="{ 'animate-wiggle': loginApi.hasErrored }"
+        >
+          <div v-if="!email">
+            <div v-if="showGoogleOAuth" class="flex flex-col gap-4">
+              <GoogleOAuthButton />
+              <SimpleDivider :label="$t('COMMON.OR')" class="uppercase" />
+            </div>
+            <form class="mt-6 space-y-5" @submit.prevent="submitFormLogin">
+              <FormInput
+                v-model="credentials.email"
+                class="!rounded-xl !bg-[#F5F7FB] !px-4 !py-3.5 !text-[#132343] !outline-[#D7DFEC] placeholder:!text-[#93A1B8] focus:!outline-[#1E5ED8] dark:!bg-[#F5F7FB] dark:!text-[#132343]"
+                label-class="!font-semibold !text-[#1E293B]"
+                name="email_address"
+                type="text"
+                data-testid="email_input"
+                :tabindex="1"
+                required
+                :label="$t('LOGIN.EMAIL.LABEL')"
+                :placeholder="$t('LOGIN.EMAIL.PLACEHOLDER')"
+                :has-error="v$.credentials.email.$error"
+                @input="v$.credentials.email.$touch"
+              />
+              <FormInput
+                v-model="credentials.password"
+                class="!rounded-xl !bg-[#F5F7FB] !px-4 !py-3.5 !text-[#132343] !outline-[#D7DFEC] placeholder:!text-[#93A1B8] focus:!outline-[#1E5ED8] dark:!bg-[#F5F7FB] dark:!text-[#132343]"
+                label-class="!font-semibold !text-[#1E293B]"
+                type="password"
+                name="password"
+                data-testid="password_input"
+                required
+                :tabindex="2"
+                :label="$t('LOGIN.PASSWORD.LABEL')"
+                :placeholder="$t('LOGIN.PASSWORD.PLACEHOLDER')"
+                :has-error="v$.credentials.password.$error"
+                @input="v$.credentials.password.$touch"
+              >
+                <p v-if="!globalConfig.disableUserProfileUpdate">
+                  <router-link
+                    to="auth/reset/password"
+                    class="text-sm font-medium text-[#1E5ED8] hover:text-[#0C327F]"
+                    tabindex="4"
+                  >
+                    {{ $t('LOGIN.FORGOT_PASSWORD') }}
+                  </router-link>
+                </p>
+              </FormInput>
+              <NextButton
+                lg
+                type="submit"
+                data-testid="submit_button"
+                class="!mt-7 !w-full !rounded-xl !bg-[#1557D6] !py-3.5 !text-base hover:!bg-[#0D46B3]"
+                :tabindex="3"
+                :label="$t('LOGIN.SUBMIT')"
+                :disabled="loginApi.showLoading"
+                :is-loading="loginApi.showLoading"
+              />
+            </form>
+            <p class="mt-6 text-center text-xs leading-5 text-[#94A3B8]">
+              {{ brand.security }}
+            </p>
+          </div>
+          <div v-else class="flex items-center justify-center py-8">
+            <Spinner color-scheme="primary" size="" />
+          </div>
+        </section>
       </div>
     </section>
   </main>

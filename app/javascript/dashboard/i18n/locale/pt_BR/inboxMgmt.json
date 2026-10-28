@@ -267,6 +267,24 @@
             "STATUS_WITH_VALUE": "Status da conexão: {status}",
             "QR_ALT": "QR Code para conectar WhatsApp",
             "ERROR": "Não foi possível conectar à ponte Baileys. Verifique se o serviço está em execução e se o token está correto."
+          },
+          "WPPCONNECT": {
+            "TITLE": "WhatsApp por sessão (WPPConnect)",
+            "CARD_DESCRIPTION": "Conecte um número por QR Code usando WPPConnect",
+            "DESCRIPTION": "Conecte um número pelo serviço WhatsApp Web do WPPConnect.",
+            "WARNING": "Atenção: esta é uma integração não oficial baseada no WhatsApp Web. Ela pode causar bloqueios ou restrições indevidas no número. Use apenas números autorizados e mensagens solicitadas.",
+            "CONNECT": "Gerar QR Code",
+            "REPLACE": "Trocar número",
+            "REPLACE_TITLE": "Trocar o número conectado?",
+            "REPLACE_DESCRIPTION": "A sessão atual do WhatsApp será desconectada e um novo QR Code será gerado.",
+            "STATUS_WITH_VALUE": "Status da conexão: {status}",
+            "QR_ALT": "QR Code para conectar WhatsApp",
+            "ERROR": "Não foi possível conectar ao WPPConnect. Verifique se o serviço está em execução e configurado.",
+            "PHONE": "Número conectado: {phone}",
+            "PHONE_LABEL": "Número do WhatsApp conectado",
+            "TEAM": "Time padrão",
+            "NO_TEAM": "Não atribuir time agora",
+            "TEAM_HELP": "Novas conversas recebidas neste número serão atribuídas a este time."
           }
         },
         "SELECT_PROVIDER": {

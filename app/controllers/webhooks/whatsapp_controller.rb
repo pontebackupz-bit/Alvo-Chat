@@ -17,9 +17,11 @@ class Webhooks::WhatsappController < ActionController::API
   private
 
   def valid_token?(token)
-    channel = Channel::Whatsapp.find_by(phone_number: params[:phone_number])
-    whatsapp_webhook_verify_token = channel.provider_config['webhook_verify_token'] if channel.present?
-    token == whatsapp_webhook_verify_token if whatsapp_webhook_verify_token.present?
+    return false if token.blank?
+
+    channel = find_channel_by_phone
+    whatsapp_webhook_verify_token = channel&.provider_config&.fetch('webhook_verify_token', nil)
+    whatsapp_webhook_verify_token.present? && token == whatsapp_webhook_verify_token
   end
 
   def meta_app_secrets
@@ -30,7 +32,17 @@ class Webhooks::WhatsappController < ActionController::API
   end
 
   def whatsapp_channel
-    @whatsapp_channel ||= whatsapp_business_payload_channel || Channel::Whatsapp.find_by(phone_number: params[:phone_number])
+    @whatsapp_channel ||= whatsapp_business_payload_channel || find_channel_by_phone
+  end
+
+  def find_channel_by_phone
+    raw_phone = params[:phone_number].to_s
+    return nil if raw_phone.blank?
+
+    digits = raw_phone.gsub(/\D/, '')
+    Channel::Whatsapp.find_by(phone_number: raw_phone) ||
+      Channel::Whatsapp.find_by(phone_number: "+#{digits}") ||
+      Channel::Whatsapp.find_by(phone_number: digits)
   end
 
   def meta_signature_verification_required?

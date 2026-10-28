@@ -89,18 +89,24 @@ class Whatsapp::Providers::WhatsappCloudService < Whatsapp::Providers::BaseServi
   end
 
   def media_url(media_id)
-    "#{api_base_path}/v13.0/#{media_id}"
+    "#{api_base_path}/#{api_version}/#{media_id}"
   end
 
   private
 
-  # Only saves dropping the embedded_signup source marker are transfer attempts; creation/rotation failures are setup errors. Returns false.
+  # The channel creation UI needs a generic credential error, but the server log
+  # must retain Meta's reason (without credentials) to make setup supportable.
+  # Do not log the request URL because manual setup sends the access token as a
+  # query parameter for Graph's read endpoints.
   def log_transfer_failure(check, response)
-    return false unless whatsapp_channel.embedded_to_manual_transfer_pending?
+    error = response.parsed_response.is_a?(Hash) ? response.parsed_response['error'] : {}
+    error_message = error&.fetch('message', nil)
+    error_code = error&.fetch('code', nil)
+    error_subcode = error&.fetch('error_subcode', nil)
 
-    error_message = response.parsed_response.is_a?(Hash) ? response.parsed_response.dig('error', 'message') : nil
-    Rails.logger.warn("[WHATSAPP_EMBEDDED_TO_MANUAL] failure account_id=#{whatsapp_channel.account_id} channel_id=#{whatsapp_channel.id} " \
-                      "check=#{check} http_status=#{response.code} meta_error=#{error_message}")
+    Rails.logger.warn("[WHATSAPP_CLOUD_CONFIG] validation_failed account_id=#{whatsapp_channel.account_id} " \
+                      "channel_id=#{whatsapp_channel.id || 'new'} check=#{check} http_status=#{response.code} " \
+                      "meta_error_code=#{error_code} meta_error_subcode=#{error_subcode} meta_error=#{error_message}")
     false
   end
 
@@ -112,13 +118,20 @@ class Whatsapp::Providers::WhatsappCloudService < Whatsapp::Providers::BaseServi
     ENV.fetch('WHATSAPP_CLOUD_BASE_URL', 'https://graph.facebook.com')
   end
 
-  # TODO: See if we can unify the API versions and for both paths and make it consistent with out facebook app API versions
-  def phone_id_path(version = 'v13.0')
-    "#{api_base_path}/#{version}/#{whatsapp_channel.provider_config['phone_number_id']}"
+  # Keep every Graph API call on the version configured for the installation.
+  # Mixing deprecated versions causes valid Cloud API credentials to fail on
+  # some endpoints while succeeding on others.
+  def api_version
+    version = GlobalConfigService.load('WHATSAPP_API_VERSION', 'v22.0').to_s
+    version.start_with?('v') ? version : "v#{version}"
+  end
+
+  def phone_id_path
+    "#{api_base_path}/#{api_version}/#{whatsapp_channel.provider_config['phone_number_id']}"
   end
 
   def business_account_path
-    "#{api_base_path}/v14.0/#{whatsapp_channel.provider_config['business_account_id']}"
+    "#{api_base_path}/#{api_version}/#{whatsapp_channel.provider_config['business_account_id']}"
   end
 
   def send_text_message(phone_number, message)
@@ -143,7 +156,7 @@ class Whatsapp::Providers::WhatsappCloudService < Whatsapp::Providers::BaseServi
     type = %w[image audio video].include?(attachment.file_type) ? attachment.file_type : 'document'
     type_content = build_attachment_content(type, attachment, message)
     response = HTTParty.post(
-      "#{phone_id_path('v24.0')}/messages",
+      "#{phone_id_path}/messages",
       headers: api_headers,
       body: {
         :messaging_product => 'whatsapp',

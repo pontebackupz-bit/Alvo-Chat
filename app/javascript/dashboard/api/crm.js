@@ -66,6 +66,22 @@ class CrmAPI extends ApiClient {
     });
   }
 
+  getWppconnectSession(accountId, params = {}) {
+    return axios.get(`${this.accountUrl(accountId)}/wppconnect_session`, {
+      params,
+    });
+  }
+
+  createWppconnectSession(accountId, data = {}) {
+    return axios.post(`${this.accountUrl(accountId)}/wppconnect_session`, data);
+  }
+
+  deleteWppconnectSession(accountId, params = {}) {
+    return axios.delete(`${this.accountUrl(accountId)}/wppconnect_session`, {
+      params,
+    });
+  }
+
   getN8nWorkflows(accountId, connectionId) {
     return axios.get(
       `${this.accountUrl(accountId)}/n8n_connections/${connectionId}/workflows`
@@ -112,6 +128,26 @@ class CrmAPI extends ApiClient {
 
   getRoles(accountId) {
     return axios.get(`${this.accountUrl(accountId)}/roles`);
+  }
+
+  getUsers(accountId) {
+    return axios.get(`${this.accountUrl(accountId)}/users`);
+  }
+
+  createUser(accountId, data) {
+    return axios.post(`${this.accountUrl(accountId)}/users`, { user: data });
+  }
+
+  updateUser(accountId, userId, data) {
+    return axios.patch(`${this.accountUrl(accountId)}/users/${userId}`, {
+      user: data,
+    });
+  }
+
+  resetUserPassword(accountId, userId, data = {}) {
+    return axios.post(`${this.accountUrl(accountId)}/users/${userId}/reset_password`, {
+      user: data,
+    });
   }
 
   getRoleAssignments(accountId) {
@@ -168,6 +204,42 @@ class CrmAPI extends ApiClient {
   deleteAutomationRule(accountId, ruleId) {
     return axios.delete(
       `${this.accountUrl(accountId)}/automation_rules/${ruleId}`
+    );
+  }
+
+  getWorkflows(accountId) {
+    return axios.get(`${this.accountUrl(accountId)}/workflows`);
+  }
+
+  getWorkflow(accountId, workflowId) {
+    return axios.get(`${this.accountUrl(accountId)}/workflows/${workflowId}`);
+  }
+
+  previewWorkflowImport(accountId, file) {
+    const data = new FormData();
+    data.append('file', file);
+    return axios.post(`${this.accountUrl(accountId)}/workflows/preview`, data);
+  }
+
+  importWorkflow(accountId, file) {
+    const data = new FormData();
+    data.append('file', file);
+    return axios.post(`${this.accountUrl(accountId)}/workflows/import`, data);
+  }
+
+  updateWorkflow(accountId, workflowId, data) {
+    return axios.patch(
+      `${this.accountUrl(accountId)}/workflows/${workflowId}`,
+      {
+        workflow: data,
+      }
+    );
+  }
+
+  exportWorkflow(accountId, workflowId) {
+    return axios.get(
+      `${this.accountUrl(accountId)}/workflows/${workflowId}/export`,
+      { responseType: 'blob' }
     );
   }
 

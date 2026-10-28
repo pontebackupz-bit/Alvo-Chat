@@ -1,0 +1,55 @@
+diff --git a/lib/Utils/decode-wa-message.js b/lib/Utils/decode-wa-message.js
+--- a/lib/Utils/decode-wa-message.js
++++ b/lib/Utils/decode-wa-message.js
+@@ -76,7 +76,7 @@
+     else {
+         throw new Boom('Unknown message type', { data: stanza });
+     }
+-    const fromMe = (isLidUser(from) ? isMeLid : isMe)((stanza.attrs.participant || stanza.attrs.from));
++    const fromMe = isMe((stanza.attrs.participant || stanza.attrs.from)) || isMeLid((stanza.attrs.participant || stanza.attrs.from));
+     const pushname = stanza?.attrs?.notify;
+     const key = {
+         remoteJid: chatId,
+@@ -141,14 +141,36 @@
+                                 });
+                                 break;
+                             case 'pkmsg':
+-                            case 'msg':
++                            case 'msg': {
+                                 const user = isJidUser(sender) ? sender : author;
+-                                msgBuffer = await repository.decryptMessage({
+-                                    jid: user,
+-                                    type: e2eType,
+-                                    ciphertext: content
+-                                });
++                                try {
++                                    msgBuffer = await repository.decryptMessage({
++                                        jid: user,
++                                        type: e2eType,
++                                        ciphertext: content
++                                    });
++                                }
++                                catch (err) {
++                                    const altUser = isLidUser(user)
++                                        ? stanza.attrs.participant_pn || stanza.attrs.sender_pn
++                                        : stanza.attrs.participant_lid || stanza.attrs.sender_lid;
++                                    if (!altUser || altUser === user) {
++                                        throw err;
++                                    }
++                                    logger.debug({ key: fullMessage.key, primary: user, retryWith: altUser }, 'primary identity failed to decrypt, retrying with stanza-provided PN/LID pairing');
++                                    try {
++                                        msgBuffer = await repository.decryptMessage({
++                                            jid: altUser,
++                                            type: e2eType,
++                                            ciphertext: content
++                                        });
++                                    }
++                                    catch {
++                                        throw err;
++                                    }
++                                }
+                                 break;
++                            }
+                             case 'plaintext':
+                                 msgBuffer = content;
+                                 break;

@@ -115,6 +115,7 @@ export default {
       widgetBubblePosition: 'right',
       widgetBubbleType: 'standard',
       widgetBubbleLauncherTitle: '',
+      selectedDefaultTeamId: '',
     };
   },
   computed: {
@@ -124,12 +125,25 @@ export default {
       isOnChatwootCloud: 'globalConfig/isOnChatwootCloud',
       uiFlags: 'inboxes/getUIFlags',
       portals: 'portals/allPortals',
+      teams: 'teams/getTeams',
     }),
     isInboundEmailEnabled() {
       return this.isFeatureEnabledonAccount(
         this.accountId,
         FEATURE_FLAGS.INBOUND_EMAILS
       );
+    },
+    isWppconnectInbox() {
+      return this.inbox.additional_attributes?.provider === 'wppconnect';
+    },
+    defaultTeamOptions() {
+      return [
+        {
+          value: '',
+          label: this.$t('INBOX_MGMT.ADD.WHATSAPP.PROVIDERS.WPPCONNECT.NO_TEAM'),
+        },
+        ...this.teams.map(team => ({ value: team.id, label: team.name })),
+      ];
     },
     showContinuityToggle() {
       if (this.isInboundEmailEnabled) return true;
@@ -551,6 +565,8 @@ export default {
       this.selectedPortalSlug = this.inbox.help_center
         ? this.inbox.help_center.slug
         : '';
+      this.selectedDefaultTeamId =
+        this.inbox.additional_attributes?.default_team_id || '';
 
       const savedBubbleSettings = LocalStorage.get(
         this.widgetBuilderStorageKey
@@ -689,6 +705,14 @@ export default {
             reply_time: this.replyTime || 'in_a_few_minutes',
             continuity_via_email:
               this.isInboundEmailEnabled && this.continuityViaEmail,
+            ...(this.isWppconnectInbox
+              ? {
+                  additional_attributes: {
+                    ...this.inbox.additional_attributes,
+                    default_team_id: this.selectedDefaultTeamId || null,
+                  },
+                }
+              : {}),
           },
         };
         if (this.avatarFile) {
@@ -936,6 +960,26 @@ export default {
                 disabled
                 class="!mb-0"
               />
+            </SettingsFieldSection>
+
+            <SettingsFieldSection
+              v-if="isWppconnectInbox"
+              :label="$t('INBOX_MGMT.ADD.WHATSAPP.PROVIDERS.WPPCONNECT.PHONE_LABEL')"
+            >
+              <input
+                :value="`+${inbox.additional_attributes?.phone_number || ''}`"
+                type="text"
+                disabled
+                class="!mb-0"
+              />
+            </SettingsFieldSection>
+
+            <SettingsFieldSection
+              v-if="isWppconnectInbox"
+              :label="$t('INBOX_MGMT.ADD.WHATSAPP.PROVIDERS.WPPCONNECT.TEAM')"
+              :help-text="$t('INBOX_MGMT.ADD.WHATSAPP.PROVIDERS.WPPCONNECT.TEAM_HELP')"
+            >
+              <SelectInput v-model="selectedDefaultTeamId" :options="defaultTeamOptions" />
             </SettingsFieldSection>
 
             <SettingsFieldSection

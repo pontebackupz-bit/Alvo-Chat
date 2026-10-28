@@ -12,6 +12,11 @@ const validateSSOLoginParams = to => {
 };
 
 export const validateRouteAccess = (to, next, chatwootConfig = {}) => {
+  if (to.name === 'landing') {
+    next();
+    return;
+  }
+
   // Pages with ignoreSession:true would be rendered
   // even if there is an active session
   // Used for confirmation or password reset pages

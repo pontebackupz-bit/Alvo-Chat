@@ -1,24 +1,43 @@
-version: '3'
+x-base: &base
+  image: crm-omnichannel:production
+  env_file: .env
+  volumes:
+    - storage_data:/app/storage
+  logging: &default-logging
+    driver: local
+    options:
+      max-size: 10m
+      max-file: "3"
 
 services:
-  base: &base
-    image: chatwoot/chatwoot:latest
-    env_file: .env ## Change this file for customized env variables
-    volumes:
-      - storage_data:/app/storage
 
   rails:
     <<: *base
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile
+      args:
+        BUNDLE_WITHOUT: 'development:test'
+        EXECJS_RUNTIME: Disabled
+        RAILS_ENV: production
+        RAILS_SERVE_STATIC_FILES: 'true'
     depends_on:
       - postgres
       - redis
+      - baileys
+      - wppconnect
     ports:
-      - '127.0.0.1:3000:3000'
+      - '8069:3000'
     environment:
       - NODE_ENV=production
       - RAILS_ENV=production
       - INSTALLATION_ENV=docker
-    entrypoint: docker/entrypoints/rails.sh
+      - BAILEYS_BRIDGE_URL=http://baileys:3001
+      - BAILEYS_API_TOKEN=${BAILEYS_API_TOKEN:?Set BAILEYS_API_TOKEN in .env}
+      - BAILEYS_CHATWOOT_CALLBACK_URL=http://rails:3000/api/v1/baileys
+      - WPPCONNECT_URL=http://wppconnect:21465
+      - WPPCONNECT_SECRET_KEY=${WPPCONNECT_SECRET_KEY:?Set WPPCONNECT_SECRET_KEY in .env}
+    entrypoint: ['sh', 'docker/entrypoints/rails.sh']
     command: ['bundle', 'exec', 'rails', 's', '-p', '3000', '-b', '0.0.0.0']
     restart: always
 
@@ -27,37 +46,69 @@ services:
     depends_on:
       - postgres
       - redis
+      - baileys
+      - wppconnect
     environment:
       - NODE_ENV=production
       - RAILS_ENV=production
       - INSTALLATION_ENV=docker
+      - BAILEYS_BRIDGE_URL=http://baileys:3001
+      - BAILEYS_API_TOKEN=${BAILEYS_API_TOKEN:?Set BAILEYS_API_TOKEN in .env}
+      - WPPCONNECT_URL=http://wppconnect:21465
+      - WPPCONNECT_SECRET_KEY=${WPPCONNECT_SECRET_KEY:?Set WPPCONNECT_SECRET_KEY in .env}
     command: ['bundle', 'exec', 'sidekiq', '-C', 'config/sidekiq.yml']
     restart: always
 
   postgres:
     image: pgvector/pgvector:pg16
     restart: always
-    ports:
-      - '127.0.0.1:5432:5432'
+    logging: *default-logging
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_DB=chatwoot
-      - POSTGRES_USER=postgres
-      # Please provide your own password.
-      - POSTGRES_PASSWORD=
+    env_file: .env
 
   redis:
     image: redis:alpine
     restart: always
+    logging: *default-logging
     command: ["sh", "-c", "redis-server --requirepass \"$REDIS_PASSWORD\""]
     env_file: .env
     volumes:
       - redis_data:/data
-    ports:
-      - '127.0.0.1:6379:6379'
+
+  baileys:
+    build:
+      context: ./services/whatsapp-baileys
+    restart: always
+    logging: *default-logging
+    environment:
+      - PORT=3001
+      - BAILEYS_DATA_DIR=/data
+      - BAILEYS_API_TOKEN=${BAILEYS_API_TOKEN:?Set BAILEYS_API_TOKEN in .env}
+    volumes:
+      - baileys_data:/data
+      - ./services/whatsapp-baileys/server.js:/service/server.js:ro
+
+  wppconnect:
+    image: wppconnect/wppconnect-server:latest
+    restart: always
+    logging: *default-logging
+    environment:
+      - PORT=21465
+      - SECRET_KEY=${WPPCONNECT_SECRET_KEY:?Set WPPCONNECT_SECRET_KEY in .env}
+      - WEBHOOK_URL=http://rails:3000/api/v1/wppconnect/${WPPCONNECT_WEBHOOK_TOKEN:?Set WPPCONNECT_WEBHOOK_TOKEN in .env}/messages
+      - MANAGER_ENABLED=false
+      - CUSTOM_USER_DATA_DIR=/usr/src/wpp-server/userDataDir/
+    volumes:
+      - wppconnect_tokens:/usr/src/wpp-server/tokens
+      - wppconnect_user_data:/usr/src/wpp-server/userDataDir
+      - ./services/wppconnect/entrypoint.sh:/usr/src/wpp-server/boot-wppconnect.sh:ro
+    entrypoint: ['sh', '/usr/src/wpp-server/boot-wppconnect.sh']
 
 volumes:
   storage_data:
   postgres_data:
   redis_data:
+  baileys_data:
+  wppconnect_tokens:
+  wppconnect_user_data:

@@ -27,6 +27,10 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  labelClass: {
+    type: String,
+    default: '',
+  },
   spacing: {
     type: String,
     default: 'base',
@@ -67,6 +71,7 @@ const currentInputType = computed(() => {
     :name="name"
     :has-error="hasError"
     :error-message="errorMessage"
+    :label-class="labelClass"
   >
     <template #rightOfLabel>
       <slot />

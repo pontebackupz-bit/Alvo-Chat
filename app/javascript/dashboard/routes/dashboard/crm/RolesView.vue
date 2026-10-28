@@ -18,21 +18,43 @@ const supervisors = ref([]);
 const assignments = ref([]);
 const agents = ref([]);
 const teams = ref([]);
+const users = ref([]);
+const userCounts = ref({});
 const isLoading = ref(false);
 const isSaving = ref(false);
 const isCreatingUser = ref(false);
+const isResettingPassword = ref(false);
 const showModal = ref(false);
 const showAssignmentModal = ref(false);
 const showUserModal = ref(false);
+const showPasswordModal = ref(false);
+const showResetPasswordModal = ref(false);
+const credentials = ref({ login: '', temporary_password: '' });
 const form = ref({ user_id: '', team_id: '' });
 const assignmentForm = ref({ user_id: '', role_id: '' });
 const userForm = ref({
   name: '',
   email: '',
-  native_role: 'agent',
-  role_id: '',
-  team_id: '',
+  codusur: '',
+  access_profile: 'agent',
+  password_mode: 'temporary',
+  password: '',
+  password_confirmation: '',
 });
+const passwordResetForm = ref({
+  password_mode: 'temporary',
+  password: '',
+  password_confirmation: '',
+});
+const passwordResetUser = ref(null);
+const userHeaders = computed(() => [
+  t('CRM.ACCESS.USER'),
+  t('CRM.ACCESS.ACCESS_PROFILE'),
+  t('CRM.ACCESS.CODUSUR'),
+  t('CRM.ACCESS.TEAM'),
+  t('CRM.ACCESS.STATUS'),
+  t('CRM.COMMON.ACTIONS'),
+]);
 const headers = computed(() => [
   t('CRM.ACCESS.USER'),
   t('CRM.ACCESS.TEAM'),
@@ -54,8 +76,12 @@ const supervisorUserIds = computed(() =>
 const supervisorAgents = computed(() =>
   agents.value.filter(agent => supervisorUserIds.value.includes(agent.id))
 );
-const isSupervisorRole = roleId => Number(roleId) === supervisorRoleId.value;
-
+const administratorDefinesPassword = computed(
+  () => userForm.value.password_mode === 'administrator'
+);
+const administratorDefinesResetPassword = computed(
+  () => passwordResetForm.value.password_mode === 'administrator'
+);
 const agentLabel = agent =>
   agent ? `${agent.name || agent.available_name} — ${agent.email}` : '';
 const agentName = userId => {
@@ -76,12 +102,14 @@ const fetchData = async () => {
       assignmentsResponse,
       agentsResponse,
       teamsResponse,
+      usersResponse,
     ] = await Promise.all([
       crmAPI.getRoles(accountId.value),
       crmAPI.getTeamSupervisors(accountId.value),
       crmAPI.getRoleAssignments(accountId.value),
       agentsAPI.get(),
       teamsAPI.get(),
+      crmAPI.getUsers(accountId.value),
     ]);
     roles.value = Array.isArray(rolesResponse.data)
       ? rolesResponse.data
@@ -96,6 +124,8 @@ const fetchData = async () => {
       ? agentsResponse.data
       : [];
     teams.value = Array.isArray(teamsResponse.data) ? teamsResponse.data : [];
+    users.value = usersResponse.data.users || [];
+    userCounts.value = usersResponse.data.counts || {};
   } catch (error) {
     useAlert(t('CRM.ACCESS.FETCH_ERROR'));
   } finally {
@@ -139,9 +169,11 @@ const openUserModal = () => {
   userForm.value = {
     name: '',
     email: '',
-    native_role: 'agent',
-    role_id: roles.value.find(role => role.key === 'seller')?.id || '',
-    team_id: '',
+    codusur: '',
+    access_profile: 'agent',
+    password_mode: 'temporary',
+    password: '',
+    password_confirmation: '',
   };
   showUserModal.value = true;
 };
@@ -150,51 +182,80 @@ const closeUserModal = () => {
 };
 const createUser = async () => {
   isCreatingUser.value = true;
-  let createdAgent;
 
   try {
-    const response = await agentsAPI.create({
+    const response = await crmAPI.createUser(accountId.value, {
       name: userForm.value.name,
       email: userForm.value.email,
-      role: userForm.value.native_role,
+      codusur: userForm.value.codusur,
+      access_profile: userForm.value.access_profile,
+      password_mode: userForm.value.password_mode,
+      password: userForm.value.password,
+      password_confirmation: userForm.value.password_confirmation,
     });
-    createdAgent = response.data;
-
-    await crmAPI.createRoleAssignment(accountId.value, {
-      user_id: createdAgent.id,
-      role_id: Number(userForm.value.role_id),
-    });
-
-    if (userForm.value.team_id) {
-      const teamId = Number(userForm.value.team_id);
-      await teamsAPI.addAgents({
-        teamId,
-        agentsList: [createdAgent.id],
-      });
-
-      if (isSupervisorRole(userForm.value.role_id)) {
-        await crmAPI.assignTeamSupervisor(accountId.value, {
-          user_id: createdAgent.id,
-          team_id: teamId,
-        });
-      }
-    }
-
+    credentials.value = response.data.credentials;
     closeUserModal();
     await fetchData();
     useAlert(t('CRM.ACCESS.USER_CREATE_SUCCESS'));
+    showPasswordModal.value = Boolean(credentials.value?.temporary_password);
   } catch (error) {
-    if (createdAgent) await fetchData();
-    useAlert(
-      t(
-        createdAgent
-          ? 'CRM.ACCESS.USER_CREATE_PARTIAL_ERROR'
-          : 'CRM.ACCESS.USER_CREATE_ERROR'
-      )
-    );
+    useAlert(error.response?.data?.error || t('CRM.ACCESS.USER_CREATE_ERROR'));
   } finally {
     isCreatingUser.value = false;
   }
+};
+const openResetPasswordModal = user => {
+  passwordResetUser.value = user;
+  passwordResetForm.value = {
+    password_mode: 'temporary',
+    password: '',
+    password_confirmation: '',
+  };
+  showResetPasswordModal.value = true;
+};
+const closeResetPasswordModal = () => {
+  showResetPasswordModal.value = false;
+  passwordResetUser.value = null;
+};
+const resetPassword = async () => {
+  if (!passwordResetUser.value) return;
+
+  isResettingPassword.value = true;
+  try {
+    const response = await crmAPI.resetUserPassword(
+      accountId.value,
+      passwordResetUser.value.id,
+      passwordResetForm.value
+    );
+    credentials.value = response.data.credentials;
+    closeResetPasswordModal();
+    showPasswordModal.value = Boolean(credentials.value?.temporary_password);
+    useAlert(
+      credentials.value?.temporary_password
+        ? t('CRM.ACCESS.PASSWORD_RESET_SUCCESS')
+        : t('CRM.ACCESS.PASSWORD_SET_SUCCESS')
+    );
+  } catch (error) {
+    useAlert(error.response?.data?.error || t('CRM.ACCESS.PASSWORD_RESET_ERROR'));
+  } finally {
+    isResettingPassword.value = false;
+  }
+};
+const userTeamNames = user =>
+  teams.value.filter(team => user.team_ids.includes(team.id)).map(team => team.name).join(', ') || '—';
+const availabilityLabel = availability =>
+  t(`CRM.ACCESS.${availability.toUpperCase()}`);
+const accessProfileLabel = profile =>
+  t(`CRM.ACCESS.PROFILE_${profile?.toUpperCase() || 'AGENT'}`);
+const copyCredentials = async () => {
+  await navigator.clipboard.writeText(
+    `${t('CRM.ACCESS.USER_EMAIL')}: ${credentials.value.login}\n${t('CRM.ACCESS.TEMPORARY_PASSWORD')}: ${credentials.value.temporary_password}`
+  );
+  useAlert(t('CRM.ACCESS.CREDENTIALS_COPIED'));
+};
+const closePasswordModal = () => {
+  showPasswordModal.value = false;
+  credentials.value = { login: '', temporary_password: '' };
 };
 const saveAssignment = async () => {
   isSaving.value = true;
@@ -239,6 +300,43 @@ onMounted(fetchData);
     />
     <woot-loading-state v-if="isLoading" :message="$t('CRM.COMMON.LOADING')" />
     <template v-else>
+      <div class="grid gap-4 md:grid-cols-3">
+        <article class="rounded-xl border border-n-weak p-4">
+          <p class="text-sm text-n-slate-11">{{ $t('CRM.ACCESS.ALL_USERS') }}</p>
+          <p class="mt-1 text-2xl font-semibold text-n-slate-12">{{ users.length }}</p>
+        </article>
+        <article class="rounded-xl border border-n-weak p-4">
+          <p class="text-sm text-n-slate-11">{{ $t('CRM.ACCESS.ONLINE_USERS') }}</p>
+          <p class="mt-1 text-2xl font-semibold text-n-slate-12">{{ userCounts.online || 0 }}</p>
+        </article>
+        <article class="rounded-xl border border-n-weak p-4">
+          <p class="text-sm text-n-slate-11">{{ $t('CRM.ACCESS.BUSY') }}</p>
+          <p class="mt-1 text-2xl font-semibold text-n-slate-12">{{ userCounts.busy || 0 }}</p>
+        </article>
+      </div>
+      <div class="mt-8">
+        <h2 class="text-heading-3 text-n-slate-12">{{ $t('CRM.ACCESS.USERS') }}</h2>
+        <p class="mt-1 text-sm text-n-slate-11">{{ $t('CRM.ACCESS.USERS_DESCRIPTION') }}</p>
+        <BaseTable class="mt-3" :headers="userHeaders" :items="users" :no-data-message="$t('CRM.COMMON.NO_RESULTS')">
+          <template #row="{ items }">
+            <tr v-for="user in items" :key="user.id">
+              <td class="py-4 ltr:pr-4 rtl:pl-4 text-body-main text-n-slate-12">
+                <div>{{ user.name }}</div>
+                <div class="text-sm text-n-slate-11">{{ user.email }}</div>
+              </td>
+              <td class="py-4 ltr:pr-4 rtl:pl-4 text-body-main text-n-slate-11">{{ accessProfileLabel(user.access_profile) }}</td>
+              <td class="py-4 ltr:pr-4 rtl:pl-4 text-body-main text-n-slate-11">{{ user.codusur || '—' }}</td>
+              <td class="py-4 ltr:pr-4 rtl:pl-4 text-body-main text-n-slate-11">{{ userTeamNames(user) }}</td>
+              <td class="py-4 ltr:pr-4 rtl:pl-4 text-body-main text-n-slate-11">
+                <span class="inline-flex items-center gap-2"><span class="size-2 rounded-full" :class="user.availability === 'online' ? 'bg-n-teal-10' : user.availability === 'busy' ? 'bg-n-amber-10' : 'bg-n-slate-9'" />{{ availabilityLabel(user.availability) }}</span>
+              </td>
+              <td class="py-4 text-right">
+                <Button variant="link" size="sm" :label="$t('CRM.ACCESS.PASSWORD_RESET')" @click="openResetPasswordModal(user)" />
+              </td>
+            </tr>
+          </template>
+        </BaseTable>
+      </div>
       <div class="mt-6">
         <h2 class="text-heading-3 text-n-slate-12">
           {{ $t('CRM.ACCESS.ROLES') }}
@@ -369,37 +467,46 @@ onMounted(fetchData);
           />
         </label>
         <label
-          >{{ $t('CRM.ACCESS.NATIVE_ROLE')
-          }}<select v-model="userForm.native_role" required>
-            <option value="agent">{{ $t('CRM.ACCESS.NATIVE_AGENT') }}</option>
-            <option value="administrator">
-              {{ $t('CRM.ACCESS.NATIVE_ADMINISTRATOR') }}
-            </option>
-          </select></label
-        >
+          >{{ $t('CRM.ACCESS.CODUSUR')
+          }}<input
+            v-model.trim="userForm.codusur"
+            type="text"
+            inputmode="numeric"
+            :aria-label="$t('CRM.ACCESS.CODUSUR')"
+          />
+        </label>
         <label
-          >{{ $t('CRM.ACCESS.ROLE')
-          }}<select v-model="userForm.role_id" required>
-            <option disabled value="">
-              {{ $t('CRM.ACCESS.SELECT_ROLE') }}
-            </option>
-            <option v-for="role in roles" :key="role.id" :value="role.id">
-              {{ role.name }}
-            </option>
+          >{{ $t('CRM.ACCESS.ACCESS_PROFILE')
+          }}<select v-model="userForm.access_profile" required>
+            <option value="administrator">{{ $t('CRM.ACCESS.PROFILE_ADMINISTRATOR') }}</option>
+            <option value="supervisor">{{ $t('CRM.ACCESS.PROFILE_SUPERVISOR') }}</option>
+            <option value="agent">{{ $t('CRM.ACCESS.PROFILE_AGENT') }}</option>
           </select></label
         >
-        <label
-          >{{ $t('CRM.ACCESS.TEAM_OPTIONAL')
-          }}<select v-model="userForm.team_id">
-            <option value="">{{ $t('CRM.ACCESS.NO_TEAM') }}</option>
-            <option v-for="team in teams" :key="team.id" :value="team.id">
-              {{ team.name }}
-            </option>
-          </select></label
-        >
-        <p class="crm-form-help">
-          {{ $t('CRM.ACCESS.TEAM_HELP') }}
-        </p>
+        <fieldset>
+          <legend>{{ $t('CRM.ACCESS.PASSWORD_MODE') }}</legend>
+          <label>
+            <input v-model="userForm.password_mode" type="radio" value="temporary" />
+            {{ $t('CRM.ACCESS.PASSWORD_MODE_TEMPORARY') }}
+          </label>
+          <p class="crm-form-help">{{ $t('CRM.ACCESS.PASSWORD_MODE_TEMPORARY_HELP') }}</p>
+          <label>
+            <input v-model="userForm.password_mode" type="radio" value="administrator" />
+            {{ $t('CRM.ACCESS.PASSWORD_MODE_ADMINISTRATOR') }}
+          </label>
+          <p class="crm-form-help">{{ $t('CRM.ACCESS.PASSWORD_MODE_ADMINISTRATOR_HELP') }}</p>
+        </fieldset>
+        <template v-if="administratorDefinesPassword">
+          <label
+            >{{ $t('CRM.ACCESS.PASSWORD')
+            }}<input v-model="userForm.password" required type="password" autocomplete="new-password" />
+          </label>
+          <p class="crm-form-help">{{ $t('CRM.ACCESS.PASSWORD_HELP') }}</p>
+          <label
+            >{{ $t('CRM.ACCESS.PASSWORD_CONFIRMATION')
+            }}<input v-model="userForm.password_confirmation" required type="password" autocomplete="new-password" />
+          </label>
+        </template>
         <div class="crm-form-actions">
           <Button
             variant="faded"
@@ -411,6 +518,65 @@ onMounted(fetchData);
           <Button
             :label="$t('CRM.ACCESS.CREATE_USER')"
             :is-loading="isCreatingUser"
+            type="submit"
+          />
+        </div>
+      </form>
+    </woot-modal>
+    <woot-modal v-model:show="showPasswordModal" :on-close="closePasswordModal">
+      <div class="p-6">
+        <woot-modal-header :header-title="$t('CRM.ACCESS.CREDENTIALS_READY')" />
+        <p class="mt-2 text-sm text-n-slate-11">{{ $t('CRM.ACCESS.TEMPORARY_PASSWORD_HELP') }}</p>
+        <dl class="mt-4 space-y-3 rounded-lg bg-n-slate-3 p-3 text-sm text-n-slate-12">
+          <div><dt class="text-n-slate-11">{{ $t('CRM.ACCESS.USER_EMAIL') }}</dt><dd class="mt-1 break-all font-medium">{{ credentials.login }}</dd></div>
+          <div><dt class="text-n-slate-11">{{ $t('CRM.ACCESS.TEMPORARY_PASSWORD') }}</dt><dd class="mt-1 break-all font-medium">{{ credentials.temporary_password }}</dd></div>
+        </dl>
+        <div class="mt-4 flex justify-end">
+          <Button :label="$t('CRM.ACCESS.COPY_CREDENTIALS')" icon="i-lucide-copy" @click="copyCredentials" />
+        </div>
+      </div>
+    </woot-modal>
+    <woot-modal v-model:show="showResetPasswordModal" :on-close="closeResetPasswordModal">
+      <form class="crm-modal-form" @submit.prevent="resetPassword">
+        <woot-modal-header
+          :header-title="$t('CRM.ACCESS.PASSWORD_RESET_TITLE')"
+          :header-content="$t('CRM.ACCESS.PASSWORD_RESET_DESCRIPTION')"
+        />
+        <fieldset>
+          <legend>{{ $t('CRM.ACCESS.PASSWORD_MODE') }}</legend>
+          <label>
+            <input v-model="passwordResetForm.password_mode" type="radio" value="temporary" />
+            {{ $t('CRM.ACCESS.PASSWORD_MODE_TEMPORARY') }}
+          </label>
+          <p class="crm-form-help">{{ $t('CRM.ACCESS.PASSWORD_MODE_TEMPORARY_HELP') }}</p>
+          <label>
+            <input v-model="passwordResetForm.password_mode" type="radio" value="administrator" />
+            {{ $t('CRM.ACCESS.PASSWORD_MODE_ADMINISTRATOR') }}
+          </label>
+          <p class="crm-form-help">{{ $t('CRM.ACCESS.PASSWORD_MODE_ADMINISTRATOR_HELP') }}</p>
+        </fieldset>
+        <template v-if="administratorDefinesResetPassword">
+          <label
+            >{{ $t('CRM.ACCESS.PASSWORD')
+            }}<input v-model="passwordResetForm.password" required type="password" autocomplete="new-password" />
+          </label>
+          <p class="crm-form-help">{{ $t('CRM.ACCESS.PASSWORD_HELP') }}</p>
+          <label
+            >{{ $t('CRM.ACCESS.PASSWORD_CONFIRMATION')
+            }}<input v-model="passwordResetForm.password_confirmation" required type="password" autocomplete="new-password" />
+          </label>
+        </template>
+        <div class="crm-form-actions">
+          <Button
+            variant="faded"
+            color="slate"
+            :label="$t('CRM.COMMON.CANCEL')"
+            type="button"
+            @click="closeResetPasswordModal"
+          />
+          <Button
+            :label="$t('CRM.ACCESS.PASSWORD_RESET_SUBMIT')"
+            :is-loading="isResettingPassword"
             type="submit"
           />
         </div>
