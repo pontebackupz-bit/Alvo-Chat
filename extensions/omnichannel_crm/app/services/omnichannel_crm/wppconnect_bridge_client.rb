@@ -53,7 +53,7 @@ class OmnichannelCrm::WppconnectBridgeClient
         session_id,
         :post,
         "/api/#{session_id}/send-file-base64",
-        phone: [recipient], base64: encoded_attachment_file(attachment), filename: attachment.file.filename.to_s,
+        phone: [recipient], base64: data_url_for(attachment), filename: attachment.file.filename.to_s,
         caption: content, isGroup: false, isLid: false
       )
     else
@@ -71,6 +71,14 @@ class OmnichannelCrm::WppconnectBridgeClient
     attachment.file.blob.open { |file| Base64.strict_encode64(file.read) }
   end
 
+  # WPPConnect's `sendFile` accepts a file path or a *data URL*. A bare Base64
+  # string is interpreted as a path by the server, causing documents to fail
+  # before they reach WhatsApp. Preserve the attachment MIME type explicitly.
+  def data_url_for(attachment)
+    mime_type = attachment.file.content_type.to_s.presence || 'application/octet-stream'
+    "data:#{mime_type};base64,#{encoded_attachment_file(attachment)}"
+  end
+
   def request(session_id, method, path, body = nil)
     uri = URI.join(@base_url, path)
     request = Net::HTTP.const_get(method.to_s.capitalize).new(uri)
@@ -82,7 +90,16 @@ class OmnichannelCrm::WppconnectBridgeClient
     return {} if response.is_a?(Net::HTTPSuccess) && response.body.blank?
     return JSON.parse(response.body) if response.is_a?(Net::HTTPSuccess)
 
-    raise "WPPConnect request failed with status #{response.code}"
+    raise "WPPConnect request failed with status #{response.code}: #{wppconnect_error(response.body)}"
+  end
+
+  def wppconnect_error(body)
+    payload = JSON.parse(body)
+    return payload.to_s.truncate(300).presence || 'no error message returned' unless payload.is_a?(Hash)
+
+    payload['message'].presence || payload['error'].presence || payload.dig('response', 'message').presence || 'no error message returned'
+  rescue JSON::ParserError, TypeError
+    body.to_s.truncate(300).presence || 'no error message returned'
   end
 
   def session_token(session_id)

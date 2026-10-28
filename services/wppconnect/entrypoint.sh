@@ -35,16 +35,20 @@ if (/autoClose\s*:/.test(source)) {
 const sessionUtilPath = path.replace(/config\.js$/, 'util/createSessionUtil.js');
 const functionsPath = path.replace(/config\.js$/, 'util/functions.js');
 let sessionUtil = fs.readFileSync(sessionUtilPath, 'utf8');
-const earlyWebhook = "      (0, _functions.callWebHook)(client, req, 'onmessage', message);\n";
 const receivedMessageMarker = "      req.io.emit('received-message', { response: message });";
 const deferredWebhook = "      if (!message.fromMe) {\n        await (0, _functions.callWebHook)(client, req, 'onmessage', message);\n      }\n";
 
-if (sessionUtil.includes(earlyWebhook)) {
+// Formatting has changed across WPPConnect releases. Match the actual call
+// instead of one compiled indentation layout, otherwise the container starts
+// with the old early webhook and media from a previous event is published.
+const earlyWebhook = /\s*\(0, _functions\.callWebHook\)\(client, req, 'onmessage', message\);\s*\n/;
+
+if (earlyWebhook.test(sessionUtil)) {
   if (!sessionUtil.includes(receivedMessageMarker)) {
     throw new Error(`Could not find the WPPConnect message delivery marker in ${sessionUtilPath}`);
   }
 
-  sessionUtil = sessionUtil.replace(earlyWebhook, '');
+  sessionUtil = sessionUtil.replace(earlyWebhook, '\n');
   sessionUtil = sessionUtil.replace(receivedMessageMarker, `${deferredWebhook}${receivedMessageMarker}`);
   fs.writeFileSync(sessionUtilPath, sessionUtil);
 } else if (!sessionUtil.includes(deferredWebhook)) {
