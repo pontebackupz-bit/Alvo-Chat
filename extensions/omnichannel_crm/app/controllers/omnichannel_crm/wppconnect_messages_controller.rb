@@ -5,6 +5,7 @@ class OmnichannelCrm::WppconnectMessagesController < OmnichannelCrm::BaileysMess
   def create
     return head :accepted unless params[:event] == 'onmessage' && !ActiveModel::Type::Boolean.new.cast(params[:fromMe])
     return head :accepted if phone_number.blank?
+    return ignore_empty_event if !media? && content.blank?
 
     super
   end
@@ -16,6 +17,13 @@ class OmnichannelCrm::WppconnectMessagesController < OmnichannelCrm::BaileysMess
     return if ActiveSupport::SecurityUtils.secure_compare(params[:token].to_s, expected_token)
 
     head :unauthorized
+  end
+
+  def ignore_empty_event
+    Rails.logger.info(
+      "Ignoring empty WPPConnect event id=#{message_source_id.inspect} type=#{params[:type].inspect} session=#{session_id.inspect}"
+    )
+    head :accepted
   end
 
   def contact_source_id
