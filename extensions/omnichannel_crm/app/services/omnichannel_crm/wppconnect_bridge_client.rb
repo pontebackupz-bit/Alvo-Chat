@@ -4,7 +4,6 @@ require 'net/http'
 
 class OmnichannelCrm::WppconnectBridgeClient
   MAX_MEDIA_BYTES = 12.megabytes
-  MEDIA_DOWNLOAD_ATTEMPTS = 3
 
   def initialize
     @base_url = ENV.fetch('WPPCONNECT_URL', 'http://wppconnect:21465')
@@ -30,28 +29,6 @@ class OmnichannelCrm::WppconnectBridgeClient
 
   def connected_phone_number(session_id)
     request(session_id, :get, "/api/#{session_id}/get-phone-number").fetch('response', '').to_s.gsub(/\D/, '').presence
-  end
-
-  # WPPConnect emits the onmessage webhook before its asynchronous media
-  # auto-download finishes. Download the exact message by its serialized ID;
-  # passing the mutable webhook object makes recent WPPConnect versions return
-  # 400 and using `body` can persist an older attachment.
-  def download_media(session_id, message_id)
-    failure = nil
-
-    MEDIA_DOWNLOAD_ATTEMPTS.times do |attempt|
-      response = request(session_id, :post, "/api/#{session_id}/download-media", messageId: message_id.to_s)
-      base64 = response.fetch('base64', '').to_s.sub(%r{\Adata:[^;]+;base64,}, '')
-      return { data: base64, mime_type: response['mimetype'].to_s } if base64.present?
-
-      failure = 'WPPConnect returned an empty media payload'
-      sleep((attempt + 1) * 0.25)
-    rescue StandardError => e
-      failure = e
-      sleep((attempt + 1) * 0.25) if attempt < MEDIA_DOWNLOAD_ATTEMPTS - 1
-    end
-
-    raise failure || 'WPPConnect media download failed'
   end
 
   def delete_session(session_id)

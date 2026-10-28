@@ -5,6 +5,7 @@ class OmnichannelCrm::WppconnectMessagesController < OmnichannelCrm::BaileysMess
   def create
     return head :accepted unless params[:event] == 'onmessage' && !ActiveModel::Type::Boolean.new.cast(params[:fromMe])
     return head :accepted if phone_number.blank?
+    return ignore_unavailable_media if media? && media_data.blank?
     return ignore_empty_event if !media? && content.blank?
 
     super
@@ -22,6 +23,13 @@ class OmnichannelCrm::WppconnectMessagesController < OmnichannelCrm::BaileysMess
   def ignore_empty_event
     Rails.logger.info(
       "Ignoring empty WPPConnect event id=#{message_source_id.inspect} type=#{params[:type].inspect} session=#{session_id.inspect}"
+    )
+    head :accepted
+  end
+
+  def ignore_unavailable_media
+    Rails.logger.warn(
+      "Ignoring WPPConnect media without current payload id=#{message_source_id.inspect} type=#{params[:type].inspect} session=#{session_id.inspect}"
     )
     head :accepted
   end
@@ -110,11 +118,11 @@ class OmnichannelCrm::WppconnectMessagesController < OmnichannelCrm::BaileysMess
   end
 
   def media_data
-    downloaded_media[:data]
+    params[:body].to_s.sub(%r{\Adata:[^;]+;base64,}, '')
   end
 
   def mime_type
-    @mime_type ||= downloaded_media[:mime_type].presence || webhook_mime_type.presence ||
+    @mime_type ||= webhook_mime_type.presence ||
       (sticker_message? ? 'image/webp' : 'application/octet-stream')
   end
 
@@ -139,18 +147,6 @@ class OmnichannelCrm::WppconnectMessagesController < OmnichannelCrm::BaileysMess
 
   def animated_sticker_message?
     sticker_message? && ActiveModel::Type::Boolean.new.cast(params[:isAnimated])
-  end
-
-  def downloaded_media
-    return @downloaded_media if defined?(@downloaded_media)
-
-    @downloaded_media = bridge.download_media(session_id, message_source_id)
-  rescue StandardError => e
-    # Never fall back to the webhook's `body`: WPPConnect can populate that
-    # field asynchronously with a previous attachment. A missing attachment
-    # is preferable to persisting the wrong customer's media.
-    Rails.logger.warn("Unable to download current WPPConnect media id=#{message_source_id.inspect} type=#{params[:type].inspect}: #{e.message}")
-    @downloaded_media = { data: '', mime_type: nil }
   end
 
   def webhook_mime_type
