@@ -144,20 +144,13 @@ class OmnichannelCrm::WppconnectMessagesController < OmnichannelCrm::BaileysMess
   def downloaded_media
     return @downloaded_media if defined?(@downloaded_media)
 
-    @downloaded_media = bridge.download_media(session_id, wppconnect_message_payload)
+    @downloaded_media = bridge.download_media(session_id, message_source_id)
   rescue StandardError => e
     # Never fall back to the webhook's `body`: WPPConnect can populate that
     # field asynchronously with a previous attachment. A missing attachment
     # is preferable to persisting the wrong customer's media.
     Rails.logger.warn("Unable to download current WPPConnect media id=#{message_source_id.inspect} type=#{params[:type].inspect}: #{e.message}")
     @downloaded_media = { data: '', mime_type: nil }
-  end
-
-  def wppconnect_message_payload
-    # `download-media` decrypts this exact message object. `body` is excluded
-    # deliberately because it is the stale asynchronous value we are fixing;
-    # controller routing and webhook authentication data are unrelated.
-    params.to_unsafe_h.except('action', 'controller', 'token', 'event', 'body')
   end
 
   def webhook_mime_type
