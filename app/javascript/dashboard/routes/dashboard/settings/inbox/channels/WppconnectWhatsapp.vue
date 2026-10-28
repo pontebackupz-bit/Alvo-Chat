@@ -137,7 +137,18 @@ onMounted(() => {
   store.dispatch('teams/get');
   refresh().catch(() => {});
 });
-onBeforeUnmount(stopPolling);
+onBeforeUnmount(() => {
+  stopPolling();
+
+  // Leaving the setup wizard before pairing used to leave a browser and a QR
+  // poller running in WPPConnect. Only temporary, unpaired wizard sessions
+  // are removed here; a connected inbox session is never touched.
+  if (!isConnected.value && session.value?.id) {
+    crmAPI
+      .deleteWppconnectSession(accountId.value, { session_id: session.value.id })
+      .catch(() => {});
+  }
+});
 </script>
 
 <template>
