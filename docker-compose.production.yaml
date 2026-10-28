@@ -90,7 +90,7 @@ services:
       - ./services/whatsapp-baileys/server.js:/service/server.js:ro
 
   wppconnect:
-    image: wppconnect/wppconnect-server:2.10.18
+    image: wppconnect/wppconnect-server:latest
     restart: always
     logging: *default-logging
     environment:
