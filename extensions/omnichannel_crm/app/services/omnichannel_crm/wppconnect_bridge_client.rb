@@ -4,6 +4,9 @@ require 'net/http'
 
 class OmnichannelCrm::WppconnectBridgeClient
   MAX_MEDIA_BYTES = 12.megabytes
+  CONNECTED_SESSION_STATUSES = %w[connected islogged].freeze
+
+  class SessionUnavailable < StandardError; end
 
   def initialize
     @base_url = ENV.fetch('WPPCONNECT_URL', 'http://wppconnect:21465')
@@ -48,6 +51,8 @@ class OmnichannelCrm::WppconnectBridgeClient
   end
 
   def send_message(session_id, recipient, content, attachment = nil)
+    ensure_connected!(session_id)
+
     response = if attachment
       request(
         session_id,
@@ -64,6 +69,16 @@ class OmnichannelCrm::WppconnectBridgeClient
   end
 
   private
+
+  def ensure_connected!(session_id)
+    response = session(session_id)
+    status = (response['status'] || response.dig('response', 'status')).to_s.downcase
+    return if CONNECTED_SESSION_STATUSES.include?(status)
+
+    raise SessionUnavailable, "WPPConnect session #{session_id} is #{status.presence || 'unavailable'}"
+  rescue Net::OpenTimeout, Net::ReadTimeout, Errno::ECONNREFUSED, Errno::ECONNRESET, SocketError => e
+    raise SessionUnavailable, "WPPConnect session #{session_id} is unavailable: #{e.class}"
+  end
 
   def encoded_attachment_file(attachment)
     raise "WPPConnect supports attachments up to #{MAX_MEDIA_BYTES / 1.megabyte} MB" if attachment.file.blob.byte_size > MAX_MEDIA_BYTES
@@ -86,7 +101,7 @@ class OmnichannelCrm::WppconnectBridgeClient
     request['Content-Type'] = 'application/json'
     request.body = body.to_json if body
 
-    response = Net::HTTP.start(uri.hostname, uri.port) { |http| http.request(request) }
+    response = http_request(uri, request)
     return {} if response.is_a?(Net::HTTPSuccess) && response.body.blank?
     return JSON.parse(response.body) if response.is_a?(Net::HTTPSuccess)
 
@@ -104,7 +119,7 @@ class OmnichannelCrm::WppconnectBridgeClient
 
   def session_token(session_id)
     uri = URI.join(@base_url, "/api/#{session_id}/#{@secret_key}/generate-token")
-    response = Net::HTTP.post(uri, '')
+    response = http_request(uri, Net::HTTP::Post.new(uri))
     raise "WPPConnect token request failed with status #{response.code}" unless response.is_a?(Net::HTTPSuccess)
 
     JSON.parse(response.body).fetch('token')
@@ -112,7 +127,11 @@ class OmnichannelCrm::WppconnectBridgeClient
 
   def clear_session_data(session_id)
     uri = URI.join(@base_url, "/api/#{session_id}/#{@secret_key}/clear-session-data")
-    response = Net::HTTP.post(uri, '')
+    response = http_request(uri, Net::HTTP::Post.new(uri))
     raise "WPPConnect session cleanup failed with status #{response.code}" unless response.is_a?(Net::HTTPSuccess)
+  end
+
+  def http_request(uri, request)
+    Net::HTTP.start(uri.hostname, uri.port, open_timeout: 5, read_timeout: 30) { |http| http.request(request) }
   end
 end
