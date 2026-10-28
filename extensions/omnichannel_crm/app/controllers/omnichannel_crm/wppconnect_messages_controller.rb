@@ -97,16 +97,17 @@ class OmnichannelCrm::WppconnectMessagesController < OmnichannelCrm::BaileysMess
   end
 
   def media?
-    params[:isMedia] == true || params[:isMedia] == 'true' || mime_type.start_with?('image/', 'video/', 'audio/') ||
+    params[:isMedia] == true || params[:isMedia] == 'true' || webhook_mime_type.start_with?('image/', 'video/', 'audio/') ||
       %w[document sticker gif image video audio ptt].include?(params[:type].to_s)
   end
 
   def media_data
-    params[:body].to_s.sub(%r{\Adata:[^;]+;base64,}, '')
+    downloaded_media[:data]
   end
 
   def mime_type
-    @mime_type ||= params[:mimetype].presence || (sticker_message? ? 'image/webp' : 'application/octet-stream')
+    @mime_type ||= downloaded_media[:mime_type].presence || webhook_mime_type.presence ||
+      (sticker_message? ? 'image/webp' : 'application/octet-stream')
   end
 
   def media_file_type
@@ -130,6 +131,29 @@ class OmnichannelCrm::WppconnectMessagesController < OmnichannelCrm::BaileysMess
 
   def animated_sticker_message?
     sticker_message? && ActiveModel::Type::Boolean.new.cast(params[:isAnimated])
+  end
+
+  def downloaded_media
+    return @downloaded_media if defined?(@downloaded_media)
+
+    @downloaded_media = bridge.download_media(session_id, wppconnect_message_payload)
+  rescue StandardError => e
+    # Never fall back to the webhook's `body`: WPPConnect can populate that
+    # field asynchronously with a previous attachment. A missing attachment
+    # is preferable to persisting the wrong customer's media.
+    Rails.logger.warn("Unable to download current WPPConnect media id=#{message_source_id.inspect} type=#{params[:type].inspect}: #{e.message}")
+    @downloaded_media = { data: '', mime_type: nil }
+  end
+
+  def wppconnect_message_payload
+    # `download-media` decrypts this exact message object. `body` is excluded
+    # deliberately because it is the stale asynchronous value we are fixing;
+    # controller routing and webhook authentication data are unrelated.
+    params.to_unsafe_h.except('action', 'controller', 'token', 'event', 'body')
+  end
+
+  def webhook_mime_type
+    params[:mimetype].to_s
   end
 
   def migrate_lid_contact

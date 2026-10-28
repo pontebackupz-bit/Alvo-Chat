@@ -31,6 +31,18 @@ class OmnichannelCrm::WppconnectBridgeClient
     request(session_id, :get, "/api/#{session_id}/get-phone-number").fetch('response', '').to_s.gsub(/\D/, '').presence
   end
 
+  # WPPConnect emits the onmessage webhook before its asynchronous media
+  # auto-download finishes.  Requesting the media for the webhook's message
+  # object explicitly avoids using `body`, which can still hold data from an
+  # older event at that point.
+  def download_media(session_id, message)
+    response = request(session_id, :post, "/api/#{session_id}/download-media", messageId: message)
+    base64 = response.fetch('base64', '').to_s.sub(%r{\Adata:[^;]+;base64,}, '')
+    raise 'WPPConnect returned an empty media payload' if base64.blank?
+
+    { data: base64, mime_type: response['mimetype'].to_s }
+  end
+
   def delete_session(session_id)
     # Closing the running browser first prevents an abandoned QR wizard from
     # continuing to rotate codes after the user starts another connection.
