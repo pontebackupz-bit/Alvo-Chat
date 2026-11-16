@@ -103,9 +103,27 @@ services:
       - wppconnect_tokens:/usr/src/wpp-server/tokens
       - wppconnect_user_data:/usr/src/wpp-server/userDataDir
       - ./services/wppconnect/entrypoint.sh:/usr/src/wpp-server/boot-wppconnect.sh:ro
+      - ./docker/wppconnect/server.js:/usr/src/wpp-server/alvochat-server.js:ro
     entrypoint: ['sh', '/usr/src/wpp-server/boot-wppconnect.sh']
 
+  n8n:
+    image: n8nio/n8n:2.47.7
+    restart: always
+    logging: *default-logging
+    ports:
+      - '5678:5678'
+    environment:
+      - GENERIC_TIMEZONE=America/Sao_Paulo
+      - TZ=America/Sao_Paulo
+      # Public address used in webhook URLs shown by n8n.
+      - WEBHOOK_URL=${N8N_WEBHOOK_URL:-http://localhost:5678/}
+      # Allows logging in over plain HTTP (e.g. a server IP). Set to true behind HTTPS.
+      - N8N_SECURE_COOKIE=${N8N_SECURE_COOKIE:-false}
+    volumes:
+      - n8n_data:/home/node/.n8n
+
 volumes:
+  n8n_data:
   storage_data:
   postgres_data:
   redis_data:

@@ -45,6 +45,8 @@ class Api::V1::Accounts::ContactsController < Api::V1::Accounts::BaseController
   def export
     column_names = params['column_names']
     filter_params = { :payload => params.permit!['payload'], :label => params.permit!['label'] }
+    return send_contacts_csv(column_names, filter_params) if request.format.csv?
+
     Account::ContactsExportJob.perform_later(Current.account.id, Current.user.id, column_names, filter_params)
     head :ok, message: I18n.t('errors.contacts.export.success')
   end
@@ -115,6 +117,12 @@ class Api::V1::Accounts::ContactsController < Api::V1::Accounts::BaseController
   end
 
   private
+
+  def send_contacts_csv(column_names, filter_params)
+    builder = Contacts::ExportCsvBuilder.new(account: Current.account, account_user: Current.user, column_names: column_names,
+                                             params: filter_params)
+    send_data builder.perform, filename: builder.filename, type: 'text/csv; charset=utf-8'
+  end
 
   # TODO: Move this to a finder class
   def resolved_contacts

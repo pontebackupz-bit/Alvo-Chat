@@ -33,10 +33,13 @@ const BRAND = {
   initial: 'A',
   platform: 'AlvoChat',
   company: 'Comercial Alvorada',
-  eyebrow: 'Central comercial',
+  eyebrow: 'Central comercial · AlvoChat',
   title: 'Toda conversa pode virar resultado.',
   description:
     'O AlvoChat reúne atendimento, oportunidades e sua equipe em uma única operação, com contexto do início ao fim.',
+  mockQuestion: 'Oi! Vocês têm esse produto em estoque?',
+  mockAnswer: 'Temos sim! Já separo o pedido para você.',
+  mockNote: 'Exemplo ilustrativo',
   loginTitle: 'Acesse sua conta',
   loginDescription: 'Entre com seu e-mail corporativo para continuar.',
   security: 'Ambiente seguro para a equipe Comercial Alvorada.',
@@ -302,46 +305,73 @@ export default {
 
 <template>
   <main
-    class="grid min-h-screen bg-[#F7F9FC] lg:grid-cols-[minmax(0,1.06fr)_minmax(480px,0.94fr)]"
+    class="grid min-h-screen bg-[#F4F7FC] lg:grid-cols-[minmax(0,1.06fr)_minmax(480px,0.94fr)]"
   >
     <section
-      class="relative hidden overflow-hidden bg-gradient-to-br from-[#071B4D] via-[#0C327F] to-[#1E5ED8] px-14 py-12 text-white lg:flex lg:flex-col lg:justify-between"
+      class="relative hidden overflow-hidden bg-[#05070d] px-14 py-12 text-white lg:flex lg:flex-col lg:justify-between"
     >
       <div
-        class="absolute -top-32 right-0 h-96 w-96 rounded-full bg-blue-300/10 blur-3xl"
+        class="absolute -left-24 -top-24 size-[30rem] rounded-full bg-[#2a6bff]/30 blur-[120px]"
       />
       <div
-        class="absolute bottom-0 left-0 h-80 w-80 translate-x-[-35%] translate-y-[40%] rounded-full border border-white/10"
+        class="absolute -bottom-32 right-[-6rem] size-[28rem] rounded-full bg-[#087cff]/20 blur-[120px]"
+      />
+      <div
+        class="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:56px_56px] [mask-image:radial-gradient(ellipse_at_top_left,black_25%,transparent_75%)]"
       />
       <div class="relative z-10">
         <AlvoradaWordmark tone="light" size="large" />
       </div>
       <div class="relative z-10 max-w-xl motion-safe:animate-fade-in-up">
-        <p
-          class="text-sm font-medium tracking-[0.16em] text-blue-200 uppercase"
+        <span
+          class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-xs font-medium text-blue-100"
         >
+          <span class="size-1.5 rounded-full bg-[#34d399]" />
           {{ brand.eyebrow }}
-        </p>
-        <h1 class="mt-5 text-5xl font-semibold leading-[1.08] tracking-tight">
+        </span>
+        <h1
+          class="mt-6 text-5xl font-semibold leading-[1.06] tracking-[-0.035em]"
+        >
           {{ brand.title }}
         </h1>
-        <p class="mt-6 max-w-lg text-lg leading-8 text-blue-100">
+        <p class="mt-5 max-w-lg text-lg leading-8 text-[#929cad]">
           {{ brand.description }}
         </p>
-        <ul class="mt-10 space-y-4">
+        <div
+          class="mt-10 max-w-sm space-y-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4 shadow-2xl backdrop-blur"
+        >
+          <div class="flex items-end gap-2">
+            <span
+              class="rounded-2xl rounded-bl-sm bg-white/10 px-3.5 py-2 text-sm text-[#dce2eb]"
+            >
+              {{ brand.mockQuestion }}
+            </span>
+          </div>
+          <div class="flex justify-end">
+            <span
+              class="rounded-2xl rounded-br-sm bg-[#2a6bff] px-3.5 py-2 text-sm text-white"
+            >
+              {{ brand.mockAnswer }}
+            </span>
+          </div>
+          <p class="text-center text-[11px] text-[#566174]">
+            {{ brand.mockNote }}
+          </p>
+        </div>
+        <ul class="mt-8 space-y-3">
           <li
             v-for="benefit in brand.benefits"
             :key="benefit"
-            class="flex items-start gap-3 text-[15px] leading-6 text-blue-50"
+            class="flex items-start gap-3 text-[15px] leading-6 text-[#dce2eb]"
           >
             <span
-              class="i-lucide-check-circle-2 mt-0.5 size-5 shrink-0 text-[#8DB7FF]"
+              class="i-lucide-check-circle-2 mt-0.5 size-5 shrink-0 text-[#60a5fa]"
             />
             <span>{{ benefit }}</span>
           </li>
         </ul>
       </div>
-      <p class="relative z-10 text-sm text-blue-200">{{ brand.company }}</p>
+      <p class="relative z-10 text-sm text-[#566174]">{{ brand.company }}</p>
     </section>
 
     <section
@@ -351,13 +381,9 @@ export default {
         <div class="flex items-center gap-3 lg:hidden">
           <AlvoradaWordmark />
         </div>
-        <p
-          class="mt-10 text-sm font-semibold tracking-[0.14em] text-[#2764CF] uppercase"
+        <h2
+          class="mt-8 text-4xl lg:mt-0 font-semibold tracking-tight text-[#132343]"
         >
-          {{ brand.platform }}
-        </p>
-        <AlvoradaWordmark class="mt-4" />
-        <h2 class="mt-3 text-4xl font-semibold tracking-tight text-[#132343]">
           {{ brand.loginTitle }}
         </h2>
         <p class="mt-3 text-base leading-7 text-[#64748B]">
@@ -389,7 +415,7 @@ export default {
 
         <section
           v-else
-          class="p-7 mt-9 bg-white border border-[#E2E8F0] rounded-2xl shadow-xl shadow-slate-900/[0.05] sm:p-9"
+          class="p-7 mt-9 bg-white border border-[#E2E8F0] rounded-2xl shadow-xl shadow-slate-900/[0.06] sm:p-9"
           :class="{ 'animate-wiggle': loginApi.hasErrored }"
         >
           <div v-if="!email">
@@ -425,17 +451,19 @@ export default {
                 :placeholder="$t('LOGIN.PASSWORD.PLACEHOLDER')"
                 :has-error="v$.credentials.password.$error"
                 @input="v$.credentials.password.$touch"
+              />
+              <p
+                v-if="!globalConfig.disableUserProfileUpdate"
+                class="!mt-3 text-right"
               >
-                <p v-if="!globalConfig.disableUserProfileUpdate">
-                  <router-link
-                    to="auth/reset/password"
-                    class="text-sm font-medium text-[#1E5ED8] hover:text-[#0C327F]"
-                    tabindex="4"
-                  >
-                    {{ $t('LOGIN.FORGOT_PASSWORD') }}
-                  </router-link>
-                </p>
-              </FormInput>
+                <router-link
+                  to="auth/reset/password"
+                  class="text-sm font-medium text-[#1E5ED8] hover:text-[#0C327F]"
+                  tabindex="4"
+                >
+                  {{ $t('LOGIN.FORGOT_PASSWORD') }}
+                </router-link>
+              </p>
               <NextButton
                 lg
                 type="submit"

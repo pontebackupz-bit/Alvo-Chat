@@ -6,6 +6,7 @@ import snakecaseKeys from 'snakecase-keys';
 import AccountActionsAPI from '../../../api/accountActions';
 import ContactAPI from '../../../api/contacts';
 import AnalyticsHelper from '../../../helper/AnalyticsHelper';
+import { downloadCsvFile } from '../../../helper/downloadHelper';
 import { CONTACTS_EVENTS } from '../../../helper/AnalyticsHelper/events';
 import types from '../../mutation-types';
 
@@ -192,7 +193,9 @@ export const actions = {
   export: async ({ commit }, { payload, label }) => {
     commit(types.SET_CONTACT_UI_FLAG, { isExporting: true });
     try {
-      await ContactAPI.exportContacts({ payload, label });
+      const { data } = await ContactAPI.downloadContacts({ payload, label });
+      const date = new Date().toISOString().slice(0, 10);
+      downloadCsvFile(`contacts-${date}.csv`, data);
 
       commit(types.SET_CONTACT_UI_FLAG, { isExporting: false });
     } catch (error) {

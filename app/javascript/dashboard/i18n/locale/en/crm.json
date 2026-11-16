@@ -60,7 +60,7 @@
       "NAME": "Connection name",
       "URL": "n8n URL",
       "BASE_URL": "n8n base URL",
-      "BASE_URL_HELP": "Use only the server URL, for example http://host.docker.internal:5678. Do not enter a webhook URL here.",
+      "BASE_URL_HELP": "Server address only. With the n8n bundled in Docker Compose, use http://n8n:5678. Do not enter the webhook URL here.",
       "API_KEY": "API key",
       "API_KEY_HELP": "Use an API key created in n8n to list workflows. Webhook Header Auth is configured separately below.",
       "WEBHOOK_AUTH_HEADER": "Webhook authentication header name (optional)",
@@ -95,7 +95,86 @@
       "RUN_ERROR": "Unable to run the workflow.",
       "DETAILS_ERROR": "Unable to load the connection workflows and executions.",
       "WORKFLOWS_ERROR": "Unable to list workflows. Check the n8n base URL and API key.",
-      "EXECUTIONS_ERROR": "Unable to load execution history."
+      "EXECUTIONS_ERROR": "Unable to load execution history.",
+      "EDIT_FLOW": "Edit flow",
+      "NEW_FLOW": "New flow",
+      "FLOW": {
+        "NEW_NAME": "New flow",
+        "SAVE_BEFORE_ACTIVATE": "Save the flow before changing its status",
+        "OPEN_IN_N8N": "Open in n8n",
+        "PALETTE_HINT": "Drag a block onto the board, or click to add it. Pull an output dot onto another block to connect them.",
+        "LOAD_ERROR": "Could not load the flow from n8n.",
+        "NAME_REQUIRED": "Give the flow a name before saving.",
+        "SAVE_SUCCESS": "Flow saved in n8n.",
+        "SAVE_ERROR": "Could not save the flow in n8n.",
+        "ACTIVATE_ERROR": "Could not change the flow status. Active flows need a trigger block.",
+        "NODE_NAME": "Block name",
+        "NODE_DISABLED": "Disable this block",
+        "NODE_PARAMETERS": "Parameters (JSON)",
+        "PARAMETERS_ERROR": "Invalid JSON. The parameters were not applied.",
+        "PARAMETERS_HELP": "Applied when you leave the field. Credentials and advanced options are configured in n8n.",
+        "DELETE_NODE": "Remove block",
+        "EDGE_TITLE": "Connection",
+        "EDGE_DESCRIPTION": "From {source} to {target}",
+        "DELETE_EDGE": "Remove connection",
+        "HELP_STEPS": {
+          "1": "Start with a trigger: Webhook receives CRM events, Schedule runs on a timer.",
+          "2": "Drag the next steps from the Blocks panel onto the board.",
+          "3": "Pull the output dot on the right of a block onto the next block. Conditions have True and False outputs.",
+          "4": "Click a block to rename it, disable it or edit its parameters.",
+          "5": "Save to send the flow to n8n, then switch it to Active."
+        },
+        "HELP_NOTE": "The flow is stored in n8n. Webhook blocks receive the CRM events listed on the n8n page; use the webhook path in the CRM automation rules.",
+        "OUTPUTS": {
+          "TRUE": "True",
+          "FALSE": "False"
+        },
+        "CATEGORIES": {
+          "trigger": "Trigger",
+          "logic": "Logic",
+          "data": "Data",
+          "action": "Action",
+          "other": "n8n"
+        },
+        "BLOCKS": {
+          "webhook": {
+            "LABEL": "Webhook",
+            "DESCRIPTION": "Receives CRM events"
+          },
+          "manualTrigger": {
+            "LABEL": "Manual start",
+            "DESCRIPTION": "Runs when tested in n8n"
+          },
+          "scheduleTrigger": {
+            "LABEL": "Schedule",
+            "DESCRIPTION": "Runs at set intervals"
+          },
+          "if": {
+            "LABEL": "Condition",
+            "DESCRIPTION": "Splits into true or false"
+          },
+          "wait": {
+            "LABEL": "Wait",
+            "DESCRIPTION": "Pauses before continuing"
+          },
+          "set": {
+            "LABEL": "Set fields",
+            "DESCRIPTION": "Creates or changes data"
+          },
+          "code": {
+            "LABEL": "Code",
+            "DESCRIPTION": "Runs JavaScript"
+          },
+          "httpRequest": {
+            "LABEL": "HTTP request",
+            "DESCRIPTION": "Calls an API"
+          },
+          "respondToWebhook": {
+            "LABEL": "Respond",
+            "DESCRIPTION": "Replies to the webhook"
+          }
+        }
+      }
     },
     "DISTRIBUTION": {
       "TITLE": "Automatic distribution",
@@ -229,6 +308,164 @@
       "DATE": "Date",
       "EMPTY": "No CRM audit entries found.",
       "FETCH_ERROR": "Unable to load CRM audit entries."
+    },
+    "WORKFLOWS": {
+      "TITLE": "Flows",
+      "IMPORT": "Import flow",
+      "EXPORT": "Export .alvo",
+      "IMPORT_TITLE": "Import flow",
+      "IMPORT_HELP": "Choose an EZ.Chat .flow file or a Comercial Alvorada .alvo file. Nothing runs during the import.",
+      "IMPORT_SUCCESS": "Flow imported.",
+      "IMPORT_ERROR": "Could not import the flow.",
+      "EXPORT_ERROR": "Could not export the flow.",
+      "PREVIEW_ERROR": "Could not read the selected file.",
+      "FETCH_ERROR": "Could not load the flows.",
+      "EMPTY": "No flows yet. Create one with New flow.",
+      "NAME": "Name",
+      "NODES": "Blocks",
+      "CONNECTIONS": "connections",
+      "OPEN": "Edit",
+      "ORIGIN_VALUE": "Source: {source}",
+      "CONVERTED": "converted",
+      "NEEDS_REVIEW": "need review",
+      "CREDENTIALS": "credentials required",
+      "SUBFLOWS": "pending subflows",
+      "DESCRIPTION": "Chatbot flows that answer new conversations on their own. Build them on the board or import from EZ.Chat.",
+      "NEW": "New flow",
+      "TRIGGER": "Starts when",
+      "TRIGGER_NEW_CONVERSATION": "New conversation · {inboxes}",
+      "DELETE_SUCCESS": "Flow deleted.",
+      "DELETE_ERROR": "Could not delete the flow.",
+      "EDITOR": {
+        "NEW_NAME": "New flow",
+        "SAVE": "Save flow",
+        "SAVE_SUCCESS": "Flow saved.",
+        "SAVE_ERROR": "Could not save the flow.",
+        "NAME_REQUIRED": "Give the flow a name before saving.",
+        "SUBTITLE": "Starts when a new conversation arrives in {inboxes}",
+        "ALL_INBOXES": "all inboxes",
+        "START_TITLE": "New conversation",
+        "START_HELP": "The flow starts when a customer opens a new conversation in the selected inboxes. It stops as soon as a person answers the conversation.",
+        "INBOXES": "Inboxes",
+        "INBOXES_HELP": "Leave all unchecked to run in every inbox.",
+        "STARTER_GREETING": "Hi, {'{{'}contato.nome{'}}'}! Thanks for reaching out. Someone from our team will answer you shortly.",
+        "PALETTE_HINT_START": "Pull an output such as",
+        "PALETTE_HINT_OR": "or",
+        "PALETTE_HINT_END": "onto another block to connect them.",
+        "VARIABLES_HELP": "You can use:",
+        "MENU_HELP": "The customer answers with the number or the option text. Any other answer follows \"Other answer\", or repeats the menu when that output is not connected.",
+        "NO_LABELS": "No labels yet. Create them in Settings → Labels.",
+        "DELETE_NODE": "Remove block",
+        "EDGE_TITLE": "Connection",
+        "EDGE_DESCRIPTION": "From {source} to {target}",
+        "DELETE_EDGE": "Remove connection",
+        "HELP_STEPS": {
+          "1": "Drag a block from the Blocks panel onto the board.",
+          "2": "Pull the output of \"New conversation\" onto the first block.",
+          "3": "Connect each output to the next step. Questions and menus wait for the customer's reply; an output without a connection ends the flow.",
+          "4": "Click a block to write the message, the options or choose the team.",
+          "5": "Turn the flow on with the Active switch and save."
+        },
+        "HELP_NOTE": "The flow runs once per conversation and stops when an agent answers, here or from the phone, or when the conversation is resolved.",
+        "OUTPUTS": {
+          "NEW_CONVERSATION": "New conversation",
+          "ANSWERED": "Answered",
+          "TRUE": "True",
+          "FALSE": "False",
+          "OTHER": "Other answer"
+        },
+        "OPERATORS": {
+          "contains": "contains",
+          "equals": "is equal to",
+          "not_empty": "is filled",
+          "empty": "is empty"
+        },
+        "SUMMARY": {
+          "OPTIONS": "{count} options",
+          "MINUTES": "{count} min",
+          "RESOLVES": "Resolves the conversation",
+          "ENDS": "End of flow",
+          "EMPTY": "Click to configure",
+          "UNSUPPORTED": "Imported block without support"
+        },
+        "FIELDS": {
+          "TITLE": "Block name",
+          "MESSAGE": "Message",
+          "QUESTION": "Question",
+          "SAVE_AS": "Save the answer as",
+          "OPTIONS": "Options",
+          "ADD_OPTION": "Add option",
+          "VARIABLE": "Check",
+          "OPERATOR": "Condition",
+          "VALUE": "Value",
+          "MINUTES": "Wait (minutes)",
+          "LABELS": "Labels to add",
+          "TEAM": "Team",
+          "AGENT": "Agent",
+          "CHOOSE": "Choose…",
+          "RESOLVE": "Resolve the conversation"
+        },
+        "PROBLEMS": {
+          "UNSUPPORTED": "This imported block cannot run. Replace or remove it before activating the flow.",
+          "MISSING_CONTENT": "Write the text of the selected block before activating the flow.",
+          "MISSING_OPTIONS": "Add at least one option to the selected menu.",
+          "MISSING_LABELS": "Choose at least one label in the selected block.",
+          "MISSING_TEAM": "Choose the team in the selected block.",
+          "MISSING_AGENT": "Choose the agent in the selected block."
+        },
+        "BLOCKS": {
+          "start": {
+            "LABEL": "Trigger"
+          },
+          "send_message": {
+            "LABEL": "Send message",
+            "DESCRIPTION": "Text to the customer"
+          },
+          "ask_question": {
+            "LABEL": "Ask a question",
+            "DESCRIPTION": "Waits for the reply"
+          },
+          "menu": {
+            "LABEL": "Options menu",
+            "DESCRIPTION": "One path per choice"
+          },
+          "condition": {
+            "LABEL": "Condition",
+            "DESCRIPTION": "Splits into true or false"
+          },
+          "wait": {
+            "LABEL": "Wait",
+            "DESCRIPTION": "Pauses before continuing"
+          },
+          "add_label": {
+            "LABEL": "Add label",
+            "DESCRIPTION": "Tags the conversation"
+          },
+          "transfer_team": {
+            "LABEL": "Transfer to team",
+            "DESCRIPTION": "Hands over to a team"
+          },
+          "assign_agent": {
+            "LABEL": "Assign agent",
+            "DESCRIPTION": "Hands over to a person"
+          },
+          "end": {
+            "LABEL": "End",
+            "DESCRIPTION": "Finishes the flow"
+          }
+        }
+      }
+    },
+    "FLOW_CANVAS": {
+      "BLOCKS_TITLE": "Blocks",
+      "HINT": "{zoom} · drag the background to move · Ctrl + scroll to zoom · Delete removes the selection",
+      "BACK": "Back",
+      "NAME": "Flow name",
+      "UNSAVED": "Unsaved changes",
+      "DISCARD_CONFIRM": "You have unsaved changes. Leave and discard them?",
+      "KEEP_EDITING": "Keep editing",
+      "DISCARD": "Discard",
+      "HELP_TITLE": "How to build"
     }
   }
 }

@@ -12,6 +12,7 @@ class OmnichannelCrm::ChatwootEventListener < BaseListener
       lead.stage = :new_lead
     end
     OmnichannelCrm::DistributionService.new(conversation).perform
+    OmnichannelCrm::WorkflowRunner.start_for(conversation)
     publish('conversation.created', account, conversation_id: conversation.id, contact_id: conversation.contact_id)
     publish('lead.created', account, conversation_id: conversation.id, contact_id: conversation.contact_id)
   end
@@ -19,12 +20,14 @@ class OmnichannelCrm::ChatwootEventListener < BaseListener
   def message_created(event)
     message, account = extract_message_and_account(event)
     OmnichannelCrm::BaileysMessageDeliveryJob.perform_later(message.id) if message.outgoing?
+    route_to_workflow_run(message)
     event_name = message.outgoing? ? 'message.sent' : 'message.received'
     publish(event_name, account, message_id: message.id, conversation_id: message.conversation_id, contact_id: message.sender_id)
   end
 
   def conversation_resolved(event)
     conversation, account = extract_conversation_and_account(event)
+    OmnichannelCrm::WorkflowRun.cancel_for(conversation)
     publish('conversation.resolved', account, conversation_id: conversation.id, contact_id: conversation.contact_id)
   end
 
@@ -39,6 +42,17 @@ class OmnichannelCrm::ChatwootEventListener < BaseListener
   end
 
   private
+
+  # A customer reply resumes a flow waiting for it; a person answering (in the
+  # dashboard or from the phone) takes the conversation over from the flow.
+  def route_to_workflow_run(message)
+    if message.incoming?
+      run = OmnichannelCrm::WorkflowRun.waiting_reply.find_by(conversation_id: message.conversation_id)
+      OmnichannelCrm::WorkflowRunJob.perform_later(run.id, message.id) if run
+    elsif message.outgoing? && (message.sender_type == 'User' || message.content_attributes['external_echo'].present?)
+      OmnichannelCrm::WorkflowRun.cancel_for(message.conversation)
+    end
+  end
 
   def publish(event_name, account, payload)
     OmnichannelCrm::EventFanoutService.new(event_name: event_name, account: account, payload: payload).perform

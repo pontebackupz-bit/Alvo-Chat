@@ -18,6 +18,7 @@ module OmnichannelCrm
           name: workflow.fetch('name'), description: workflow['description'].to_s, source: 'native',
           source_workflow_id: workflow['sourceWorkflowId'], nodes: workflow.fetch('nodes'),
           connections: workflow.fetch('connections'), variables: workflow.fetch('variables', []),
+          trigger_config: workflow.fetch('triggerConfig', {}),
           metadata: workflow.fetch('metadata', {}).merge('importSource' => 'native', 'importedAt' => Time.current.iso8601),
           import_report: { 'nodesTotal' => workflow['nodes'].size, 'nodesConverted' => workflow['nodes'].size,
                            'nodesUnsupported' => 0, 'credentialsRequired' => 0, 'subflowsPending' => 0,

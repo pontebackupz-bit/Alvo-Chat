@@ -68,6 +68,12 @@ class OmnichannelCrm::WppconnectBridgeClient
     response.fetch('response').first
   end
 
+  # WPPConnect only auto-downloads media for received messages, so media sent
+  # from the connected phone must be fetched explicitly. Returns base64 and mimetype.
+  def download_media(session_id, message_id)
+    request(session_id, :post, "/api/#{session_id}/download-media", messageId: message_id).slice('base64', 'mimetype')
+  end
+
   private
 
   def ensure_connected!(session_id)

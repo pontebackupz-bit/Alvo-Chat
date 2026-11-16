@@ -162,7 +162,10 @@ const rememberMessage = (session, message) => {
 const contactDetails = (session, message) => {
   const remoteJid = message.key.remoteJid;
   const sourceId = jidUser(remoteJid);
-  const senderPhoneNumber = jidUser(message.key.senderPn || message.key.participantPn);
+  // On messages sent from the connected phone, senderPn/participantPn point to
+  // our own number, so only the chat JID (or a known LID mapping) identifies
+  // the contact.
+  const senderPhoneNumber = message.key.fromMe ? null : jidUser(message.key.senderPn || message.key.participantPn);
   const isLid = remoteJid?.endsWith('@lid') || sourceId?.length > 15;
   const phoneNumber = senderPhoneNumber || session.phoneNumbers?.[sourceId] ||
     (isLid ? null : sourceId);
@@ -222,7 +225,7 @@ const publishPhoneNumber = async (session, sourceId, phoneNumber) => {
   }
 };
 
-const publishIncomingMessage = async (session, message) => {
+const publishMessage = async (session, message) => {
   if (!session.webhookUrl) return;
 
   const { sourceId, phoneNumber, isLid } = contactDetails(session, message);
@@ -252,7 +255,9 @@ const publishIncomingMessage = async (session, message) => {
     from: phoneNumber,
     source_id: phoneNumber,
     phone_number: phoneNumber,
-    name: message.pushName,
+    // pushName is our own profile name on messages sent from the phone.
+    name: message.key.fromMe ? undefined : message.pushName,
+    from_me: Boolean(message.key.fromMe),
     content,
     timestamp: message.messageTimestamp,
   };
@@ -393,12 +398,14 @@ const startSession = async session => {
     messages
       .filter(message => !message.key.remoteJid?.endsWith('@g.us'))
       .forEach(message => rememberMessage(session, message));
-    // `append` is WhatsApp history synchronisation. Replaying it as an
-    // incoming event produces stale or incomplete messages after reconnects.
+    // `append` is WhatsApp history synchronisation and the echo of messages
+    // this bridge sends itself. Replaying it produces stale or duplicated
+    // messages. `notify` covers both received messages and messages typed on
+    // the connected phone (or another linked device).
     if (type !== 'notify') return;
     messages
-      .filter(message => !message.key.fromMe && !message.key.remoteJid?.endsWith('@g.us'))
-      .forEach(message => publishIncomingMessage(session, message).catch(error => logger.warn(error)));
+      .filter(message => /@(s\.whatsapp\.net|lid)$/.test(message.key.remoteJid || ''))
+      .forEach(message => publishMessage(session, message).catch(error => logger.warn(error)));
   });
 };
 

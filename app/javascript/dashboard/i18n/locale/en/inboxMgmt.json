@@ -282,7 +282,13 @@
             "PHONE_LABEL": "Connected WhatsApp number",
             "TEAM": "Default team",
             "NO_TEAM": "Do not assign a team now",
-            "TEAM_HELP": "New conversations received on this number will be assigned to this team."
+            "TEAM_HELP": "New conversations received on this number will be assigned to this team.",
+            "NAME": "WhatsApp name",
+            "NAME_PLACEHOLDER": "E.g. Sales New York",
+            "NAME_HELP": "This name shows in the inbox list and in conversations.",
+            "NAME_REQUIRED": "Enter a name for this WhatsApp.",
+            "SUPERVISOR_NOTE": "Supervisors see this number and its conversations automatically, without being added.",
+            "STEP_3": "On your phone: WhatsApp › Linked devices › Link a device"
           }
         },
         "SELECT_PROVIDER": {

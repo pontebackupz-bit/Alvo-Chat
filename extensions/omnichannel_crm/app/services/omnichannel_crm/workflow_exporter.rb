@@ -13,6 +13,7 @@ module OmnichannelCrm
         workflow: {
           name: @workflow.name, description: @workflow.description, sourceWorkflowId: @workflow.source_workflow_id,
           nodes: @workflow.nodes, connections: @workflow.connections, variables: @workflow.variables,
+          triggerConfig: @workflow.trigger_config,
           metadata: export_metadata
         }
       }

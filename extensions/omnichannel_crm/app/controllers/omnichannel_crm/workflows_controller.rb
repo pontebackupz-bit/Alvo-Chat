@@ -12,6 +12,14 @@ module OmnichannelCrm
       render json: find_workflow
     end
 
+    def create
+      workflow = Workflow.create!(workflow_params.merge(account: current_account, source: 'native'))
+      audit!('workflow_created', subject: workflow)
+      render json: workflow, status: :created
+    rescue ActiveRecord::RecordInvalid => error
+      render json: { error: error.record.errors.full_messages.to_sentence }, status: :unprocessable_entity
+    end
+
     def preview
       render json: WorkflowImporters::Registry.import(import_payload, filename: import_filename)
     rescue WorkflowImporters::ImportError, JSON::ParserError => error
@@ -42,6 +50,15 @@ module OmnichannelCrm
       workflow.update!(workflow_params)
       audit!('workflow_updated', subject: workflow)
       render json: workflow
+    rescue ActiveRecord::RecordInvalid => error
+      render json: { error: error.record.errors.full_messages.to_sentence }, status: :unprocessable_entity
+    end
+
+    def destroy
+      workflow = find_workflow
+      workflow.destroy!
+      audit!('workflow_deleted', subject: workflow)
+      head :no_content
     end
 
     private
@@ -67,8 +84,11 @@ module OmnichannelCrm
       import_file.original_filename
     end
 
+    # Nodes, connections and the trigger are free-form flow JSON edited by the flow builder.
     def workflow_params
-      params.require(:workflow).permit(:name, :description, nodes: {}, connections: {}, variables: {}, metadata: {})
+      attributes = params.require(:workflow)
+      attributes.permit(:name, :description, :active).to_h
+                .merge(attributes.to_unsafe_h.slice(:nodes, :connections, :trigger_config))
     end
 
     def audit_metadata(workflow)

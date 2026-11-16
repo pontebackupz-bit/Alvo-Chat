@@ -15,7 +15,7 @@ OmnichannelCrm::Engine.routes.draw do
     resources :role_assignments, only: [:index, :create, :destroy]
     resources :team_supervisors, only: [:index, :create, :destroy]
     resources :automation_rules
-    resources :workflows, only: [:index, :show, :update] do
+    resources :workflows, only: [:index, :show, :create, :update, :destroy] do
       get :export, on: :member
       collection do
         post :preview
@@ -26,6 +26,10 @@ OmnichannelCrm::Engine.routes.draw do
     resources :n8n_connections, only: [:index, :create, :update, :destroy] do
       get :workflows, on: :member
       get :executions, on: :member
+      post :workflows, to: 'n8n_connections#create_workflow', on: :member, as: :create_workflow
+      get 'workflows/:workflow_id', to: 'n8n_connections#workflow', on: :member
+      put 'workflows/:workflow_id', to: 'n8n_connections#update_workflow', on: :member
+      post 'workflows/:workflow_id/activate', to: 'n8n_connections#activate_workflow', on: :member
       post 'workflows/:workflow_id/execute', to: 'n8n_connections#execute_workflow', on: :member
     end
     resource :baileys_session, only: [:show, :create, :destroy] do

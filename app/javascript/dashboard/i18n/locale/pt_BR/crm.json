@@ -61,7 +61,7 @@
       "NAME": "Nome da conexão",
       "URL": "URL do n8n",
       "BASE_URL": "URL base do n8n",
-      "BASE_URL_HELP": "Use somente a URL do servidor, por exemplo http://host.docker.internal:5678. Não informe a URL do webhook neste campo.",
+      "BASE_URL_HELP": "Use somente o endereço do servidor. Com o n8n do Docker Compose, use http://n8n:5678. Não informe a URL do webhook neste campo.",
       "API_KEY": "Chave de API",
       "API_KEY_HELP": "Use uma API Key criada no n8n para listar workflows. A credencial de Header Auth do webhook é configurada separadamente abaixo.",
       "WEBHOOK_AUTH_HEADER": "Nome do cabeçalho de autenticação do webhook (opcional)",
@@ -96,7 +96,86 @@
       "RUN_ERROR": "Não foi possível executar o workflow.",
       "DETAILS_ERROR": "Não foi possível carregar os workflows e execuções da conexão.",
       "WORKFLOWS_ERROR": "Não foi possível listar os workflows. Verifique a URL base e a API Key do n8n.",
-      "EXECUTIONS_ERROR": "Não foi possível carregar o histórico de execuções."
+      "EXECUTIONS_ERROR": "Não foi possível carregar o histórico de execuções.",
+      "EDIT_FLOW": "Editar fluxo",
+      "NEW_FLOW": "Novo fluxo",
+      "FLOW": {
+        "NEW_NAME": "Novo fluxo",
+        "SAVE_BEFORE_ACTIVATE": "Salve o fluxo antes de alterar o status",
+        "OPEN_IN_N8N": "Abrir no n8n",
+        "PALETTE_HINT": "Arraste um bloco para o quadro ou clique para adicionar. Puxe o ponto de saída até outro bloco para ligar.",
+        "LOAD_ERROR": "Não foi possível carregar o fluxo do n8n.",
+        "NAME_REQUIRED": "Dê um nome ao fluxo antes de salvar.",
+        "SAVE_SUCCESS": "Fluxo salvo no n8n.",
+        "SAVE_ERROR": "Não foi possível salvar o fluxo no n8n.",
+        "ACTIVATE_ERROR": "Não foi possível alterar o status do fluxo. Fluxos ativos precisam de um bloco de gatilho.",
+        "NODE_NAME": "Nome do bloco",
+        "NODE_DISABLED": "Desativar este bloco",
+        "NODE_PARAMETERS": "Parâmetros (JSON)",
+        "PARAMETERS_ERROR": "JSON inválido. Os parâmetros não foram aplicados.",
+        "PARAMETERS_HELP": "Aplicado ao sair do campo. Credenciais e opções avançadas são configuradas no n8n.",
+        "DELETE_NODE": "Remover bloco",
+        "EDGE_TITLE": "Ligação",
+        "EDGE_DESCRIPTION": "De {source} para {target}",
+        "DELETE_EDGE": "Remover ligação",
+        "HELP_STEPS": {
+          "1": "Comece com um gatilho: Webhook recebe eventos do CRM, Agendamento roda em intervalos.",
+          "2": "Arraste os próximos passos do painel Blocos para o quadro.",
+          "3": "Puxe o ponto de saída à direita de um bloco até o próximo bloco. Condições têm as saídas Verdadeiro e Falso.",
+          "4": "Clique em um bloco para renomear, desativar ou editar os parâmetros.",
+          "5": "Salve para enviar o fluxo ao n8n e depois mude para Ativo."
+        },
+        "HELP_NOTE": "O fluxo fica salvo no n8n. Blocos de Webhook recebem os eventos do CRM listados na página do n8n; use o caminho do webhook nas regras de automação do CRM.",
+        "OUTPUTS": {
+          "TRUE": "Verdadeiro",
+          "FALSE": "Falso"
+        },
+        "CATEGORIES": {
+          "trigger": "Gatilho",
+          "logic": "Lógica",
+          "data": "Dados",
+          "action": "Ação",
+          "other": "n8n"
+        },
+        "BLOCKS": {
+          "webhook": {
+            "LABEL": "Webhook",
+            "DESCRIPTION": "Recebe eventos do CRM"
+          },
+          "manualTrigger": {
+            "LABEL": "Início manual",
+            "DESCRIPTION": "Roda ao testar no n8n"
+          },
+          "scheduleTrigger": {
+            "LABEL": "Agendamento",
+            "DESCRIPTION": "Roda em intervalos"
+          },
+          "if": {
+            "LABEL": "Condição",
+            "DESCRIPTION": "Divide em verdadeiro ou falso"
+          },
+          "wait": {
+            "LABEL": "Aguardar",
+            "DESCRIPTION": "Pausa antes de seguir"
+          },
+          "set": {
+            "LABEL": "Definir campos",
+            "DESCRIPTION": "Cria ou altera dados"
+          },
+          "code": {
+            "LABEL": "Código",
+            "DESCRIPTION": "Executa JavaScript"
+          },
+          "httpRequest": {
+            "LABEL": "Requisição HTTP",
+            "DESCRIPTION": "Chama uma API"
+          },
+          "respondToWebhook": {
+            "LABEL": "Responder",
+            "DESCRIPTION": "Responde ao webhook"
+          }
+        }
+      }
     },
     "AUTOMATION": {
       "TITLE": "Regras de automação",
@@ -118,18 +197,150 @@
     },
     "WORKFLOWS": {
       "TITLE": "Fluxos",
-      "DESCRIPTION": "Importe fluxos do EZ.Chat para revisão e migração gradual.",
-      "IMPORT": "Importar fluxo", "EXPORT": "Exportar .alvo",
+      "DESCRIPTION": "Fluxos de chatbot que atendem sozinhos as novas conversas. Monte no quadro ou importe do EZ.Chat.",
+      "IMPORT": "Importar fluxo",
+      "EXPORT": "Exportar .alvo",
       "IMPORT_TITLE": "Importar fluxo",
       "IMPORT_HELP": "Selecione um arquivo .flow do EZ.Chat ou .alvo da Comercial Alvorada. O conteúdo não é executado durante a importação.",
       "IMPORT_SUCCESS": "Fluxo importado com sucesso.",
-      "IMPORT_ERROR": "Não foi possível importar o fluxo.", "EXPORT_ERROR": "Não foi possível exportar o fluxo.",
+      "IMPORT_ERROR": "Não foi possível importar o fluxo.",
+      "EXPORT_ERROR": "Não foi possível exportar o fluxo.",
       "PREVIEW_ERROR": "Não foi possível analisar o arquivo selecionado.",
       "FETCH_ERROR": "Não foi possível carregar os fluxos.",
-      "EMPTY": "Nenhum fluxo interno foi importado.",
-      "NAME": "Nome", "SOURCE": "Origem", "NODES": "nodes", "CONNECTIONS": "conexões", "OPEN": "Abrir fluxo", "BACK": "Voltar para fluxos",
-      "ORIGIN": "Origem", "ORIGIN_VALUE": "Origem: {source}", "CONVERTED": "convertidos", "NEEDS_REVIEW": "precisam de revisão", "CREDENTIALS": "credenciais necessárias", "SUBFLOWS": "subfluxos pendentes",
-      "CANVAS_LABEL": "Editor visual do fluxo importado", "WARNING": "⚠ {message}", "UNSUPPORTED_NODE": "Node importado não suportado: {type}", "CREDENTIAL_REQUIRED": "Credencial necessária", "SUBFLOW_PENDING": "Subfluxo pendente: {name}"
+      "EMPTY": "Ainda não há fluxos. Crie um em Novo fluxo.",
+      "NAME": "Nome",
+      "NODES": "Blocos",
+      "CONNECTIONS": "conexões",
+      "OPEN": "Editar",
+      "ORIGIN_VALUE": "Origem: {source}",
+      "CONVERTED": "convertidos",
+      "NEEDS_REVIEW": "precisam de revisão",
+      "CREDENTIALS": "credenciais necessárias",
+      "SUBFLOWS": "subfluxos pendentes",
+      "NEW": "Novo fluxo",
+      "TRIGGER": "Começa quando",
+      "TRIGGER_NEW_CONVERSATION": "Nova conversa · {inboxes}",
+      "DELETE_SUCCESS": "Fluxo excluído.",
+      "DELETE_ERROR": "Não foi possível excluir o fluxo.",
+      "EDITOR": {
+        "NEW_NAME": "Novo fluxo",
+        "SAVE": "Salvar fluxo",
+        "SAVE_SUCCESS": "Fluxo salvo.",
+        "SAVE_ERROR": "Não foi possível salvar o fluxo.",
+        "NAME_REQUIRED": "Dê um nome ao fluxo antes de salvar.",
+        "SUBTITLE": "Começa quando chega uma nova conversa em {inboxes}",
+        "ALL_INBOXES": "todas as caixas de entrada",
+        "START_TITLE": "Nova conversa",
+        "START_HELP": "O fluxo começa quando um cliente abre uma nova conversa nas caixas escolhidas. Ele para assim que uma pessoa responde a conversa.",
+        "INBOXES": "Caixas de entrada",
+        "INBOXES_HELP": "Deixe todas desmarcadas para rodar em todas as caixas.",
+        "STARTER_GREETING": "Olá, {'{{'}contato.nome{'}}'}! Obrigado pelo contato. Em instantes alguém da nossa equipe vai te atender.",
+        "PALETTE_HINT_START": "Puxe uma saída como",
+        "PALETTE_HINT_OR": "ou",
+        "PALETTE_HINT_END": "até outro bloco para ligar.",
+        "VARIABLES_HELP": "Você pode usar:",
+        "MENU_HELP": "O cliente responde com o número ou o texto da opção. Qualquer outra resposta segue \"Outra resposta\" ou repete o menu, se essa saída não estiver ligada.",
+        "NO_LABELS": "Ainda não há etiquetas. Crie em Configurações → Etiquetas.",
+        "DELETE_NODE": "Remover bloco",
+        "EDGE_TITLE": "Ligação",
+        "EDGE_DESCRIPTION": "De {source} para {target}",
+        "DELETE_EDGE": "Remover ligação",
+        "HELP_STEPS": {
+          "1": "Arraste um bloco do painel Blocos para o quadro.",
+          "2": "Puxe a saída de \"Nova conversa\" até o primeiro bloco.",
+          "3": "Ligue cada saída ao próximo passo. Perguntas e menus aguardam a resposta do cliente; saída sem ligação encerra o fluxo.",
+          "4": "Clique em um bloco para escrever a mensagem, as opções ou escolher a equipe.",
+          "5": "Ligue o fluxo na chave Ativo e salve."
+        },
+        "HELP_NOTE": "O fluxo roda uma vez por conversa e para quando um atendente responde, aqui ou pelo celular, ou quando a conversa é resolvida.",
+        "OUTPUTS": {
+          "NEW_CONVERSATION": "Nova conversa",
+          "ANSWERED": "Respondeu",
+          "TRUE": "Verdadeiro",
+          "FALSE": "Falso",
+          "OTHER": "Outra resposta"
+        },
+        "OPERATORS": {
+          "contains": "contém",
+          "equals": "é igual a",
+          "not_empty": "está preenchido",
+          "empty": "está vazio"
+        },
+        "SUMMARY": {
+          "OPTIONS": "{count} opções",
+          "MINUTES": "{count} min",
+          "RESOLVES": "Resolve a conversa",
+          "ENDS": "Fim do fluxo",
+          "EMPTY": "Clique para configurar",
+          "UNSUPPORTED": "Bloco importado sem suporte"
+        },
+        "FIELDS": {
+          "TITLE": "Nome do bloco",
+          "MESSAGE": "Mensagem",
+          "QUESTION": "Pergunta",
+          "SAVE_AS": "Salvar a resposta como",
+          "OPTIONS": "Opções",
+          "ADD_OPTION": "Adicionar opção",
+          "VARIABLE": "Verificar",
+          "OPERATOR": "Condição",
+          "VALUE": "Valor",
+          "MINUTES": "Aguardar (minutos)",
+          "LABELS": "Etiquetas a adicionar",
+          "TEAM": "Equipe",
+          "AGENT": "Atendente",
+          "CHOOSE": "Escolha…",
+          "RESOLVE": "Resolver a conversa"
+        },
+        "PROBLEMS": {
+          "UNSUPPORTED": "Este bloco importado não pode ser executado. Substitua ou remova antes de ativar o fluxo.",
+          "MISSING_CONTENT": "Escreva o texto do bloco selecionado antes de ativar o fluxo.",
+          "MISSING_OPTIONS": "Adicione pelo menos uma opção ao menu selecionado.",
+          "MISSING_LABELS": "Escolha pelo menos uma etiqueta no bloco selecionado.",
+          "MISSING_TEAM": "Escolha a equipe no bloco selecionado.",
+          "MISSING_AGENT": "Escolha o atendente no bloco selecionado."
+        },
+        "BLOCKS": {
+          "start": {
+            "LABEL": "Gatilho"
+          },
+          "send_message": {
+            "LABEL": "Enviar mensagem",
+            "DESCRIPTION": "Texto para o cliente"
+          },
+          "ask_question": {
+            "LABEL": "Fazer pergunta",
+            "DESCRIPTION": "Aguarda a resposta"
+          },
+          "menu": {
+            "LABEL": "Menu de opções",
+            "DESCRIPTION": "Um caminho por escolha"
+          },
+          "condition": {
+            "LABEL": "Condição",
+            "DESCRIPTION": "Divide em verdadeiro ou falso"
+          },
+          "wait": {
+            "LABEL": "Aguardar",
+            "DESCRIPTION": "Pausa antes de seguir"
+          },
+          "add_label": {
+            "LABEL": "Adicionar etiqueta",
+            "DESCRIPTION": "Marca a conversa"
+          },
+          "transfer_team": {
+            "LABEL": "Transferir para equipe",
+            "DESCRIPTION": "Passa para uma equipe"
+          },
+          "assign_agent": {
+            "LABEL": "Atribuir atendente",
+            "DESCRIPTION": "Passa para uma pessoa"
+          },
+          "end": {
+            "LABEL": "Encerrar",
+            "DESCRIPTION": "Finaliza o fluxo"
+          }
+        }
+      }
     },
     "DISTRIBUTION": {
       "TITLE": "Distribuição automática",
@@ -174,7 +385,7 @@
       "ACCESS_PROFILE": "Perfil de acesso",
       "PROFILE_ADMINISTRATOR": "Administrador",
       "PROFILE_SUPERVISOR": "Supervisor",
-      "PROFILE_AGENT": "Agente",
+      "PROFILE_AGENT": "Vendedor",
       "CODUSUR": "CODUSUR do WinThor",
       "TEAM_OPTIONAL": "Equipe (opcional)",
       "NO_TEAM": "Não atribuir equipe agora",
@@ -250,6 +461,17 @@
       "DATE": "Data",
       "EMPTY": "Nenhum registro de auditoria do CRM foi encontrado.",
       "FETCH_ERROR": "Não foi possível carregar a auditoria do CRM."
+    },
+    "FLOW_CANVAS": {
+      "BLOCKS_TITLE": "Blocos",
+      "HINT": "{zoom} · arraste o fundo para mover · Ctrl + roda para zoom · Delete remove a seleção",
+      "BACK": "Voltar",
+      "NAME": "Nome do fluxo",
+      "UNSAVED": "Alterações não salvas",
+      "DISCARD_CONFIRM": "Há alterações não salvas. Sair e descartar?",
+      "KEEP_EDITING": "Continuar editando",
+      "DISCARD": "Descartar",
+      "HELP_TITLE": "Como montar"
     }
   }
 }

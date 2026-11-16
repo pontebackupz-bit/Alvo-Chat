@@ -284,7 +284,13 @@
             "PHONE_LABEL": "Número do WhatsApp conectado",
             "TEAM": "Time padrão",
             "NO_TEAM": "Não atribuir time agora",
-            "TEAM_HELP": "Novas conversas recebidas neste número serão atribuídas a este time."
+            "TEAM_HELP": "Novas conversas recebidas neste número serão atribuídas a este time.",
+            "NAME": "Nome do WhatsApp",
+            "NAME_PLACEHOLDER": "Ex.: Comercial São Paulo",
+            "NAME_HELP": "Esse nome aparece na lista de caixas de entrada e nas conversas.",
+            "NAME_REQUIRED": "Informe um nome para este WhatsApp.",
+            "SUPERVISOR_NOTE": "Supervisores veem este número e as conversas automaticamente, sem precisar ser cadastrados.",
+            "STEP_3": "No celular: WhatsApp › Aparelhos conectados › Conectar aparelho"
           }
         },
         "SELECT_PROVIDER": {

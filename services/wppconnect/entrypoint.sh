@@ -75,4 +75,6 @@ if (functions.includes(upstreamMediaGuard)) {
 NODE
 
 cd /usr/src/wpp-server
-exec node dist/server.js
+# alvochat-server.js starts the same server with the onselfmessage webhook on,
+# so messages typed on the connected phone reach AlvoChat.
+exec node alvochat-server.js

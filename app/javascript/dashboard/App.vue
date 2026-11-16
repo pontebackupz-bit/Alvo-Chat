@@ -2,7 +2,6 @@
 import { mapGetters } from 'vuex';
 import LoadingState from './components/widgets/LoadingState.vue';
 import NetworkNotification from './components/NetworkNotification.vue';
-import UpdateBanner from './components/app/UpdateBanner.vue';
 import StatusBanner from './components/app/StatusBanner.vue';
 import PaymentPendingBanner from './components/app/PaymentPendingBanner.vue';
 import PendingEmailVerificationBanner from './components/app/PendingEmailVerificationBanner.vue';
@@ -29,7 +28,6 @@ export default {
   components: {
     LoadingState,
     NetworkNotification,
-    UpdateBanner,
     StatusBanner,
     PaymentPendingBanner,
     WootSnackbarBox,
@@ -53,13 +51,11 @@ export default {
   },
   data() {
     return {
-      latestChatwootVersion: null,
       reconnectService: null,
     };
   },
   computed: {
     ...mapGetters({
-      getAccount: 'accounts/getAccount',
       isRTL: 'accounts/isRTL',
       currentUser: 'getCurrentUser',
       authUIFlags: 'getAuthUIFlags',
@@ -107,11 +103,8 @@ export default {
       this.$store.dispatch('setActiveAccount', {
         accountId: this.currentAccountId,
       });
-      const account = this.getAccount(this.currentAccountId);
-      const { latest_chatwoot_version: latestChatwootVersion } = account;
       const { pubsub_token: pubsubToken } = this.currentUser || {};
       this.setLocale(PLATFORM_DEFAULT_LOCALE);
-      this.latestChatwootVersion = latestChatwootVersion;
       vueActionCable.init(this.store, pubsubToken);
       this.reconnectService = new ReconnectService(this.store, this.router);
       window.reconnectService = this.reconnectService;
@@ -135,7 +128,6 @@ export default {
     class="flex flex-col w-full h-screen min-h-0 bg-n-background"
     :dir="isRTL ? 'rtl' : 'ltr'"
   >
-    <UpdateBanner :latest-chatwoot-version="latestChatwootVersion" />
     <StatusBanner />
     <template v-if="currentAccountId">
       <PendingEmailVerificationBanner v-if="hideOnOnboardingView" />

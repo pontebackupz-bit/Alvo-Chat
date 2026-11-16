@@ -13,6 +13,14 @@ module OmnichannelCrm
     config.to_prepare do
       extension = OmnichannelCrm::AsyncDispatcherExtension
       AsyncDispatcher.prepend(extension) unless AsyncDispatcher.ancestors.include?(extension)
+
+      inbox_access = OmnichannelCrm::UserInboxAccess
+      User.prepend(inbox_access) unless User.ancestors.include?(inbox_access)
+
+      { ConversationFinder => OmnichannelCrm::SupervisorConversationScope::Finder,
+        ConversationPolicy => OmnichannelCrm::SupervisorConversationScope::Policy }.each do |target, mod|
+        target.prepend(mod) unless target.ancestors.include?(mod)
+      end
     end
   end
 end

@@ -3,7 +3,7 @@ class OmnichannelCrm::WppconnectMessagesController < OmnichannelCrm::BaileysMess
   before_action :authenticate_wppconnect!
 
   def create
-    return head :accepted unless params[:event] == 'onmessage' && !ActiveModel::Type::Boolean.new.cast(params[:fromMe])
+    return head :accepted unless %w[onmessage onselfmessage].include?(params[:event])
     return head :accepted if phone_number.blank?
     return ignore_unavailable_media if media? && media_data.blank?
     return ignore_empty_event if !media? && content.blank?
@@ -45,7 +45,8 @@ class OmnichannelCrm::WppconnectMessagesController < OmnichannelCrm::BaileysMess
   end
 
   def contact_inbox
-    super.tap { |record| sync_contact_name(record.contact) }
+    # On messages sent from the phone the sender names are our own profile.
+    super.tap { |record| sync_contact_name(record.contact) unless from_me? }
   end
 
   def conversation
@@ -57,7 +58,7 @@ class OmnichannelCrm::WppconnectMessagesController < OmnichannelCrm::BaileysMess
 
     return @phone_number = nil unless direct_message?
 
-    @phone_number = lid? ? bridge.phone_number_for(session_id, params[:from].to_s) : jid_user(params[:from])
+    @phone_number = lid? ? bridge.phone_number_for(session_id, chat_jid) : jid_user(chat_jid)
   rescue StandardError => e
     Rails.logger.warn("Unable to map WPPConnect LID to a phone number: #{e.message}")
     @phone_number = nil
@@ -92,12 +93,22 @@ class OmnichannelCrm::WppconnectMessagesController < OmnichannelCrm::BaileysMess
     ).permit!
   end
 
+  def from_me?
+    ActiveModel::Type::Boolean.new.cast(params[:fromMe])
+  end
+
+  # The contact is the recipient on messages sent from the phone and the sender otherwise.
+  def chat_jid
+    jid = from_me? ? params[:to] : params[:from]
+    jid.is_a?(ActionController::Parameters) ? jid[:_serialized].to_s : jid.to_s
+  end
+
   def lid?
-    params[:from].to_s.end_with?('@lid')
+    chat_jid.end_with?('@lid')
   end
 
   def direct_message?
-    lid? || params[:from].to_s.end_with?('@c.us', '@s.whatsapp.net')
+    lid? || chat_jid.end_with?('@c.us', '@s.whatsapp.net')
   end
 
   def bridge
@@ -118,7 +129,13 @@ class OmnichannelCrm::WppconnectMessagesController < OmnichannelCrm::BaileysMess
   end
 
   def media_data
+    return downloaded_media.fetch('base64') if from_me?
+
     params[:body].to_s.sub(%r{\Adata:[^;]+;base64,}, '')
+  end
+
+  def downloaded_media
+    @downloaded_media ||= bridge.download_media(session_id, message_source_id)
   end
 
   def mime_type
@@ -156,11 +173,11 @@ class OmnichannelCrm::WppconnectMessagesController < OmnichannelCrm::BaileysMess
   def migrate_lid_contact
     return unless lid?
 
-    contact_inbox = inbox.contact_inboxes.find_by(source_id: jid_user(params[:from]))
+    contact_inbox = inbox.contact_inboxes.find_by(source_id: jid_user(chat_jid))
     return unless contact_inbox
 
     attributes = { phone_number: "+#{phone_number}" }
-    attributes[:name] = phone_number if contact_inbox.contact.name == jid_user(params[:from])
+    attributes[:name] = phone_number if contact_inbox.contact.name == jid_user(chat_jid)
     contact_inbox.contact.update!(attributes)
     contact_inbox.update!(source_id: phone_number)
     contact_inbox

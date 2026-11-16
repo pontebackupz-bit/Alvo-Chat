@@ -94,6 +94,33 @@ class CrmAPI extends ApiClient {
     );
   }
 
+  getN8nWorkflow(accountId, connectionId, workflowId) {
+    return axios.get(
+      `${this.accountUrl(accountId)}/n8n_connections/${connectionId}/workflows/${workflowId}`
+    );
+  }
+
+  createN8nWorkflow(accountId, connectionId, workflow) {
+    return axios.post(
+      `${this.accountUrl(accountId)}/n8n_connections/${connectionId}/workflows`,
+      { workflow }
+    );
+  }
+
+  updateN8nWorkflow(accountId, connectionId, workflowId, workflow) {
+    return axios.put(
+      `${this.accountUrl(accountId)}/n8n_connections/${connectionId}/workflows/${workflowId}`,
+      { workflow }
+    );
+  }
+
+  setN8nWorkflowActive(accountId, connectionId, workflowId, active) {
+    return axios.post(
+      `${this.accountUrl(accountId)}/n8n_connections/${connectionId}/workflows/${workflowId}/activate`,
+      { active }
+    );
+  }
+
   executeN8nWorkflow(accountId, connectionId, workflowId, data) {
     return axios.post(
       `${this.accountUrl(accountId)}/n8n_connections/${connectionId}/workflows/${workflowId}/execute`,
@@ -145,9 +172,12 @@ class CrmAPI extends ApiClient {
   }
 
   resetUserPassword(accountId, userId, data = {}) {
-    return axios.post(`${this.accountUrl(accountId)}/users/${userId}/reset_password`, {
-      user: data,
-    });
+    return axios.post(
+      `${this.accountUrl(accountId)}/users/${userId}/reset_password`,
+      {
+        user: data,
+      }
+    );
   }
 
   getRoleAssignments(accountId) {
@@ -213,6 +243,18 @@ class CrmAPI extends ApiClient {
 
   getWorkflow(accountId, workflowId) {
     return axios.get(`${this.accountUrl(accountId)}/workflows/${workflowId}`);
+  }
+
+  createWorkflow(accountId, data) {
+    return axios.post(`${this.accountUrl(accountId)}/workflows`, {
+      workflow: data,
+    });
+  }
+
+  deleteWorkflow(accountId, workflowId) {
+    return axios.delete(
+      `${this.accountUrl(accountId)}/workflows/${workflowId}`
+    );
   }
 
   previewWorkflowImport(accountId, file) {

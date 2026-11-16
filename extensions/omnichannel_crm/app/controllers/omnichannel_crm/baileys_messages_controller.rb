@@ -11,8 +11,9 @@ class OmnichannelCrm::BaileysMessagesController < ActionController::API
 
   def create
     return render_existing_message if existing_message
+    return head :accepted if from_me? && pending_outgoing_message?
 
-    message = conversation.messages.build(incoming_message_attributes)
+    message = conversation.messages.build(message_attributes)
     attach_media(message)
     message.save!
     render json: { id: message.id }, status: :created
@@ -59,17 +60,34 @@ class OmnichannelCrm::BaileysMessagesController < ActionController::API
     ).perform.tap { |record| sync_contact(record) }
   end
 
-  def incoming_message_attributes
+  def message_attributes
+    content_attributes = { baileys: { sticker: sticker?, animated_sticker: animated_sticker? } }
     {
       account: inbox.account,
       inbox: inbox,
-      sender: contact_inbox.contact,
-      message_type: :incoming,
+      # Messages typed on the connected phone are stored like WhatsApp Cloud echoes:
+      # outgoing without an agent, flagged as sent from the native app.
+      sender: from_me? ? nil : contact_inbox.contact,
+      message_type: from_me? ? :outgoing : :incoming,
+      status: from_me? ? :delivered : :sent,
       content: content,
       source_id: message_source_id,
       content_type: sticker? ? :sticker : :text,
-      content_attributes: { baileys: { sticker: sticker?, animated_sticker: animated_sticker? } }
+      content_attributes: from_me? ? content_attributes.merge(external_echo: true) : content_attributes
     }
+  end
+
+  def from_me?
+    ActiveModel::Type::Boolean.new.cast(params[:from_me])
+  end
+
+  # A message sent from the dashboard is echoed back by WhatsApp before the
+  # delivery job stores its WhatsApp id, so match it by conversation and content.
+  def pending_outgoing_message?
+    pending = Message.outgoing.where(conversation_id: contact_inbox.conversations.select(:id), source_id: nil, created_at: 2.minutes.ago..)
+                     .where.not(status: :failed)
+    pending = pending.where(content: content) if content.present?
+    pending.exists?
   end
 
   def phone_number

@@ -414,6 +414,7 @@
     },
     "DOCS": "Read docs",
     "SECURITY": "Security",
+    "DEVELOPMENT": "Development",
     "CAPTAIN_AI": "Captain",
     "CONVERSATION_WORKFLOW": "Conversation Workflow"
   },

@@ -1,10 +1,12 @@
 <script setup>
+import { computed } from 'vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Input from 'dashboard/components-next/input/Input.vue';
 import Icon from 'dashboard/components-next/icon/Icon.vue';
 import ContactSortMenu from './components/ContactSortMenu.vue';
 import ContactMoreActions from './components/ContactMoreActions.vue';
 import ComposeConversation from 'dashboard/components-next/NewConversation/ComposeConversation.vue';
+import { usePolicy } from 'dashboard/composables/usePolicy';
 
 defineProps({
   showSearch: { type: Boolean, default: true },
@@ -29,6 +31,11 @@ const emit = defineEmits([
   'createSegment',
   'deleteSegment',
 ]);
+
+const { checkPermissions } = usePolicy();
+const canManageContacts = computed(() =>
+  checkPermissions(['administrator', 'contact_manage'])
+);
 </script>
 
 <template>
@@ -106,11 +113,33 @@ const emit = defineEmits([
               :active-ordering="activeOrdering"
               @update:sort="emit('update:sort', $event)"
             />
-            <ContactMoreActions
-              @add="emit('add')"
-              @import="emit('import')"
-              @export="emit('export')"
-            />
+            <template v-if="canManageContacts">
+              <Button
+                icon="i-lucide-download"
+                :label="
+                  $t(
+                    'CONTACTS_LAYOUT.HEADER.ACTIONS.CONTACT_CREATION.IMPORT_CONTACT'
+                  )
+                "
+                color="slate"
+                size="sm"
+                variant="faded"
+                @click="emit('import')"
+              />
+              <Button
+                icon="i-lucide-upload"
+                :label="
+                  $t(
+                    'CONTACTS_LAYOUT.HEADER.ACTIONS.CONTACT_CREATION.EXPORT_CONTACT'
+                  )
+                "
+                color="slate"
+                size="sm"
+                variant="faded"
+                @click="emit('export')"
+              />
+            </template>
+            <ContactMoreActions @add="emit('add')" />
           </div>
           <div class="w-px h-4 bg-n-strong" />
           <ComposeConversation>
