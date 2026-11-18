@@ -201,7 +201,7 @@
       "IMPORT": "Importar fluxo",
       "EXPORT": "Exportar .alvo",
       "IMPORT_TITLE": "Importar fluxo",
-      "IMPORT_HELP": "Selecione um arquivo .flow do EZ.Chat ou .alvo da Comercial Alvorada. O conteúdo não é executado durante a importação.",
+      "IMPORT_HELP": "Arquivos .flow do EZ.Chat ou .alvo do AlvoChat. Nada é executado durante a importação: o fluxo chega desativado para você revisar.",
       "IMPORT_SUCCESS": "Fluxo importado com sucesso.",
       "IMPORT_ERROR": "Não foi possível importar o fluxo.",
       "EXPORT_ERROR": "Não foi possível exportar o fluxo.",
@@ -258,7 +258,12 @@
           "ANSWERED": "Respondeu",
           "TRUE": "Verdadeiro",
           "FALSE": "Falso",
-          "OTHER": "Outra resposta"
+          "OTHER": "Outra resposta",
+          "MAX_RETRIES": "Tentativas esgotadas",
+          "ELSE": "Senão",
+          "INACTIVITY": "Inativo",
+          "SUCCESS": "Sucesso",
+          "ERROR": "Erro"
         },
         "OPERATORS": {
           "contains": "contém",
@@ -272,7 +277,12 @@
           "RESOLVES": "Resolve a conversa",
           "ENDS": "Fim do fluxo",
           "EMPTY": "Clique para configurar",
-          "UNSUPPORTED": "Bloco importado sem suporte"
+          "UNSUPPORTED": "Bloco importado sem suporte",
+          "ROUND_ROBIN": "rodízio",
+          "RULES": "{count} regras",
+          "CODE": "Código importado",
+          "WAITS_AGENT": "aguarda o atendimento",
+          "IF_ONLINE": "se estiver online"
         },
         "FIELDS": {
           "TITLE": "Nome do bloco",
@@ -289,7 +299,29 @@
           "TEAM": "Equipe",
           "AGENT": "Atendente",
           "CHOOSE": "Escolha…",
-          "RESOLVE": "Resolver a conversa"
+          "RESOLVE": "Resolver a conversa",
+          "DISTRIBUTE": "Distribuir entre os vendedores (rodízio)",
+          "DISTRIBUTE_HELP": "Atribui ao próximo vendedor da equipe, dando preferência a quem está online. Supervisores não recebem conversas.",
+          "VALIDATOR": "Validar resposta",
+          "RETRIES": "Tentativas antes de desistir",
+          "RETRY_MESSAGE": "Mensagem quando a resposta for inválida",
+          "RULES": "Regras",
+          "RULE": "Regra {number}",
+          "ADD_RULE": "Adicionar regra",
+          "SCOPE": "Onde guardar",
+          "VALUES": "Variáveis",
+          "ADD_VARIABLE": "Adicionar variável",
+          "SPLITS": "Caminhos",
+          "ADD_SPLIT": "Adicionar caminho",
+          "INACTIVITY_MINUTES": "Minutos sem resposta",
+          "SUBFLOW": "Fluxo a executar",
+          "SUBFLOW_DATA": "Dados enviados (JSON)",
+          "RETURNS": "Voltar para este fluxo ao terminar",
+          "WAIT_FOR_AGENT": "Aguardar o fim do atendimento",
+          "AGENT_EMAIL": "E-mail da pessoa",
+          "ONLY_IF_ONLINE": "Somente se a pessoa estiver online",
+          "NOTE": "Anotação",
+          "ATTACHMENTS": "Arquivos enviados"
         },
         "PROBLEMS": {
           "UNSUPPORTED": "Este bloco importado não pode ser executado. Substitua ou remova antes de ativar o fluxo.",
@@ -297,7 +329,9 @@
           "MISSING_OPTIONS": "Adicione pelo menos uma opção ao menu selecionado.",
           "MISSING_LABELS": "Escolha pelo menos uma etiqueta no bloco selecionado.",
           "MISSING_TEAM": "Escolha a equipe no bloco selecionado.",
-          "MISSING_AGENT": "Escolha o atendente no bloco selecionado."
+          "MISSING_AGENT": "Escolha o atendente no bloco selecionado.",
+          "MISSING_RULES": "Adicione pelo menos uma regra ao bloco de condições.",
+          "MISSING_SUBFLOW": "Informe qual fluxo o bloco deve executar."
         },
         "BLOCKS": {
           "start": {
@@ -338,8 +372,116 @@
           "end": {
             "LABEL": "Encerrar",
             "DESCRIPTION": "Finaliza o fluxo"
+          },
+          "branch": {
+            "LABEL": "Condições",
+            "DESCRIPTION": "Uma saída por regra"
+          },
+          "set_variables": {
+            "LABEL": "Definir variáveis",
+            "DESCRIPTION": "Guarda valores no fluxo"
+          },
+          "split": {
+            "LABEL": "Teste A/B",
+            "DESCRIPTION": "Divide por porcentagem"
+          },
+          "inactivity": {
+            "LABEL": "Inatividade",
+            "DESCRIPTION": "Caminho se o cliente sumir"
+          },
+          "subflow": {
+            "LABEL": "Executar fluxo",
+            "DESCRIPTION": "Chama outro fluxo"
+          },
+          "code": {
+            "LABEL": "Código",
+            "DESCRIPTION": "Importado do EZ.Chat"
+          },
+          "integration": {
+            "LABEL": "Integração",
+            "DESCRIPTION": "Sistema externo"
+          },
+          "note": {
+            "LABEL": "Anotação",
+            "DESCRIPTION": "Comentário no fluxo"
           }
+        },
+        "INTEGRATIONS": {
+          "ORACLE": "Oracle (WinThor)",
+          "GOOGLE_SHEETS": "Google Sheets"
+        },
+        "VALIDATORS": {
+          "any": "Qualquer texto",
+          "cpf_cnpj": "CPF ou CNPJ",
+          "number": "Número",
+          "email": "E-mail"
+        },
+        "RULE_OPERATORS": {
+          "eq": "é igual a",
+          "neq": "é diferente de",
+          "contains": "contém",
+          "notContains": "não contém",
+          "startsWith": "começa com",
+          "gt": "é maior que",
+          "gte": "é maior ou igual a",
+          "lt": "é menor que",
+          "lte": "é menor ou igual a",
+          "exists": "está preenchido",
+          "empty": "está vazio"
+        },
+        "SCOPES": {
+          "flow": "Variáveis do fluxo",
+          "contact": "Cadastro do contato"
+        },
+        "RULES_HELP": "As regras são testadas em ordem; a primeira verdadeira escolhe a saída. Se nenhuma for, o fluxo segue por Senão.",
+        "EXPRESSIONS_HELP": "Use expressões entre chaves duplas, como flow.setor, user.cpfCnpj, input.text ou flow.contador + 1.",
+        "SPLIT_TOTAL": "Total: {total}% (o ideal é 100%)",
+        "INACTIVITY_HELP": "A partir deste bloco, se o cliente ficar esse tempo sem responder enquanto o fluxo espera, ele segue pela saída Inativo.",
+        "SUBFLOW_MISSING": "Nenhum fluxo com esse nome foi importado ainda. Enquanto ele não existir, o bloco segue pela saída de erro.",
+        "RETURNS_HELP": "Quando o outro fluxo terminar, este continua pela saída Sucesso.",
+        "IMPORTED_TEAM": "Departamento do EZ.Chat: {name}. O AlvoChat usa a equipe com esse nome; escolha outra acima se preferir.",
+        "WAIT_FOR_AGENT_HELP": "O fluxo pausa durante o atendimento humano e continua quando a conversa for resolvida (por exemplo, para a pesquisa de satisfação).",
+        "ONLY_IF_ONLINE_HELP": "Se a pessoa estiver offline, a conversa não é atribuída; o próximo bloco pode testar input.online.",
+        "CODE_HELP": "Blocos de código JavaScript não rodam no AlvoChat. O código que só extrai os números da resposta é reconhecido e funciona; outros seguem pela saída de erro.",
+        "INTEGRATION_HELP": "A integração {name} ainda não está conectada ao AlvoChat. Por enquanto, o fluxo segue pela saída de erro deste bloco.",
+        "ISSUES": {
+          "TITLE": "Pendências do fluxo",
+          "DESCRIPTION": "O fluxo funciona, mas estes pontos usam um caminho alternativo até serem resolvidos. Clique para ver o bloco.",
+          "BLOCKS": "{count} blocos"
         }
+      },
+      "METRICS": {
+        "OPEN": "Métricas",
+        "TITLE": "Métricas do fluxo",
+        "SUBTITLE": "{name} · últimos 30 dias",
+        "FETCH_ERROR": "Não foi possível carregar as métricas do fluxo.",
+        "STARTED": "Iniciadas",
+        "COMPLETED": "Concluídas",
+        "ABANDONED": "Abandonadas",
+        "HANDED_OVER": "Assumidas por atendente",
+        "IN_PROGRESS": "Em andamento",
+        "FAILED": "Com erro",
+        "COMPLETION_RATE": "Taxa de conclusão",
+        "DROP_OFF": "Onde os clientes desistem",
+        "DROP_OFF_HELP": "Blocos em que o cliente parou de responder por mais de 24 horas.",
+        "NO_DROP_OFF": "Nenhum abandono no período.",
+        "CUSTOMERS": "{count} clientes",
+        "REMOVED_BLOCK": "Bloco removido do fluxo"
+      },
+      "IMPORT_DROP": "Arraste o arquivo aqui ou clique para escolher",
+      "IMPORT_CHANGE": "Clique ou arraste outro arquivo para trocar",
+      "IMPORT_FORMATS": "Formatos aceitos: .flow, .alvo e .json (até 5 MB)",
+      "IMPORT_ANALYSING": "Analisando o fluxo…",
+      "IMPORT_NEEDS_REVIEW": "Precisa de revisão",
+      "IMPORT_READY": "Pronto para importar",
+      "IMPORT_NEXT_STEP": "Depois de importar, o editor mostra a lista de pendências: subfluxos, equipes e integrações que ainda faltam no AlvoChat.",
+      "IMPORT_STATS": {
+        "NODES": "Blocos",
+        "CONVERTED": "Convertidos",
+        "REVIEW": "Para revisar",
+        "CONNECTIONS": "Conexões",
+        "SUBFLOWS": "Subfluxos",
+        "CREDENTIALS": "Integrações"
       }
     },
     "DISTRIBUTION": {
@@ -385,7 +527,7 @@
       "ACCESS_PROFILE": "Perfil de acesso",
       "PROFILE_ADMINISTRATOR": "Administrador",
       "PROFILE_SUPERVISOR": "Supervisor",
-      "PROFILE_AGENT": "Vendedor",
+      "PROFILE_AGENT": "Agente",
       "CODUSUR": "CODUSUR do WinThor",
       "TEAM_OPTIONAL": "Equipe (opcional)",
       "NO_TEAM": "Não atribuir equipe agora",
@@ -425,7 +567,12 @@
       "TEMPORARY_PASSWORD_HELP": "Entregue estas credenciais ao usuário agora. A senha não poderá ser consultada novamente e deverá ser alterada no primeiro acesso.",
       "CREDENTIALS_READY": "Credenciais prontas para entrega",
       "COPY_CREDENTIALS": "Copiar credenciais",
-      "CREDENTIALS_COPIED": "Credenciais copiadas."
+      "CREDENTIALS_COPIED": "Credenciais copiadas.",
+      "PROFILE_SELLER": "Vendedor",
+      "PROFILE_ADMINISTRATOR_HELP": "Acesso total: configurações, usuários e todas as conversas.",
+      "PROFILE_SUPERVISOR_HELP": "Vê todas as conversas e indicadores das equipes que supervisiona.",
+      "PROFILE_SELLER_HELP": "Atende conversas e gerencia os próprios leads e vendas.",
+      "PROFILE_AGENT_HELP": "Atende as conversas atribuídas a ele, sem gestão comercial."
     },
     "FORCED_PASSWORD": {
       "TITLE": "Defina sua nova senha",
@@ -440,7 +587,7 @@
     },
     "DASHBOARD": {
       "TITLE": "Painel comercial",
-      "DESCRIPTION": "Indicadores comerciais do período selecionado.",
+      "DESCRIPTION": "Indicadores comerciais da sua equipe no período selecionado.",
       "LEADS": "Leads",
       "OPEN": "Conversas abertas",
       "RESOLVED": "Conversas resolvidas",
@@ -449,9 +596,24 @@
       "AVG_RESPONSE": "Primeira resposta média",
       "SELLERS": "Ranking de vendedores",
       "TEAMS": "Ranking de equipes",
-      "CHANNELS": "Volume por canal",
+      "CHANNELS": "Volume por caixa de entrada",
       "EMPTY": "Não há dados disponíveis para este período.",
-      "FETCH_ERROR": "Não foi possível carregar os indicadores."
+      "FETCH_ERROR": "Não foi possível carregar os indicadores.",
+      "LAST_DAYS": "Últimos {count} dias",
+      "ALL_TEAMS": "Todas as equipes",
+      "MINUTES": "{count} min",
+      "HOURS": "{count} h",
+      "UNANSWERED": "Conversas sem resposta",
+      "UNANSWERED_HELP": "Abertas agora e ainda sem nenhuma resposta da equipe.",
+      "AWAITING_REPLY": "Aguardando retorno",
+      "AWAITING_REPLY_HELP": "Abertas agora em que o cliente foi o último a falar.",
+      "SELLER": "Vendedor",
+      "CONVERSATIONS": "Conversas",
+      "RESOLVED_SHORT": "Resolvidas",
+      "OPEN_NOW": "Abertas agora",
+      "FIRST_RESPONSE": "1ª resposta",
+      "NO_TEAM": "Sem equipe",
+      "TEAM_VALUE": "{total} conversas · {resolved} resolvidas"
     },
     "AUDIT": {
       "TITLE": "Auditoria do CRM",

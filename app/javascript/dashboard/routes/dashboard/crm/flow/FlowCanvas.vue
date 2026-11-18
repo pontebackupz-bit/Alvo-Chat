@@ -8,7 +8,9 @@ import Button from 'dashboard/components-next/button/Button.vue';
 // Nodes need `id` and `position: { x, y }`; the board moves them in place.
 // `describeNode(node)` returns how a node looks:
 //   { icon, tint, dot, category, title, subtitle, disabled,
+//     warning: 'blocking' | 'warning' | undefined,
 //     inputs: number, outputs: [{ key, label, tone }] }
+// Nodes grow taller when they have many outputs.
 // Edges are `{ id, source, sourceHandle, target, targetHandle, vertical }`,
 // where `sourceHandle` is an output key and `targetHandle` an input index.
 const props = defineProps({
@@ -24,7 +26,10 @@ const selection = defineModel('selection', { type: Object, default: null });
 
 const NODE_WIDTH = 232;
 const NODE_HEIGHT = 92;
-const MIN_ZOOM = 0.25;
+const MIN_ZOOM = 0.1;
+// Below this, a fitted view is unreadable: the view opens on a node instead.
+const READABLE_ZOOM = 0.45;
+const OUTPUT_SPACING = 22;
 const MAX_ZOOM = 2;
 const GRID = 24;
 const HANDLE_OFFSET = 6;
@@ -61,8 +66,14 @@ const gridTransform = computed(
 
 const toneOf = output => TONES[output?.tone] || TONES.brand;
 
-const handleTop = (index, count) =>
-  (NODE_HEIGHT * (index + 1)) / (count + 1) - HANDLE_OFFSET;
+const heightOf = nodeId =>
+  Math.max(
+    NODE_HEIGHT,
+    28 + views.value[nodeId].outputs.length * OUTPUT_SPACING
+  );
+
+const handleTop = (index, count, height = NODE_HEIGHT) =>
+  (height * (index + 1)) / (count + 1) - HANDLE_OFFSET;
 
 const outputPoint = (node, key) => {
   const outputs = views.value[node.id].outputs;
@@ -72,7 +83,9 @@ const outputPoint = (node, key) => {
   );
   return {
     x: node.position.x + NODE_WIDTH,
-    y: node.position.y + (NODE_HEIGHT * (index + 1)) / (outputs.length + 1),
+    y:
+      node.position.y +
+      (heightOf(node.id) * (index + 1)) / (outputs.length + 1),
   };
 };
 
@@ -80,7 +93,7 @@ const inputPoint = (node, index) => {
   const count = Math.max(1, views.value[node.id].inputs);
   return {
     x: node.position.x,
-    y: node.position.y + (NODE_HEIGHT * (index + 1)) / (count + 1),
+    y: node.position.y + (heightOf(node.id) * (index + 1)) / (count + 1),
   };
 };
 
@@ -109,7 +122,7 @@ const renderedEdges = computed(() =>
       };
       const to = {
         x: target.position.x + NODE_WIDTH / 2,
-        y: target.position.y + NODE_HEIGHT,
+        y: target.position.y + heightOf(target.id),
       };
       return [{ ...edge, path: verticalCurve(from, to), dashed: true }];
     }
@@ -147,7 +160,21 @@ const toCanvasPoint = event => {
 
 const snap = value => Math.round(value / GRID) * GRID;
 
-const fitView = () => {
+// Centers a node, e.g. one picked from the issues list.
+const focusNode = (nodeId, level = Math.max(zoom.value, 0.85)) => {
+  const rect = viewport.value?.getBoundingClientRect();
+  const node = nodesById.value[nodeId];
+  if (!rect || !node) return;
+  zoom.value = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, level));
+  pan.value = {
+    x: rect.width / 2 - (node.position.x + NODE_WIDTH / 2) * zoom.value,
+    y: rect.height / 2 - (node.position.y + heightOf(nodeId) / 2) * zoom.value,
+  };
+};
+
+// Fits every node; when that would be unreadable and `preferNodeId` is
+// given, opens on that node instead.
+const fitView = ({ preferNodeId } = {}) => {
   const rect = viewport.value?.getBoundingClientRect();
   if (!rect || !props.nodes.length) return;
   const xs = props.nodes.map(node => node.position.x);
@@ -155,7 +182,9 @@ const fitView = () => {
   const minX = Math.min(...xs);
   const minY = Math.min(...ys);
   const width = Math.max(...xs) + NODE_WIDTH - minX;
-  const height = Math.max(...ys) + NODE_HEIGHT - minY;
+  const height =
+    Math.max(...props.nodes.map(node => node.position.y + heightOf(node.id))) -
+    minY;
   const padding = 96;
   zoom.value = Math.min(
     1,
@@ -171,6 +200,7 @@ const fitView = () => {
     x: (rect.width - width * zoom.value) / 2 - minX * zoom.value,
     y: (rect.height - height * zoom.value) / 2 - minY * zoom.value,
   };
+  if (zoom.value < READABLE_ZOOM && preferNodeId) focusNode(preferNodeId, 0.85);
 };
 
 const zoomAround = (factor, center) => {
@@ -314,7 +344,7 @@ const onCanvasDrop = event => {
   });
 };
 
-defineExpose({ fitView });
+defineExpose({ fitView, focusNode });
 </script>
 
 <template>
@@ -394,11 +424,15 @@ defineExpose({ fitView });
         v-for="node in nodes"
         :key="node.id"
         :data-flow-node="node.id"
-        class="absolute flex items-start gap-3 p-3 border shadow-sm cursor-pointer rounded-xl bg-n-solid-2 w-[232px] h-[92px]"
+        class="absolute flex items-start gap-3 p-3 border shadow-sm cursor-pointer rounded-xl bg-n-solid-2 w-[232px]"
         :class="[
           selection?.id === node.id
             ? 'border-n-brand ring-2 ring-n-brand/30'
-            : 'border-n-weak hover:border-n-strong',
+            : {
+                'border-n-ruby-7': views[node.id].warning === 'blocking',
+                'border-n-amber-7': views[node.id].warning === 'warning',
+                'border-n-weak hover:border-n-strong': !views[node.id].warning,
+              },
           pendingConnection &&
           pendingConnection.source !== node.id &&
           views[node.id].inputs > 0
@@ -406,9 +440,24 @@ defineExpose({ fitView });
             : '',
           { 'opacity-50': views[node.id].disabled },
         ]"
-        :style="{ left: `${node.position.x}px`, top: `${node.position.y}px` }"
+        :style="{
+          left: `${node.position.x}px`,
+          top: `${node.position.y}px`,
+          height: `${heightOf(node.id)}px`,
+        }"
         @pointerdown.stop="onNodePointerDown($event, node)"
       >
+        <span
+          v-if="views[node.id].warning"
+          class="absolute flex items-center justify-center rounded-full -top-2 -right-2 size-5 ring-2 ring-n-solid-2"
+          :class="
+            views[node.id].warning === 'blocking'
+              ? 'bg-n-ruby-9 text-white'
+              : 'bg-n-amber-9 text-n-slate-12'
+          "
+        >
+          <span class="i-lucide-triangle-alert size-3" />
+        </span>
         <div
           class="flex items-center justify-center flex-shrink-0 rounded-lg size-10"
           :class="views[node.id].tint"
@@ -435,7 +484,7 @@ defineExpose({ fitView });
           :key="`in-${index}`"
           class="absolute border-2 rounded-full size-3 -left-1.5 bg-n-slate-9 border-n-solid-2"
           :style="{
-            top: `${handleTop(index - 1, views[node.id].inputs)}px`,
+            top: `${handleTop(index - 1, views[node.id].inputs, heightOf(node.id))}px`,
           }"
         />
         <template
@@ -446,7 +495,7 @@ defineExpose({ fitView });
             class="absolute border-2 rounded-full cursor-crosshair size-3 -right-1.5 border-n-solid-2 hover:scale-125"
             :class="toneOf(output).handle"
             :style="{
-              top: `${handleTop(index, views[node.id].outputs.length)}px`,
+              top: `${handleTop(index, views[node.id].outputs.length, heightOf(node.id))}px`,
             }"
             @pointerdown.stop="onOutputPointerDown($event, node, output)"
           />
@@ -455,7 +504,7 @@ defineExpose({ fitView });
             class="absolute ml-3 text-[10px] font-medium whitespace-nowrap pointer-events-none left-full"
             :class="toneOf(output).label"
             :style="{
-              top: `${handleTop(index, views[node.id].outputs.length) - HANDLE_OFFSET}px`,
+              top: `${handleTop(index, views[node.id].outputs.length, heightOf(node.id)) - HANDLE_OFFSET}px`,
             }"
           >
             {{ output.label }}

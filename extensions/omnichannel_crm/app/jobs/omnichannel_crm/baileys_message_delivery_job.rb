@@ -6,7 +6,7 @@ class OmnichannelCrm::BaileysMessageDeliveryJob < ApplicationJob
 
   def perform(message_id, file_attempt = 0, reconnect_attempt = 0)
     message = Message.find(message_id)
-    return unless message.outgoing?
+    return unless message.outgoing? || OmnichannelCrm::CsatReplyService.bridge_survey?(message)
 
     delivery_service(message).perform
   rescue OmnichannelCrm::WppconnectBridgeClient::SessionUnavailable => e

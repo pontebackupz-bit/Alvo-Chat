@@ -283,11 +283,17 @@
       "ASSIGNMENT_DELETE_SUCCESS": "Role assignment removed.",
       "SAVE_ERROR": "Unable to assign the supervisor.",
       "FETCH_ERROR": "Unable to load CRM access control.",
-      "PERMISSIONS": "Permissions"
+      "PERMISSIONS": "Permissions",
+      "PROFILE_AGENT": "Agent",
+      "PROFILE_SELLER": "Seller",
+      "PROFILE_ADMINISTRATOR_HELP": "Full access: settings, users and every conversation.",
+      "PROFILE_SUPERVISOR_HELP": "Sees every conversation and indicator of the teams they supervise.",
+      "PROFILE_SELLER_HELP": "Handles conversations and manages their own leads and sales.",
+      "PROFILE_AGENT_HELP": "Handles the conversations assigned to them, without sales management."
     },
     "DASHBOARD": {
       "TITLE": "Sales dashboard",
-      "DESCRIPTION": "Commercial metrics for the selected period.",
+      "DESCRIPTION": "Your team's sales indicators for the selected period.",
       "LEADS": "Leads",
       "OPEN": "Open conversations",
       "RESOLVED": "Resolved conversations",
@@ -296,9 +302,24 @@
       "AVG_RESPONSE": "Average first response",
       "SELLERS": "Seller ranking",
       "TEAMS": "Team ranking",
-      "CHANNELS": "Channel volume",
+      "CHANNELS": "Volume by inbox",
       "EMPTY": "No data is available for this period.",
-      "FETCH_ERROR": "Unable to load dashboard metrics."
+      "FETCH_ERROR": "Unable to load dashboard metrics.",
+      "LAST_DAYS": "Last {count} days",
+      "ALL_TEAMS": "All teams",
+      "MINUTES": "{count} min",
+      "HOURS": "{count} h",
+      "UNANSWERED": "Unanswered conversations",
+      "UNANSWERED_HELP": "Open now and not answered by the team yet.",
+      "AWAITING_REPLY": "Awaiting reply",
+      "AWAITING_REPLY_HELP": "Open now where the customer spoke last.",
+      "SELLER": "Seller",
+      "CONVERSATIONS": "Conversations",
+      "RESOLVED_SHORT": "Resolved",
+      "OPEN_NOW": "Open now",
+      "FIRST_RESPONSE": "First response",
+      "NO_TEAM": "No team",
+      "TEAM_VALUE": "{total} conversations · {resolved} resolved"
     },
     "AUDIT": {
       "TITLE": "CRM audit log",
@@ -314,7 +335,7 @@
       "IMPORT": "Import flow",
       "EXPORT": "Export .alvo",
       "IMPORT_TITLE": "Import flow",
-      "IMPORT_HELP": "Choose an EZ.Chat .flow file or a Comercial Alvorada .alvo file. Nothing runs during the import.",
+      "IMPORT_HELP": "EZ.Chat .flow files or AlvoChat .alvo files. Nothing runs during the import: the flow arrives inactive for you to review.",
       "IMPORT_SUCCESS": "Flow imported.",
       "IMPORT_ERROR": "Could not import the flow.",
       "EXPORT_ERROR": "Could not export the flow.",
@@ -372,7 +393,12 @@
           "ANSWERED": "Answered",
           "TRUE": "True",
           "FALSE": "False",
-          "OTHER": "Other answer"
+          "OTHER": "Other answer",
+          "MAX_RETRIES": "Out of retries",
+          "ELSE": "Else",
+          "INACTIVITY": "Inactive",
+          "SUCCESS": "Success",
+          "ERROR": "Error"
         },
         "OPERATORS": {
           "contains": "contains",
@@ -386,7 +412,12 @@
           "RESOLVES": "Resolves the conversation",
           "ENDS": "End of flow",
           "EMPTY": "Click to configure",
-          "UNSUPPORTED": "Imported block without support"
+          "UNSUPPORTED": "Imported block without support",
+          "ROUND_ROBIN": "round-robin",
+          "RULES": "{count} rules",
+          "CODE": "Imported code",
+          "WAITS_AGENT": "waits for the attendance",
+          "IF_ONLINE": "if online"
         },
         "FIELDS": {
           "TITLE": "Block name",
@@ -403,7 +434,29 @@
           "TEAM": "Team",
           "AGENT": "Agent",
           "CHOOSE": "Choose…",
-          "RESOLVE": "Resolve the conversation"
+          "RESOLVE": "Resolve the conversation",
+          "DISTRIBUTE": "Distribute among sellers (round-robin)",
+          "DISTRIBUTE_HELP": "Assigns the team's next seller, preferring those online. Supervisors don't receive conversations.",
+          "VALIDATOR": "Validate answer",
+          "RETRIES": "Retries before giving up",
+          "RETRY_MESSAGE": "Message for an invalid answer",
+          "RULES": "Rules",
+          "RULE": "Rule {number}",
+          "ADD_RULE": "Add rule",
+          "SCOPE": "Store in",
+          "VALUES": "Variables",
+          "ADD_VARIABLE": "Add variable",
+          "SPLITS": "Paths",
+          "ADD_SPLIT": "Add path",
+          "INACTIVITY_MINUTES": "Minutes without an answer",
+          "SUBFLOW": "Flow to run",
+          "SUBFLOW_DATA": "Data sent (JSON)",
+          "RETURNS": "Come back to this flow when it ends",
+          "WAIT_FOR_AGENT": "Wait for the attendance to end",
+          "AGENT_EMAIL": "Person's e-mail",
+          "ONLY_IF_ONLINE": "Only if the person is online",
+          "NOTE": "Note",
+          "ATTACHMENTS": "Files sent"
         },
         "PROBLEMS": {
           "UNSUPPORTED": "This imported block cannot run. Replace or remove it before activating the flow.",
@@ -411,7 +464,9 @@
           "MISSING_OPTIONS": "Add at least one option to the selected menu.",
           "MISSING_LABELS": "Choose at least one label in the selected block.",
           "MISSING_TEAM": "Choose the team in the selected block.",
-          "MISSING_AGENT": "Choose the agent in the selected block."
+          "MISSING_AGENT": "Choose the agent in the selected block.",
+          "MISSING_RULES": "Add at least one rule to the conditions block.",
+          "MISSING_SUBFLOW": "Choose which flow the block runs."
         },
         "BLOCKS": {
           "start": {
@@ -452,8 +507,116 @@
           "end": {
             "LABEL": "End",
             "DESCRIPTION": "Finishes the flow"
+          },
+          "branch": {
+            "LABEL": "Conditions",
+            "DESCRIPTION": "One output per rule"
+          },
+          "set_variables": {
+            "LABEL": "Set variables",
+            "DESCRIPTION": "Stores values in the flow"
+          },
+          "split": {
+            "LABEL": "A/B test",
+            "DESCRIPTION": "Splits by percentage"
+          },
+          "inactivity": {
+            "LABEL": "Inactivity",
+            "DESCRIPTION": "Path when the customer goes quiet"
+          },
+          "subflow": {
+            "LABEL": "Run flow",
+            "DESCRIPTION": "Calls another flow"
+          },
+          "code": {
+            "LABEL": "Code",
+            "DESCRIPTION": "Imported from EZ.Chat"
+          },
+          "integration": {
+            "LABEL": "Integration",
+            "DESCRIPTION": "External system"
+          },
+          "note": {
+            "LABEL": "Note",
+            "DESCRIPTION": "Comment in the flow"
           }
+        },
+        "INTEGRATIONS": {
+          "ORACLE": "Oracle (WinThor)",
+          "GOOGLE_SHEETS": "Google Sheets"
+        },
+        "VALIDATORS": {
+          "any": "Any text",
+          "cpf_cnpj": "CPF or CNPJ",
+          "number": "Number",
+          "email": "E-mail"
+        },
+        "RULE_OPERATORS": {
+          "eq": "equals",
+          "neq": "is different from",
+          "contains": "contains",
+          "notContains": "does not contain",
+          "startsWith": "starts with",
+          "gt": "is greater than",
+          "gte": "is at least",
+          "lt": "is less than",
+          "lte": "is at most",
+          "exists": "is filled",
+          "empty": "is empty"
+        },
+        "SCOPES": {
+          "flow": "Flow variables",
+          "contact": "Contact record"
+        },
+        "RULES_HELP": "Rules are checked in order; the first true one picks the output. If none is, the flow follows Else.",
+        "EXPRESSIONS_HELP": "Use expressions in double braces, such as flow.setor, user.cpfCnpj, input.text or flow.counter + 1.",
+        "SPLIT_TOTAL": "Total: {total}% (ideally 100%)",
+        "INACTIVITY_HELP": "From this block on, a customer silent for this long while the flow waits follows the Inactive output.",
+        "SUBFLOW_MISSING": "No flow with this name has been imported yet. Until it exists, the block follows its error output.",
+        "RETURNS_HELP": "When the other flow ends, this one continues through Success.",
+        "IMPORTED_TEAM": "EZ.Chat department: {name}. AlvoChat uses the team with this name; pick another one above if you prefer.",
+        "WAIT_FOR_AGENT_HELP": "The flow pauses during the human attendance and continues when the conversation is resolved (for a satisfaction survey, for example).",
+        "ONLY_IF_ONLINE_HELP": "An offline person is not assigned; the next block can check input.online.",
+        "CODE_HELP": "JavaScript code blocks do not run in AlvoChat. Code that only keeps the digits of the answer is recognised; other code follows the error output.",
+        "INTEGRATION_HELP": "The {name} integration is not connected to AlvoChat yet. For now, the flow follows this block's error output.",
+        "ISSUES": {
+          "TITLE": "Flow issues",
+          "DESCRIPTION": "The flow runs, but these points use a fallback path until they are fixed. Click to see the block.",
+          "BLOCKS": "{count} blocks"
         }
+      },
+      "METRICS": {
+        "OPEN": "Metrics",
+        "TITLE": "Flow metrics",
+        "SUBTITLE": "{name} · last 30 days",
+        "FETCH_ERROR": "Could not load the flow metrics.",
+        "STARTED": "Started",
+        "COMPLETED": "Completed",
+        "ABANDONED": "Abandoned",
+        "HANDED_OVER": "Taken over by an agent",
+        "IN_PROGRESS": "In progress",
+        "FAILED": "Failed",
+        "COMPLETION_RATE": "Completion rate",
+        "DROP_OFF": "Where customers give up",
+        "DROP_OFF_HELP": "Blocks where the customer stopped replying for more than 24 hours.",
+        "NO_DROP_OFF": "No drop-offs in this period.",
+        "CUSTOMERS": "{count} customers",
+        "REMOVED_BLOCK": "Block removed from the flow"
+      },
+      "IMPORT_DROP": "Drop the file here or click to choose",
+      "IMPORT_CHANGE": "Click or drop another file to replace it",
+      "IMPORT_FORMATS": "Accepted formats: .flow, .alvo and .json (up to 5 MB)",
+      "IMPORT_ANALYSING": "Analysing the flow…",
+      "IMPORT_NEEDS_REVIEW": "Needs review",
+      "IMPORT_READY": "Ready to import",
+      "IMPORT_NEXT_STEP": "After importing, the editor lists what is still missing: subflows, teams and integrations.",
+      "IMPORT_STATS": {
+        "NODES": "Blocks",
+        "CONVERTED": "Converted",
+        "REVIEW": "To review",
+        "CONNECTIONS": "Connections",
+        "SUBFLOWS": "Subflows",
+        "CREDENTIALS": "Integrations"
       }
     },
     "FLOW_CANVAS": {

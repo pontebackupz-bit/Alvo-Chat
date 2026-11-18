@@ -9,6 +9,7 @@ import crmAPI from 'dashboard/api/crm';
 import FlowCanvas from './FlowCanvas.vue';
 import FlowEditorShell from './FlowEditorShell.vue';
 import FlowHelp from './FlowHelp.vue';
+import FlowBlockFields from './FlowBlockFields.vue';
 import {
   BLOCKS,
   CONDITION_OPERATORS,
@@ -53,6 +54,8 @@ const selection = ref(null);
 const isDirty = ref(false);
 const isSaving = ref(false);
 const canvas = ref(null);
+const workflows = ref([]);
+const issues = ref([]);
 
 const field =
   'w-full px-3 py-2 text-sm rounded-lg bg-n-alpha-black2 outline outline-1 outline-n-weak focus:outline-n-brand text-n-slate-12';
@@ -116,6 +119,48 @@ const truncate = text =>
 
 const nameById = (list, id) => list.find(item => item.id === id)?.name;
 
+const issuesByNode = computed(() =>
+  issues.value.reduce((result, issue) => {
+    (result[issue.node_id] ||= []).push(issue);
+    return result;
+  }, {})
+);
+
+const levelRank = issue => (issue.level === 'blocking' ? 0 : 1);
+
+// Same message on many blocks is listed once, with its blocks.
+const groupedIssues = computed(() =>
+  Object.values(
+    issues.value.reduce((result, issue) => {
+      result[issue.message] ||= { ...issue, nodeIds: [] };
+      result[issue.message].nodeIds.push(issue.node_id);
+      return result;
+    }, {})
+  ).sort((a, b) => levelRank(a) - levelRank(b))
+);
+
+const fetchIssues = async () => {
+  if (!workflowId.value) return;
+  try {
+    const { data } = await crmAPI.getWorkflowReadiness(
+      props.accountId,
+      workflowId.value
+    );
+    issues.value = data.issues || [];
+  } catch (_) {
+    issues.value = [];
+  }
+};
+
+const focusIssue = issue => {
+  const [nodeId] = issue.nodeIds;
+  selection.value = { kind: 'node', id: nodeId };
+  canvas.value?.focusNode(nodeId);
+};
+
+const integrationKey = data =>
+  data.provider === 'oracle' ? 'ORACLE' : 'GOOGLE_SHEETS';
+
 const summary = node => {
   const { data = {} } = node;
   const summaries = {
@@ -131,8 +176,42 @@ const summary = node => {
     wait: () =>
       t('CRM.WORKFLOWS.EDITOR.SUMMARY.MINUTES', { count: data.minutes }),
     add_label: () => (data.labels || []).join(', '),
-    transfer_team: () => nameById(teams.value, data.team_id),
-    assign_agent: () => nameById(agents.value, data.agent_id),
+    branch: () =>
+      t('CRM.WORKFLOWS.EDITOR.SUMMARY.RULES', {
+        count: (data.rules || []).length,
+      }),
+    set_variables: () =>
+      Object.keys(data.values || {})
+        .filter(Boolean)
+        .join(', '),
+    split: () =>
+      (data.splits || []).map(split => `${split.value}%`).join(' / '),
+    inactivity: () =>
+      t('CRM.WORKFLOWS.EDITOR.SUMMARY.MINUTES', { count: data.minutes }),
+    subflow: () => data.flow_name,
+    code: () => t('CRM.WORKFLOWS.EDITOR.SUMMARY.CODE'),
+    integration: () =>
+      t(`CRM.WORKFLOWS.EDITOR.INTEGRATIONS.${integrationKey(data)}`),
+    note: () => truncate(data.text),
+    transfer_team: () =>
+      [
+        nameById(teams.value, data.team_id) || data.team_name,
+        data.wait_for_agent
+          ? t('CRM.WORKFLOWS.EDITOR.SUMMARY.WAITS_AGENT')
+          : '',
+        data.team_id && data.distribute !== false
+          ? t('CRM.WORKFLOWS.EDITOR.SUMMARY.ROUND_ROBIN')
+          : '',
+      ]
+        .filter(Boolean)
+        .join(' · '),
+    assign_agent: () =>
+      [
+        nameById(agents.value, data.agent_id) || data.agent_email,
+        data.only_if_online ? t('CRM.WORKFLOWS.EDITOR.SUMMARY.IF_ONLINE') : '',
+      ]
+        .filter(Boolean)
+        .join(' · '),
     end: () =>
       data.resolve
         ? t('CRM.WORKFLOWS.EDITOR.SUMMARY.RESOLVES')
@@ -158,7 +237,12 @@ const describeNode = node => {
         ? t('CRM.WORKFLOWS.EDITOR.START_TITLE')
         : node.data?.title || blockLabel(node.type),
     subtitle: summary(node),
-    inputs: node.type === 'start' ? 0 : 1,
+    warning: issuesByNode.value[node.id]?.some(
+      issue => issue.level === 'blocking'
+    )
+      ? 'blocking'
+      : issuesByNode.value[node.id] && 'warning',
+    inputs: ['start', 'note'].includes(node.type) ? 0 : 1,
     outputs: outputsFor(node, connections.value).map(output => ({
       ...output,
       label: outputLabel(output),
@@ -281,6 +365,7 @@ const save = async () => {
     await nextTick();
     isDirty.value = false;
     useAlert(t('CRM.WORKFLOWS.EDITOR.SAVE_SUCCESS'));
+    fetchIssues();
   } catch (error) {
     useAlert(
       error.response?.data?.error || t('CRM.WORKFLOWS.EDITOR.SAVE_ERROR')
@@ -311,7 +396,17 @@ onMounted(async () => {
   connections.value = graph.connections;
   isDirty.value = !props.workflow;
   await nextTick();
-  canvas.value.fitView();
+  canvas.value.fitView({
+    preferNodeId: nodes.value.find(node => node.type === 'start')?.id,
+  });
+  fetchIssues();
+  crmAPI
+    .getWorkflows(props.accountId)
+    .then(({ data }) => {
+      const list = Array.isArray(data) ? data : data.workflows || [];
+      workflows.value = list.filter(item => item.id !== workflowId.value);
+    })
+    .catch(() => {});
   watch(
     [nodes, connections, triggerConfig, active, name],
     () => {
@@ -380,6 +475,20 @@ onMounted(async () => {
               {{ blockLabel(selectedNode.type) }}
             </p>
           </div>
+        </div>
+
+        <div
+          v-for="issue in issuesByNode[selectedNode.id] || []"
+          :key="issue.message"
+          class="flex gap-2 p-3 text-xs rounded-lg"
+          :class="
+            issue.level === 'blocking'
+              ? 'bg-n-ruby-3 text-n-ruby-11'
+              : 'bg-n-amber-3 text-n-amber-11'
+          "
+        >
+          <span class="i-lucide-triangle-alert size-4 shrink-0" />
+          <span>{{ issue.message }}</span>
         </div>
 
         <template v-if="selectedNode.type === 'start'">
@@ -577,6 +686,24 @@ onMounted(async () => {
           </select>
         </label>
 
+        <label
+          v-if="selectedNode.type === 'transfer_team'"
+          class="flex items-start gap-2 text-sm text-n-slate-12"
+        >
+          <input
+            class="mt-0.5"
+            type="checkbox"
+            :checked="selectedNode.data.distribute !== false"
+            @change="selectedNode.data.distribute = $event.target.checked"
+          />
+          <span>
+            {{ $t('CRM.WORKFLOWS.EDITOR.FIELDS.DISTRIBUTE') }}
+            <span class="block text-xs text-n-slate-11">
+              {{ $t('CRM.WORKFLOWS.EDITOR.FIELDS.DISTRIBUTE_HELP') }}
+            </span>
+          </span>
+        </label>
+
         <label v-if="selectedNode.type === 'assign_agent'" :class="fieldLabel">
           {{ $t('CRM.WORKFLOWS.EDITOR.FIELDS.AGENT') }}
           <select v-model="selectedNode.data.agent_id" :class="field">
@@ -596,6 +723,8 @@ onMounted(async () => {
           <input v-model="selectedNode.data.resolve" type="checkbox" />
           {{ $t('CRM.WORKFLOWS.EDITOR.FIELDS.RESOLVE') }}
         </label>
+
+        <FlowBlockFields :node="selectedNode" :workflows="workflows" />
 
         <p
           v-if="!isKnownType(selectedNode.type)"
@@ -632,11 +761,53 @@ onMounted(async () => {
         />
       </template>
 
-      <FlowHelp
-        v-else
-        :steps="helpSteps"
-        :note="$t('CRM.WORKFLOWS.EDITOR.HELP_NOTE')"
-      />
+      <template v-else>
+        <section v-if="groupedIssues.length" class="flex flex-col gap-3">
+          <div>
+            <h3 class="text-sm font-semibold text-n-slate-12">
+              {{ $t('CRM.WORKFLOWS.EDITOR.ISSUES.TITLE') }}
+            </h3>
+            <p class="mt-1 text-xs text-n-slate-11">
+              {{ $t('CRM.WORKFLOWS.EDITOR.ISSUES.DESCRIPTION') }}
+            </p>
+          </div>
+          <button
+            v-for="issue in groupedIssues"
+            :key="issue.message"
+            type="button"
+            class="flex gap-2.5 p-3 text-left border rounded-lg transition-colors hover:bg-n-alpha-1"
+            :class="
+              issue.level === 'blocking'
+                ? 'border-n-ruby-6'
+                : 'border-n-amber-6'
+            "
+            @click="focusIssue(issue)"
+          >
+            <span
+              class="i-lucide-triangle-alert size-4 shrink-0 mt-0.5"
+              :class="
+                issue.level === 'blocking'
+                  ? 'text-n-ruby-11'
+                  : 'text-n-amber-11'
+              "
+            />
+            <span class="flex flex-col min-w-0 gap-1">
+              <span class="text-xs text-n-slate-12">{{ issue.message }}</span>
+              <span class="text-[11px] text-n-slate-11">
+                {{
+                  $t('CRM.WORKFLOWS.EDITOR.ISSUES.BLOCKS', {
+                    count: issue.nodeIds.length,
+                  })
+                }}
+              </span>
+            </span>
+          </button>
+        </section>
+        <FlowHelp
+          :steps="helpSteps"
+          :note="$t('CRM.WORKFLOWS.EDITOR.HELP_NOTE')"
+        />
+      </template>
     </template>
   </FlowEditorShell>
 </template>

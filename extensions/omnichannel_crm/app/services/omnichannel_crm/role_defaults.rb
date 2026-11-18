@@ -6,7 +6,8 @@ module OmnichannelCrm
         name: 'Supervisor',
         permissions: %w[leads.read leads.manage dashboards.read distribution.manage automation.manage audit.read]
       },
-      seller: { name: 'Vendedor', permissions: %w[leads.read leads.manage] }
+      seller: { name: 'Vendedor', permissions: %w[leads.read leads.manage] },
+      agent: { name: 'Agente', permissions: %w[leads.read] }
     }.freeze
 
     def self.install(account)

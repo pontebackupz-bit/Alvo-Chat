@@ -12,6 +12,7 @@ class OmnichannelCrm::BaileysMessagesController < ActionController::API
   def create
     return render_existing_message if existing_message
     return head :accepted if from_me? && pending_outgoing_message?
+    return head :accepted if csat_reply?
 
     message = conversation.messages.build(message_attributes)
     attach_media(message)
@@ -58,6 +59,12 @@ class OmnichannelCrm::BaileysMessagesController < ActionController::API
         phone_number: phone_number.present? ? "+#{phone_number}" : nil
       }
     ).perform.tap { |record| sync_contact(record) }
+  end
+
+  def csat_reply?
+    return false if from_me? || media_params[:data].present?
+
+    OmnichannelCrm::CsatReplyService.new(contact_inbox: contact_inbox, content: content, source_id: message_source_id).perform
   end
 
   def message_attributes

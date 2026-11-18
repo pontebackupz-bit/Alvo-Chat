@@ -63,10 +63,14 @@ const deleteWorkflow = async workflow => {
   }
 };
 
-const selectFile = async event => {
-  file.value = event.target.files?.[0] || null;
+const isDragging = ref(false);
+const isPreviewing = ref(false);
+
+const loadFile = async selected => {
+  file.value = selected || null;
   preview.value = null;
   if (!file.value) return;
+  isPreviewing.value = true;
   try {
     const { data } = await crmAPI.previewWorkflowImport(
       accountId.value,
@@ -74,8 +78,19 @@ const selectFile = async event => {
     );
     preview.value = data;
   } catch (error) {
-    useAlert(error.response?.data?.error || t('CRM.WORKFLOWS.PREVIEW_ERROR'));
+    useAlert(error.response?.data?.error || t('CRM.WORKFLOWS.PREVIEW_ERROR'), {
+      status: 'error',
+    });
+  } finally {
+    isPreviewing.value = false;
   }
+};
+
+const selectFile = event => loadFile(event.target.files?.[0]);
+
+const dropFile = event => {
+  isDragging.value = false;
+  loadFile(event.dataTransfer.files?.[0]);
 };
 
 const importWorkflow = async () => {
@@ -133,6 +148,82 @@ const triggerLabel = workflow => {
 
 const report = computed(() => preview.value?.import_report || {});
 
+const importStats = computed(() => [
+  {
+    key: 'nodes',
+    label: t('CRM.WORKFLOWS.IMPORT_STATS.NODES'),
+    value: report.value.nodesTotal,
+  },
+  {
+    key: 'converted',
+    label: t('CRM.WORKFLOWS.IMPORT_STATS.CONVERTED'),
+    value: report.value.nodesConverted,
+    tone: 'text-n-teal-11',
+  },
+  {
+    key: 'review',
+    label: t('CRM.WORKFLOWS.IMPORT_STATS.REVIEW'),
+    value: report.value.nodesUnsupported,
+    tone: report.value.nodesUnsupported ? 'text-n-amber-11' : '',
+  },
+  {
+    key: 'connections',
+    label: t('CRM.WORKFLOWS.IMPORT_STATS.CONNECTIONS'),
+    value: report.value.connectionsConverted ?? report.value.connectionsTotal,
+  },
+  {
+    key: 'subflows',
+    label: t('CRM.WORKFLOWS.IMPORT_STATS.SUBFLOWS'),
+    value: report.value.subflowsPending,
+  },
+  {
+    key: 'credentials',
+    label: t('CRM.WORKFLOWS.IMPORT_STATS.CREDENTIALS'),
+    value: report.value.credentialsRequired,
+  },
+]);
+
+// `{ workflow, data }` while the metrics modal is open.
+const metrics = ref(null);
+const isLoadingMetrics = ref(false);
+
+const openMetrics = async workflow => {
+  metrics.value = { workflow, data: null };
+  isLoadingMetrics.value = true;
+  try {
+    const { data } = await crmAPI.getWorkflowMetrics(
+      accountId.value,
+      workflow.id
+    );
+    metrics.value = { workflow, data };
+  } catch (_) {
+    metrics.value = null;
+    useAlert(t('CRM.WORKFLOWS.METRICS.FETCH_ERROR'));
+  } finally {
+    isLoadingMetrics.value = false;
+  }
+};
+
+const metricCards = computed(() => {
+  const data = metrics.value?.data;
+  if (!data) return [];
+  return [
+    { key: 'STARTED', value: data.started },
+    { key: 'COMPLETED', value: data.completed, tone: 'text-n-teal-11' },
+    { key: 'ABANDONED', value: data.abandoned, tone: 'text-n-amber-11' },
+    { key: 'HANDED_OVER', value: data.handed_over },
+    { key: 'IN_PROGRESS', value: data.in_progress },
+    { key: 'FAILED', value: data.failed, tone: 'text-n-ruby-11' },
+  ];
+});
+
+const blockName = item => {
+  if (item.title) return item.title;
+  return item.type
+    ? t(`CRM.WORKFLOWS.EDITOR.BLOCKS.${item.type}.LABEL`)
+    : t('CRM.WORKFLOWS.METRICS.REMOVED_BLOCK');
+};
+
 onMounted(fetchWorkflows);
 </script>
 
@@ -144,17 +235,18 @@ onMounted(fetchWorkflows);
       :action-label="$t('CRM.WORKFLOWS.NEW')"
       action-icon="i-lucide-plus"
       @action="openEditor()"
-    />
-    <div class="flex justify-end -mt-2 mb-4">
-      <Button
-        icon="i-lucide-upload"
-        size="sm"
-        variant="faded"
-        color="slate"
-        :label="$t('CRM.WORKFLOWS.IMPORT')"
-        @click="openImport"
-      />
-    </div>
+    >
+      <template #actions>
+        <Button
+          icon="i-lucide-upload"
+          size="sm"
+          variant="faded"
+          color="slate"
+          :label="$t('CRM.WORKFLOWS.IMPORT')"
+          @click="openImport"
+        />
+      </template>
+    </CrmPageHeader>
     <woot-loading-state v-if="isLoading" :message="$t('CRM.COMMON.LOADING')" />
     <BaseTable
       v-else
@@ -210,6 +302,12 @@ onMounted(fetchWorkflows);
               <Button
                 variant="link"
                 size="sm"
+                :label="$t('CRM.WORKFLOWS.METRICS.OPEN')"
+                @click="openMetrics(workflow)"
+              />
+              <Button
+                variant="link"
+                size="sm"
                 :label="$t('CRM.WORKFLOWS.EXPORT')"
                 @click="exportWorkflow(workflow)"
               />
@@ -228,33 +326,100 @@ onMounted(fetchWorkflows);
 
     <woot-modal v-model:show="showImport" :on-close="closeImport">
       <div class="crm-modal-form">
-        <woot-modal-header :header-title="$t('CRM.WORKFLOWS.IMPORT_TITLE')" />
-        <p>{{ $t('CRM.WORKFLOWS.IMPORT_HELP') }}</p>
-        <input
-          accept=".flow,.alvo,.json,application/json"
-          type="file"
-          @change="selectFile"
+        <woot-modal-header
+          :header-title="$t('CRM.WORKFLOWS.IMPORT_TITLE')"
+          :header-content="$t('CRM.WORKFLOWS.IMPORT_HELP')"
         />
+        <label
+          class="flex flex-col items-center justify-center gap-2 px-6 py-8 text-center transition-colors border-2 border-dashed cursor-pointer rounded-xl"
+          :class="
+            isDragging
+              ? 'border-n-brand bg-n-brand/10'
+              : 'border-n-weak bg-n-alpha-1 hover:border-n-slate-7'
+          "
+          @dragover.prevent="isDragging = true"
+          @dragleave.prevent="isDragging = false"
+          @drop.prevent="dropFile"
+        >
+          <span
+            class="flex items-center justify-center rounded-full size-11 bg-n-blue-3 text-n-blue-11"
+          >
+            <span
+              class="size-5"
+              :class="file ? 'i-lucide-file-check-2' : 'i-lucide-file-up'"
+            />
+          </span>
+          <span class="text-sm font-medium text-n-slate-12">
+            {{ file ? file.name : $t('CRM.WORKFLOWS.IMPORT_DROP') }}
+          </span>
+          <span class="text-xs text-n-slate-11">
+            {{
+              file
+                ? $t('CRM.WORKFLOWS.IMPORT_CHANGE')
+                : $t('CRM.WORKFLOWS.IMPORT_FORMATS')
+            }}
+          </span>
+          <input
+            class="sr-only"
+            accept=".flow,.alvo,.json,application/json"
+            type="file"
+            @change="selectFile"
+          />
+        </label>
+        <div
+          v-if="isPreviewing"
+          class="flex items-center gap-2 text-sm text-n-slate-11"
+        >
+          <span class="i-lucide-loader-circle size-4 animate-spin" />
+          {{ $t('CRM.WORKFLOWS.IMPORT_ANALYSING') }}
+        </div>
         <div
           v-if="preview"
-          class="flex flex-col gap-1 p-3 text-sm rounded-lg bg-n-alpha-1 text-n-slate-11"
+          class="flex flex-col gap-4 p-4 border rounded-xl border-n-weak bg-n-solid-2"
         >
-          <h3 class="font-medium text-n-slate-12">{{ preview.name }}</h3>
-          <p>
-            {{ $t('CRM.WORKFLOWS.ORIGIN_VALUE', { source: preview.source }) }}
-          </p>
-          <p>
-            {{ report.nodesTotal }} {{ $t('CRM.WORKFLOWS.NODES') }} ·
-            {{ report.connectionsTotal }} {{ $t('CRM.WORKFLOWS.CONNECTIONS') }}
-          </p>
-          <p>
-            {{ report.nodesConverted }} {{ $t('CRM.WORKFLOWS.CONVERTED') }} ·
-            {{ report.nodesUnsupported }} {{ $t('CRM.WORKFLOWS.NEEDS_REVIEW') }}
-          </p>
-          <p>
-            {{ report.credentialsRequired }}
-            {{ $t('CRM.WORKFLOWS.CREDENTIALS') }} ·
-            {{ report.subflowsPending }} {{ $t('CRM.WORKFLOWS.SUBFLOWS') }}
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <h3 class="text-sm font-semibold truncate text-n-slate-12">
+                {{ preview.name }}
+              </h3>
+              <p class="text-xs text-n-slate-11">
+                {{
+                  $t('CRM.WORKFLOWS.ORIGIN_VALUE', { source: preview.source })
+                }}
+              </p>
+            </div>
+            <span
+              class="px-2 py-0.5 text-xs font-medium rounded-full shrink-0"
+              :class="
+                report.nodesUnsupported
+                  ? 'bg-n-amber-3 text-n-amber-11'
+                  : 'bg-n-teal-3 text-n-teal-11'
+              "
+            >
+              {{
+                report.nodesUnsupported
+                  ? $t('CRM.WORKFLOWS.IMPORT_NEEDS_REVIEW')
+                  : $t('CRM.WORKFLOWS.IMPORT_READY')
+              }}
+            </span>
+          </div>
+          <dl class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            <div
+              v-for="stat in importStats"
+              :key="stat.key"
+              class="p-3 rounded-lg bg-n-alpha-1"
+            >
+              <dt class="text-xs text-n-slate-11">{{ stat.label }}</dt>
+              <dd
+                class="mt-1 text-lg font-semibold"
+                :class="stat.tone || 'text-n-slate-12'"
+              >
+                {{ stat.value }}
+              </dd>
+            </div>
+          </dl>
+          <p class="text-xs leading-relaxed text-n-slate-11">
+            {{ $t('CRM.WORKFLOWS.IMPORT_NEXT_STEP') }}
           </p>
         </div>
         <div class="crm-form-actions">
@@ -265,12 +430,106 @@ onMounted(fetchWorkflows);
             @click="closeImport"
           />
           <Button
+            icon="i-lucide-upload"
             :disabled="!preview"
             :is-loading="isImporting"
             :label="$t('CRM.WORKFLOWS.IMPORT')"
             @click="importWorkflow"
           />
         </div>
+      </div>
+    </woot-modal>
+
+    <woot-modal
+      :show="!!metrics"
+      :on-close="() => (metrics = null)"
+      size="medium"
+    >
+      <div v-if="metrics" class="flex flex-col gap-5 p-8">
+        <woot-modal-header
+          :header-title="$t('CRM.WORKFLOWS.METRICS.TITLE')"
+          :header-content="
+            $t('CRM.WORKFLOWS.METRICS.SUBTITLE', {
+              name: metrics.workflow.name,
+            })
+          "
+        />
+        <woot-loading-state
+          v-if="isLoadingMetrics"
+          :message="$t('CRM.COMMON.LOADING')"
+        />
+        <template v-else-if="metrics.data">
+          <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <div
+              v-for="card in metricCards"
+              :key="card.key"
+              class="p-4 border rounded-xl border-n-weak"
+            >
+              <p class="text-xs text-n-slate-11">
+                {{ $t(`CRM.WORKFLOWS.METRICS.${card.key}`) }}
+              </p>
+              <p
+                class="mt-1 text-xl font-semibold"
+                :class="card.tone || 'text-n-slate-12'"
+              >
+                {{ card.value }}
+              </p>
+            </div>
+          </div>
+          <div>
+            <div class="flex justify-between text-sm">
+              <span class="text-n-slate-11">
+                {{ $t('CRM.WORKFLOWS.METRICS.COMPLETION_RATE') }}
+              </span>
+              <span class="font-medium text-n-slate-12">
+                {{ `${metrics.data.completion_rate}%` }}
+              </span>
+            </div>
+            <div class="h-2 mt-2 rounded-full bg-n-alpha-2">
+              <div
+                class="h-full rounded-full bg-n-teal-9"
+                :style="{ width: `${metrics.data.completion_rate}%` }"
+              />
+            </div>
+          </div>
+          <div>
+            <h3 class="text-sm font-medium text-n-slate-12">
+              {{ $t('CRM.WORKFLOWS.METRICS.DROP_OFF') }}
+            </h3>
+            <p class="mt-1 text-xs text-n-slate-11">
+              {{ $t('CRM.WORKFLOWS.METRICS.DROP_OFF_HELP') }}
+            </p>
+            <ul
+              v-if="metrics.data.drop_off.length"
+              class="mt-3 divide-y divide-n-weak border-y border-n-weak"
+            >
+              <li
+                v-for="item in metrics.data.drop_off"
+                :key="item.node_id"
+                class="flex items-center justify-between gap-4 py-3 text-sm"
+              >
+                <div class="min-w-0">
+                  <p class="font-medium text-n-slate-12">
+                    {{ blockName(item) }}
+                  </p>
+                  <p v-if="item.preview" class="truncate text-n-slate-11">
+                    {{ item.preview }}
+                  </p>
+                </div>
+                <span
+                  class="px-2 py-0.5 text-xs font-medium rounded-full bg-n-amber-3 text-n-amber-11 shrink-0"
+                >
+                  {{
+                    $t('CRM.WORKFLOWS.METRICS.CUSTOMERS', { count: item.count })
+                  }}
+                </span>
+              </li>
+            </ul>
+            <p v-else class="py-6 text-sm text-center text-n-slate-11">
+              {{ $t('CRM.WORKFLOWS.METRICS.NO_DROP_OFF') }}
+            </p>
+          </div>
+        </template>
       </div>
     </woot-modal>
 

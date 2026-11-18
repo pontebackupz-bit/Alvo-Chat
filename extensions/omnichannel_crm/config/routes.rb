@@ -17,6 +17,8 @@ OmnichannelCrm::Engine.routes.draw do
     resources :automation_rules
     resources :workflows, only: [:index, :show, :create, :update, :destroy] do
       get :export, on: :member
+      get :metrics, on: :member
+      get :readiness, on: :member
       collection do
         post :preview
         post :import

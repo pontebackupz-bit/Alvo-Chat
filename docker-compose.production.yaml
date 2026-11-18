@@ -80,6 +80,7 @@ services:
     build:
       context: ./services/whatsapp-baileys
     restart: always
+    init: true
     logging: *default-logging
     environment:
       - PORT=3001
@@ -92,6 +93,9 @@ services:
   wppconnect:
     image: wppconnect/wppconnect-server:latest
     restart: always
+    # Chromium leaves zombie processes; init reaps them so the container can stop.
+    init: true
+    stop_grace_period: 30s
     logging: *default-logging
     environment:
       - PORT=21465

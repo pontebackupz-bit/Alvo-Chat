@@ -1,15 +1,27 @@
-# Runs a native chatbot flow inside a conversation.
+# Runs a chatbot flow inside a conversation.
 #
 # A run walks the flow's blocks until it has to wait: for the customer's reply
-# (`ask_question`, `menu`) or for a delay (`wait`). WorkflowRunJob resumes it.
+# (`ask_question`, `menu`), for a delay (`wait`) or for a human attendance to
+# end (`transfer_team` with `wait_for_agent`). WorkflowRunJob resumes it.
 # Connections are `{ source, sourceHandle, target }`; a missing `sourceHandle`
 # means the block's single `next` output. A block without a connection for the
-# chosen output ends the run.
+# chosen output ends the path: the run returns to the flow that called it as a
+# subflow, or completes.
+#
+# State lives in `run.variables`: `flow` (flow variables), `input` (what the
+# previous block produced), answers saved by questions and `__`-prefixed
+# bookkeeping (subflow call stack, inactivity timer, retries).
 class OmnichannelCrm::WorkflowRunner
-  NODE_TYPES = %w[start send_message ask_question menu condition add_label transfer_team assign_agent wait end].freeze
-  MAX_STEPS = 50
+  include OmnichannelCrm::FlowNodes::Messaging
+  include OmnichannelCrm::FlowNodes::Logic
+  include OmnichannelCrm::FlowNodes::Attendance
+
+  NODE_TYPES = %w[start send_message ask_question menu condition branch set_variables split wait inactivity add_label
+                  transfer_team assign_agent subflow code integration end].freeze
+  # Blocks kept for reference only; nothing connects to them.
+  PASSIVE_TYPES = %w[note].freeze
+  MAX_STEPS = 100
   MAX_WAIT_MINUTES = 7 * 24 * 60
-  VARIABLE_PATTERN = /\{\{\s*([\w.]+)\s*\}\}/
 
   def self.start_for(conversation)
     workflow = OmnichannelCrm::Workflow.active.where(account_id: conversation.account_id).order(:id)
@@ -28,15 +40,22 @@ class OmnichannelCrm::WorkflowRunner
     nil
   end
 
+  # Chatwoot label titles allow letters, digits, `-` and `_` only.
+  def self.label_title(name)
+    name.to_s.strip.downcase.gsub(/[^\p{L}\p{N}_-]+/, '_').gsub(/\A_+|_+\z/, '').presence
+  end
+
   def initialize(run)
     @run = run
   end
 
-  def perform(reply: nil)
+  # `reply` answers a question or menu, `inactivity_token` fires an
+  # inactivity timer and `attendance` continues after a human attendance.
+  def perform(reply: nil, inactivity_token: nil, attendance: false)
     run.with_lock do
-      next unless resumable?(reply)
+      next unless resumable?(reply, inactivity_token, attendance)
 
-      resume(reply) unless run.running?
+      wake_up(reply, inactivity_token, attendance)
       execute if run.running?
       run.save!
     end
@@ -49,24 +68,34 @@ class OmnichannelCrm::WorkflowRunner
 
   attr_reader :run
 
-  delegate :conversation, :workflow, to: :run
+  delegate :conversation, to: :run
+  delegate :contact, to: :conversation
 
   # A reply only resumes a run waiting for one, and only when it arrived after
-  # the question; other wake-ups (delays, the first start) skip waiting runs.
-  def resumable?(reply)
+  # the question; other wake-ups must match what the run waits for.
+  def resumable?(reply, inactivity_token, attendance)
     return false unless run.active?
     return run.waiting_reply? && reply.created_at >= run.waiting_since if reply
+    return run.waiting_reply? && inactivity_token == waiting_token if inactivity_token
+    return run.waiting_agent? if attendance
 
-    !run.waiting_reply?
+    !run.waiting_reply? && !run.waiting_agent?
   end
 
-  def resume(reply)
-    return move_to(next_node_id(current_node, 'next')) if run.waiting_delay?
+  def wake_up(reply, inactivity_token, attendance)
+    if inactivity_token then fire_inactivity
+    elsif attendance then resume_after_attendance
+    elsif reply then resume_with_reply(reply)
+    elsif run.waiting_delay? then move_to(next_node_id(current_node, 'next'))
+    end
+  end
 
+  def resume_with_reply(reply)
     text = reply.content.to_s.strip
-    run.variables = run.variables.merge('resposta' => text)
+    remember('resposta' => text)
     handle = reply_handle(current_node, text)
-    return send_message(menu_text(current_node['data'])) if handle.nil?
+    return enter_waiting_reply if handle == :retry
+    return send_message(menu_text(current_node['data'])).then { enter_waiting_reply } if handle.nil?
 
     move_to(next_node_id(current_node, handle))
   end
@@ -75,10 +104,11 @@ class OmnichannelCrm::WorkflowRunner
     MAX_STEPS.times do
       outcome = execute_node(current_node)
       case outcome
-      when :wait_reply then return run.assign_attributes(status: :waiting_reply, waiting_since: Time.current)
+      when :wait_reply then return enter_waiting_reply
       when :wait_delay then return run.assign_attributes(status: :waiting_delay, waiting_since: Time.current)
-      when :finish then return run.assign_attributes(status: :completed)
-      when :stop then return
+      when :wait_agent then return run.assign_attributes(status: :waiting_agent, waiting_since: Time.current)
+      when :finish then finish_path
+      when :jumped, :stop then nil
       else move_to(next_node_id(current_node, outcome))
       end
       return unless run.running?
@@ -92,56 +122,14 @@ class OmnichannelCrm::WorkflowRunner
     send("execute_#{node['type']}", node['data'] || {})
   end
 
+  # Conversations opened by an agent, or by a message sent from the phone, are
+  # already handled by a person. Subflows start without this check.
   def execute_start(_data)
+    return 'next' if run.variables['__workflow_id'].present?
+
     human_already_replied? ? cancel : 'next'
   end
 
-  def execute_send_message(data)
-    send_message(data['content'])
-    'next'
-  end
-
-  def execute_ask_question(data)
-    send_message(data['content'])
-    :wait_reply
-  end
-
-  def execute_menu(data)
-    send_message(menu_text(data))
-    :wait_reply
-  end
-
-  def execute_condition(data)
-    condition_met?(data) ? 'true' : 'false'
-  end
-
-  def execute_add_label(data)
-    conversation.add_labels(Array(data['labels']))
-    'next'
-  end
-
-  def execute_transfer_team(data)
-    conversation.update!(team: conversation.account.teams.find(data['team_id']))
-    'next'
-  end
-
-  def execute_assign_agent(data)
-    conversation.update!(assignee: conversation.account.users.find(data['agent_id']))
-    'next'
-  end
-
-  def execute_wait(data)
-    schedule_resume(data)
-    :wait_delay
-  end
-
-  def execute_end(data)
-    conversation.update!(status: :resolved) if ActiveModel::Type::Boolean.new.cast(data['resolve'])
-    :finish
-  end
-
-  # Conversations opened by an agent, or by a message sent from the phone, are
-  # already handled by a person.
   def human_already_replied?
     conversation.messages.outgoing.where(sender_type: 'User')
                 .or(conversation.messages.outgoing.where("content_attributes ->> 'external_echo' = 'true'"))
@@ -153,83 +141,90 @@ class OmnichannelCrm::WorkflowRunner
     :stop
   end
 
-  def reply_handle(node, text)
-    case node['type']
-    when 'ask_question'
-      variable = node.dig('data', 'variable').presence
-      run.variables = run.variables.merge(variable => text) if variable
-      'next'
-    when 'menu' then menu_handle(node, text)
+  def enter_waiting_reply
+    run.assign_attributes(status: :waiting_reply, waiting_since: Time.current)
+    timer = run.variables['__inactivity']
+    return unless timer.is_a?(Hash)
+
+    OmnichannelCrm::WorkflowRunJob.set(wait: timer['minutes'].to_i.minutes).perform_later(run.id, nil, waiting_token)
+  end
+
+  def waiting_token
+    run.waiting_since&.to_i&.to_s
+  end
+
+  def fire_inactivity
+    timer = run.variables['__inactivity']
+    remember('__inactivity' => nil, '__workflow_id' => subflow_id(timer['workflow_id']), '__stack' => [])
+    move_to(next_node_id(node_by_id(timer['node_id']), 'inactivity'))
+  end
+
+  def template
+    OmnichannelCrm::FlowTemplate.new { |root| template_root(root) }
+  end
+
+  def template_root(root)
+    case root
+    when 'flow' then flow_variables
+    when 'user' then contact_profile
+    when 'input' then run.variables['input']
+    when 'contato' then { 'nome' => contact.name, 'telefone' => contact.phone_number, 'email' => contact.email }
+    when 'env' then nil
+    else run.variables[root]
     end
   end
 
-  # Matches the option number ("2") or its text. Unknown answers follow the
-  # "other" output when it is connected, otherwise the menu is sent again.
-  def menu_handle(node, text)
-    options = Array(node.dig('data', 'options'))
-    index = Integer(text, exception: false)
-    option = (options[index - 1] if index&.between?(1, options.size)) ||
-             options.find { |candidate| candidate['label'].to_s.strip.casecmp?(text) }
-    return "option:#{option['id']}" if option
-
-    next_node_id(node, 'other') ? 'other' : nil
+  def contact_profile
+    first_name = contact.name.to_s.split.first
+    (contact.custom_attributes || {}).stringify_keys.merge(
+      'id' => contact.id, 'name' => contact.name, 'PrimeiroNome' => first_name, 'firstName' => first_name,
+      'phone' => contact.phone_number, 'email' => contact.email
+    )
   end
 
-  def menu_text(data)
-    options = Array(data['options']).each_with_index.map { |option, index| "#{index + 1}. #{option['label']}" }
-    [data['content'].presence, options.join("\n")].compact.join("\n\n")
+  def remember(values)
+    run.variables = run.variables.merge(values)
   end
 
-  def condition_met?(data)
-    value = lookup(data['variable'].presence || 'resposta').to_s.strip
-    expected = data['value'].to_s.strip
-    case data['operator']
-    when 'equals' then value.casecmp?(expected)
-    when 'not_empty' then value.present?
-    when 'empty' then value.blank?
-    else value.downcase.include?(expected.downcase)
-    end
+  def current_workflow
+    workflow_id = run.variables['__workflow_id']
+    return run.workflow if workflow_id.blank? || workflow_id == run.workflow_id
+
+    @workflows ||= {}
+    @workflows[workflow_id] ||= OmnichannelCrm::Workflow.where(account_id: run.account_id).find(workflow_id)
   end
 
-  def schedule_resume(data)
-    minutes = data['minutes'].to_i.clamp(1, MAX_WAIT_MINUTES)
-    OmnichannelCrm::WorkflowRunJob.set(wait: minutes.minutes).perform_later(run.id)
-  end
-
-  def send_message(content)
-    text = interpolate(content.to_s).strip
-    return true if text.blank?
-
-    conversation.messages.create!(account_id: conversation.account_id, inbox_id: conversation.inbox_id, message_type: :outgoing,
-                                  content: text, content_attributes: { 'crm_workflow_run_id' => run.id })
-  end
-
-  def interpolate(text)
-    text.gsub(VARIABLE_PATTERN) { lookup(Regexp.last_match(1)).to_s }
-  end
-
-  def lookup(key)
-    contact = conversation.contact
-    case key
-    when 'contato.nome' then contact.name
-    when 'contato.telefone' then contact.phone_number
-    when 'contato.email' then contact.email
-    else run.variables[key]
-    end
+  # nil while running the run's own flow.
+  def subflow_id(workflow_id)
+    workflow_id == run.workflow_id ? nil : workflow_id
   end
 
   def current_node
-    workflow.nodes.find { |node| node['id'] == run.current_node_id } || raise("Bloco #{run.current_node_id} não existe mais no fluxo.")
+    node_by_id(run.current_node_id)
+  end
+
+  def node_by_id(node_id)
+    current_workflow.nodes.find { |node| node['id'] == node_id } || raise("Bloco #{node_id} não existe mais no fluxo.")
   end
 
   def next_node_id(node, handle)
-    workflow.connections.find { |connection| connection['source'] == node['id'] && (connection['sourceHandle'].presence || 'next') == handle }
-            &.fetch('target')
+    current_workflow.connections.find do |connection|
+      connection['source'] == node['id'] && (connection['sourceHandle'].presence || 'next') == handle
+    end&.fetch('target')
   end
 
   def move_to(node_id)
-    return run.assign_attributes(status: :completed) if node_id.nil?
+    return finish_path if node_id.nil?
 
     run.assign_attributes(current_node_id: node_id, status: :running, waiting_since: nil)
+  end
+
+  # The end of a path returns to the calling flow when there is one.
+  def finish_path
+    frame = call_stack.last
+    return run.assign_attributes(status: :completed) unless frame
+
+    remember('__stack' => call_stack[0...-1], '__workflow_id' => subflow_id(frame['workflow_id']))
+    move_to(next_node_id(node_by_id(frame['node_id']), 'success'))
   end
 end

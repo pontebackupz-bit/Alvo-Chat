@@ -2,8 +2,10 @@ class OmnichannelCrm::UsersController < OmnichannelCrm::ApplicationController
   ACCESS_PROFILES = {
     'administrator' => { account_role: :administrator, crm_role_key: 'administrator' },
     'supervisor' => { account_role: :agent, crm_role_key: 'supervisor' },
-    'agent' => { account_role: :agent, crm_role_key: 'seller' }
+    'seller' => { account_role: :agent, crm_role_key: 'seller' },
+    'agent' => { account_role: :agent, crm_role_key: 'agent' }
   }.freeze
+  CRM_PROFILES = %w[supervisor seller agent].freeze
 
   TEMPORARY_PASSWORD_WORDS = %w[brisa cedro farol jardim lagoa nuvem pedra ponte safira trigo].freeze
   PASSWORD_MODES = %w[temporary administrator].freeze
@@ -219,6 +221,7 @@ class OmnichannelCrm::UsersController < OmnichannelCrm::ApplicationController
   def profile_for(record, user)
     return 'administrator' if record.administrator?
 
-    OmnichannelCrm::RoleAssignment.find_by(account: current_account, user: user)&.role&.key == 'supervisor' ? 'supervisor' : 'agent'
+    key = OmnichannelCrm::RoleAssignment.find_by(account: current_account, user: user)&.role&.key
+    CRM_PROFILES.include?(key) ? key : 'agent'
   end
 end

@@ -25,7 +25,7 @@ module OmnichannelCrm
     def runnable
       errors.add(:base, 'Um fluxo ativo precisa de exatamente um bloco de início.') unless nodes.count { |node| node['type'] == 'start' } == 1
 
-      unsupported = nodes.pluck('type').uniq - WorkflowRunner::NODE_TYPES
+      unsupported = nodes.pluck('type').uniq - WorkflowRunner::NODE_TYPES - WorkflowRunner::PASSIVE_TYPES
       errors.add(:base, "Blocos sem suporte para execução: #{unsupported.join(', ')}.") if unsupported.any?
     end
   end

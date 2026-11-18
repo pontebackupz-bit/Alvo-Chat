@@ -19,12 +19,34 @@ module OmnichannelCrm
       role&.key == 'supervisor'
     end
 
+    def agent?
+      role&.key == 'agent'
+    end
+
     def visible_conversations
       scope = ::Conversation.where(account: @account)
       return scope if account_administrator?
       return scope.where(team_id: supervised_team_ids) if supervisor?
 
       scope.where(assignee_id: @user.id)
+    end
+
+    # Supervisors see the leads of their teams' conversations and of their
+    # teams' sellers; sellers see their own leads.
+    def visible_leads
+      scope = Lead.where(account: @account)
+      return scope if account_administrator?
+      return scope.where(owner_id: @user.id) unless supervisor?
+
+      member_ids = ::TeamMember.where(team_id: supervised_team_ids).select(:user_id)
+      scope.where(conversation_id: visible_conversations.select(:id)).or(scope.where(owner_id: member_ids))
+    end
+
+    def visible_teams
+      return @account.teams if account_administrator?
+      return @account.teams.where(id: supervised_team_ids) if supervisor?
+
+      @account.teams.none
     end
 
     def supervised_team_ids

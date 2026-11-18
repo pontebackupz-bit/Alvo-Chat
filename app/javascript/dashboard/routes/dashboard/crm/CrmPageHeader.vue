@@ -15,14 +15,18 @@ defineEmits(['action']);
 
 <template>
   <BaseSettingsHeader :title="title" :description="description">
-    <template v-if="actionLabel" #actions>
-      <Button
-        :label="actionLabel"
-        :icon="actionIcon"
-        size="sm"
-        :disabled="actionDisabled"
-        @click="$emit('action')"
-      />
+    <template v-if="actionLabel || $slots.actions" #actions>
+      <div class="flex flex-wrap items-center gap-2">
+        <slot name="actions" />
+        <Button
+          v-if="actionLabel"
+          :label="actionLabel"
+          :icon="actionIcon"
+          size="sm"
+          :disabled="actionDisabled"
+          @click="$emit('action')"
+        />
+      </div>
     </template>
   </BaseSettingsHeader>
 </template>

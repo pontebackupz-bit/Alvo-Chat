@@ -38,6 +38,16 @@ module OmnichannelCrm
       render json: { error: error.message }, status: :unprocessable_entity
     end
 
+    def metrics
+      start_at = params[:start_at].present? ? Time.zone.parse(params[:start_at]) : 30.days.ago
+      end_at = params[:end_at].present? ? Time.zone.parse(params[:end_at]) : Time.current
+      render json: WorkflowMetricsService.new(workflow: find_workflow, range: start_at..end_at).perform
+    end
+
+    def readiness
+      render json: { issues: WorkflowReadinessService.new(find_workflow).perform }
+    end
+
     def export
       workflow = find_workflow
       filename = workflow.name.parameterize.presence || "workflow-#{workflow.id}"

@@ -1,14 +1,6 @@
 module OmnichannelCrm
   module WorkflowImporters
     class EzChatFlowImporter
-      NODE_TYPES = {
-        'start' => 'start', 'chat' => 'send_message', 'conditional' => 'condition', 'split' => 'switch', 'code' => 'code',
-        'flowVariable' => 'workflow_variable', 'userVariable' => 'contact_variable',
-        'googleSheets' => 'google_sheets', 'oracleDB' => 'oracle_database',
-        'handoverAttendance' => 'transfer_team', 'onlineAgentAttendance' => 'assign_agent',
-        'labelAttendance' => 'add_label', 'jump' => 'execute_subflow', 'startInactivity' => 'inactivity_control',
-        'annotation' => 'annotation', 'notes' => 'note', 'json' => 'json_response'
-      }.freeze
       CREDENTIAL_NODES = %w[googleSheets oracleDB httpRequest].freeze
       SECRET_KEYS = /(?:api[_-]?key|access[_-]?token|refresh[_-]?token|password|secret|credential)/i
       SECRET_VALUE = /(?:api[_-]?key|access[_-]?token|refresh[_-]?token|password|secret|x-amz-security-token|awsaccesskeyid|signature=)/i
@@ -23,14 +15,14 @@ module OmnichannelCrm
         @payload = payload
         @filename = filename
         @warnings = []
+        @handles = {}
       end
 
       def import
         original_nodes = @payload.dig('flow', 'nodes')
         nodes = original_nodes.filter_map { |node| convert_node(node) }
         valid_ids = nodes.pluck('id').to_set
-        connections = @payload.dig('flow', 'edges').filter_map { |edge| convert_edge(edge, valid_ids) }
-        variables = extract_variables(nodes)
+        connections = unique_connections(@payload.dig('flow', 'edges').filter_map { |edge| convert_edge(edge, valid_ids) })
 
         {
           name: @payload['name'].presence || File.basename(@filename.to_s, File.extname(@filename.to_s)),
@@ -39,7 +31,7 @@ module OmnichannelCrm
           source_workflow_id: @payload['id'] || @payload['_id'],
           nodes: nodes,
           connections: connections,
-          variables: variables,
+          variables: extract_variables(nodes),
           metadata: {
             'importSource' => 'ezchat', 'originalWorkflowName' => @payload['name'].to_s,
             'importedAt' => Time.current.iso8601, 'filename' => File.basename(@filename.to_s)
@@ -58,29 +50,50 @@ module OmnichannelCrm
 
         original_type = node['type'].to_s
         data = sanitize(node['data'].is_a?(Hash) ? node['data'] : {})
-        type = NODE_TYPES.fetch(original_type, 'unsupported_imported_node')
-        unsupported = type == 'unsupported_imported_node'
-        data['originalType'] = original_type if unsupported
-        data['originalData'] = sanitize(node['data']) if unsupported
-        data['requiresCredential'] = true if CREDENTIAL_NODES.include?(original_type)
-        data['conditions'] = normalize_conditions(data['conditions']) if original_type == 'conditional'
-        data['pendingSubflow'] = subflow_reference(data) if original_type == 'jump'
-        data['variables'] = parse_variable_data(data['data']) if %w[flowVariable userVariable].include?(original_type)
-        data = annotation_data(data) if %w[annotation notes].include?(original_type)
-        @warnings << { 'kind' => 'unsupported_node', 'nodeId' => node['id'], 'originalType' => original_type } if unsupported
-
-        { 'id' => node['id'].to_s, 'type' => type, 'originalType' => original_type,
-          'position' => position_for(node), 'data' => data }
+        converted = EzChatNodeConverter.new(original_type, data).convert || unsupported(node, original_type, data)
+        @handles[node['id'].to_s] = converted[:handles] if converted[:type] == 'menu' || converted[:handles].any?
+        converted[:data]['requiresCredential'] = true if CREDENTIAL_NODES.include?(original_type)
+        { 'id' => node['id'].to_s, 'type' => converted[:type], 'originalType' => original_type,
+          'position' => position_for(node), 'data' => converted[:data].compact }
       end
 
+      def unsupported(node, original_type, data)
+        @warnings << { 'kind' => 'unsupported_node', 'nodeId' => node['id'], 'originalType' => original_type }
+        { type: 'unsupported_imported_node', data: { 'title' => data['title'], 'originalType' => original_type, 'originalData' => data },
+          handles: {} }
+      end
+
+      # Outputs are renamed for the runner. Menu outputs that no button of
+      # the block uses any more are dropped.
       def convert_edge(edge, valid_ids)
         unless edge.is_a?(Hash) && valid_ids.include?(edge['source'].to_s) && valid_ids.include?(edge['target'].to_s)
           @warnings << { 'kind' => 'invalid_connection', 'edgeId' => edge.is_a?(Hash) ? edge['id'] : nil }
           return
         end
-        { 'id' => edge['id'].presence || SecureRandom.uuid, 'source' => edge['source'].to_s,
-          'target' => edge['target'].to_s, 'sourceHandle' => edge['sourceHandle'],
-          'targetHandle' => edge['targetHandle'], 'label' => edge['label'], 'data' => sanitize(edge['data'] || {}) }
+        handle = source_handle(edge)
+        return if handle.nil?
+
+        { 'id' => edge['id'].presence || SecureRandom.uuid, 'source' => edge['source'].to_s, 'target' => edge['target'].to_s,
+          'sourceHandle' => handle, 'primary' => handle == "option:#{edge['sourceHandle']}" }
+      end
+
+      def source_handle(edge)
+        original = edge['sourceHandle'].presence || 'next'
+        handles = @handles[edge['source'].to_s]
+        return original unless handles
+        return handles[original] if handles.key?(original)
+        return original unless handles.values.any? { |handle| handle.start_with?('option:') } && original.match?(/\A[\w-]{8,}\z/)
+
+        @warnings << { 'kind' => 'stale_connection', 'edgeId' => edge['id'] }
+        nil
+      end
+
+      # One connection per output, as the editor expects; the link drawn from
+      # the option's own button wins over the other channels' copies.
+      def unique_connections(connections)
+        connections.each_with_index.sort_by { |connection, index| [connection['primary'] ? 0 : 1, index] }.map(&:first)
+                   .uniq { |connection| [connection['source'], connection['sourceHandle']] }
+                   .map { |connection| connection.except('primary') }
       end
 
       def position_for(node)
@@ -91,52 +104,16 @@ module OmnichannelCrm
       end
 
       def extract_variables(nodes)
-        nodes.filter_map do |node|
-          category = case node['type']; when 'workflow_variable' then 'workflow'; when 'contact_variable' then 'contact'; end
-          next unless category
-          data = node['data']
-          variables = data['variables'].presence || { data['name'] || data['variable'] || data['key'] => data['value'] || data['defaultValue'] }
-          variables.filter_map do |name, value|
-            next if name.blank?
-            { 'name' => name.to_s, 'scope' => category, 'defaultValue' => value }
-          end
-        end.flatten.uniq { |variable| [variable['scope'], variable['name']] }
-      end
-
-      def subflow_reference(data)
-        flow = data['flow']
-        flow.is_a?(Hash) ? flow['name'] : (data['flowName'] || flow || data['targetFlow'] || data['name'])
-      end
-
-      def normalize_conditions(conditions)
-        operators = { 'eq' => '=', 'neq' => '!=', 'gt' => '>', 'gte' => '>=', 'lt' => '<', 'lte' => '<=',
-                      'contains' => 'contains', 'notContains' => 'not contains', 'exists' => 'exists', 'empty' => 'empty' }
-        Array(conditions).filter_map do |condition|
-          next unless condition.is_a?(Hash)
-          { 'id' => condition['id'], 'left' => condition['left'], 'operator' => operators.fetch(condition['comparator'], condition['comparator']),
-            'right' => condition['right'], 'originalComparator' => condition['comparator'] }
-        end
-      end
-
-      def parse_variable_data(value)
-        return {} unless value.is_a?(String)
-
-        parsed = JSON.parse(value, max_nesting: 25)
-        parsed.is_a?(Hash) ? sanitize(parsed) : {}
-      rescue JSON::ParserError
-        {}
-      end
-
-      def annotation_data(data)
-        return { 'markdown' => data['markdown'].to_s, 'color' => data['color'] } if data['markdown'].present?
-
-        { 'comments' => Array(data['comments']).filter_map { |comment| comment.is_a?(Hash) ? comment['comment'].to_s.presence : nil } }
+        nodes.select { |node| node['type'] == 'set_variables' }.flat_map do |node|
+          scope = node.dig('data', 'scope') == 'contact' ? 'contact' : 'workflow'
+          (node.dig('data', 'values') || {}).map { |name, value| { 'name' => name.to_s, 'scope' => scope, 'defaultValue' => value } }
+        end.uniq { |variable| [variable['scope'], variable['name']] }
       end
 
       def report(original_nodes, original_edges, nodes, connections)
         unsupported = nodes.count { |node| node['type'] == 'unsupported_imported_node' }
         credentials = nodes.count { |node| node.dig('data', 'requiresCredential') }
-        subflows = nodes.filter_map { |node| node.dig('data', 'pendingSubflow') }.uniq.size
+        subflows = nodes.filter_map { |node| node.dig('data', 'flow_name') if node['type'] == 'subflow' }.uniq.size
         { 'nodesTotal' => original_nodes.size, 'nodesConverted' => nodes.size - unsupported,
           'nodesUnsupported' => unsupported, 'credentialsRequired' => credentials, 'subflowsPending' => subflows,
           'connectionsTotal' => original_edges.size, 'connectionsConverted' => connections.size,

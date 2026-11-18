@@ -285,8 +285,21 @@ class CrmAPI extends ApiClient {
     );
   }
 
-  getDashboardMetrics(accountId) {
-    return axios.get(`${this.accountUrl(accountId)}/dashboard`);
+  getWorkflowReadiness(accountId, workflowId) {
+    return axios.get(
+      `${this.accountUrl(accountId)}/workflows/${workflowId}/readiness`
+    );
+  }
+
+  getWorkflowMetrics(accountId, workflowId, params = {}) {
+    return axios.get(
+      `${this.accountUrl(accountId)}/workflows/${workflowId}/metrics`,
+      { params }
+    );
+  }
+
+  getDashboardMetrics(accountId, params = {}) {
+    return axios.get(`${this.accountUrl(accountId)}/dashboard`, { params });
   }
 
   getAuditLogs(accountId) {

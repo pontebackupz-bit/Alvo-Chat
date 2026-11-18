@@ -4,7 +4,7 @@ module OmnichannelCrm
 
     def show
       render json: DashboardMetricsService.new(account: current_account, authorization: authorization,
-                                               range: date_range).perform
+                                               range: date_range, team_id: params[:team_id]).perform
     end
 
     private

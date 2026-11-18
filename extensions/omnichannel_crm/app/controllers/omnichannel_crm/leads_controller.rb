@@ -37,13 +37,13 @@ module OmnichannelCrm
     private
 
     def find_lead
-      Lead.where(account: current_account).find(params[:id])
+      Lead.where(account: current_account, id: visible_lead_ids).find(params[:id])
     end
 
     def visible_lead_ids
-      return Lead.where(account: current_account).select(:id) unless authorization.seller?
+      return Lead.where(account: current_account).select(:id) unless authorization.seller? || authorization.supervisor? || authorization.agent?
 
-      Lead.where(account: current_account, owner: current_user).select(:id)
+      authorization.visible_leads.select(:id)
     end
 
     def lead_params

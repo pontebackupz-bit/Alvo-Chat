@@ -19,7 +19,9 @@ class OmnichannelCrm::ChatwootEventListener < BaseListener
 
   def message_created(event)
     message, account = extract_message_and_account(event)
-    OmnichannelCrm::BaileysMessageDeliveryJob.perform_later(message.id) if message.outgoing?
+    if message.outgoing? || OmnichannelCrm::CsatReplyService.bridge_survey?(message)
+      OmnichannelCrm::BaileysMessageDeliveryJob.perform_later(message.id)
+    end
     route_to_workflow_run(message)
     event_name = message.outgoing? ? 'message.sent' : 'message.received'
     publish(event_name, account, message_id: message.id, conversation_id: message.conversation_id, contact_id: message.sender_id)
@@ -27,7 +29,7 @@ class OmnichannelCrm::ChatwootEventListener < BaseListener
 
   def conversation_resolved(event)
     conversation, account = extract_conversation_and_account(event)
-    OmnichannelCrm::WorkflowRun.cancel_for(conversation)
+    OmnichannelCrm::WorkflowRun.finish_attendance_for(conversation)
     publish('conversation.resolved', account, conversation_id: conversation.id, contact_id: conversation.contact_id)
   end
 

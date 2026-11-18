@@ -23,11 +23,18 @@ class OmnichannelCrm::BaileysMessageDeliveryService
   end
 
   def send_messages
-    return [bridge.send_message(session_id, recipient, message.content)] if attachments.blank?
+    return [bridge.send_message(session_id, recipient, text)] if attachments.blank?
 
     attachments.map.with_index do |attachment, index|
-      bridge.send_message(session_id, recipient, index.zero? ? message.content : '', attachment)
+      bridge.send_message(session_id, recipient, index.zero? ? text : '', attachment)
     end
+  end
+
+  # WhatsApp has no rating widget: the CSAT survey asks for a 1-5 reply.
+  def text
+    return message.content unless message.input_csat?
+
+    [message.content, OmnichannelCrm::CsatReplyService::INSTRUCTIONS].compact_blank.join("\n\n")
   end
 
   def bridge

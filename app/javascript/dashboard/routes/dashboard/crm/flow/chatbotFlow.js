@@ -57,10 +57,41 @@ export const BLOCKS = [
     data: () => ({ variable: 'resposta', operator: 'contains', value: '' }),
   },
   {
+    type: 'branch',
+    icon: 'i-lucide-git-branch',
+    color: 'amber',
+    data: () => ({
+      rules: [{ id: uid(), left: '{{resposta}}', operator: 'eq', right: '' }],
+    }),
+  },
+  {
+    type: 'set_variables',
+    icon: 'i-lucide-variable',
+    color: 'slate',
+    data: () => ({ scope: 'flow', values: { '': '' } }),
+  },
+  {
+    type: 'split',
+    icon: 'i-lucide-shuffle',
+    color: 'amber',
+    data: () => ({
+      splits: [
+        { id: 'a', value: 50 },
+        { id: 'b', value: 50 },
+      ],
+    }),
+  },
+  {
     type: 'wait',
     icon: 'i-lucide-hourglass',
     color: 'amber',
     data: () => ({ minutes: 5 }),
+  },
+  {
+    type: 'inactivity',
+    icon: 'i-lucide-alarm-clock',
+    color: 'amber',
+    data: () => ({ minutes: 60 }),
   },
   {
     type: 'add_label',
@@ -72,13 +103,19 @@ export const BLOCKS = [
     type: 'transfer_team',
     icon: 'i-lucide-users-round',
     color: 'teal',
-    data: () => ({ team_id: null }),
+    data: () => ({ team_id: null, distribute: true }),
   },
   {
     type: 'assign_agent',
     icon: 'i-lucide-user-round-check',
     color: 'teal',
     data: () => ({ agent_id: null }),
+  },
+  {
+    type: 'subflow',
+    icon: 'i-lucide-workflow',
+    color: 'blue',
+    data: () => ({ flow_name: '', data: '', returns: true }),
   },
   {
     type: 'end',
@@ -88,11 +125,44 @@ export const BLOCKS = [
   },
 ];
 
+// Blocks that only come from imported flows; they are not in the palette.
+const IMPORTED_BLOCKS = [
+  { type: 'code', icon: 'i-lucide-code', color: 'slate', data: () => ({}) },
+  {
+    type: 'integration',
+    icon: 'i-lucide-database',
+    color: 'slate',
+    data: () => ({}),
+  },
+  {
+    type: 'note',
+    icon: 'i-lucide-sticky-note',
+    color: 'amber',
+    data: () => ({ text: '' }),
+  },
+];
+
 const BLOCKS_BY_TYPE = Object.fromEntries(
-  [START, ...BLOCKS].map(block => [block.type, block])
+  [START, ...BLOCKS, ...IMPORTED_BLOCKS].map(block => [block.type, block])
 );
 
 export const CONDITION_OPERATORS = ['contains', 'equals', 'not_empty', 'empty'];
+export const RULE_OPERATORS = [
+  'eq',
+  'neq',
+  'contains',
+  'notContains',
+  'startsWith',
+  'gt',
+  'gte',
+  'lt',
+  'lte',
+  'exists',
+  'empty',
+];
+// Operators that do not compare with a value.
+export const UNARY_OPERATORS = ['exists', 'empty'];
+export const QUESTION_VALIDATORS = ['', 'cpf_cnpj', 'number', 'email'];
 export const CONTACT_VARIABLES = [
   'contato.nome',
   'contato.telefone',
@@ -110,6 +180,33 @@ export const appearance = type => {
 };
 
 export const newOption = () => ({ id: uid(), label: '' });
+export const newRule = () => ({
+  id: uid(),
+  left: '{{resposta}}',
+  operator: 'eq',
+  right: '',
+});
+
+const SYMBOLS = {
+  eq: '=',
+  neq: '≠',
+  gt: '>',
+  gte: '≥',
+  lt: '<',
+  lte: '≤',
+};
+
+// `{{flow.setor}} = comercial` style text for a branch rule.
+export const ruleText = rule => {
+  const left = (rule.left || '').replace(/^\{\{\s*|\s*\}\}$/g, '');
+  const operator = SYMBOLS[rule.operator] || rule.operator;
+  return UNARY_OPERATORS.includes(rule.operator)
+    ? `${left} ${operator}`
+    : `${left} ${operator} ${rule.right || ''}`.trim();
+};
+
+const success = { key: 'success', labelKey: 'SUCCESS', tone: 'green' };
+const failure = { key: 'error', labelKey: 'ERROR', tone: 'red' };
 
 export const buildNode = (type, position) => ({
   id: uid(),
@@ -121,13 +218,44 @@ export const buildNode = (type, position) => ({
 // Outputs as `{ key, labelKey, label, tone }`; `labelKey` is an i18n key
 // under CRM.WORKFLOWS.EDITOR.OUTPUTS, `label` free text (menu options).
 export const outputsFor = (node, connections) => {
+  const { data = {} } = node;
   switch (node.type) {
     case 'end':
+    case 'note':
       return [];
     case 'start':
       return [{ key: 'next', labelKey: 'NEW_CONVERSATION' }];
     case 'ask_question':
-      return [{ key: 'next', labelKey: 'ANSWERED' }];
+      return [
+        { key: 'next', labelKey: 'ANSWERED' },
+        ...(data.validator
+          ? [{ key: 'max_retries', labelKey: 'MAX_RETRIES', tone: 'red' }]
+          : []),
+      ];
+    case 'branch':
+      return [
+        ...(data.rules || []).map(rule => ({
+          key: String(rule.id),
+          label: rule.label || ruleText(rule),
+        })),
+        { key: 'else', labelKey: 'ELSE', tone: 'amber' },
+      ];
+    case 'split':
+      return (data.splits || []).map(split => ({
+        key: String(split.id),
+        label: `${String(split.id).toUpperCase()} · ${split.value}%`,
+      }));
+    case 'inactivity':
+      return [
+        { key: 'next' },
+        { key: 'inactivity', labelKey: 'INACTIVITY', tone: 'amber' },
+      ];
+    case 'transfer_team':
+      return [{ key: 'next' }, failure];
+    case 'subflow':
+    case 'code':
+    case 'integration':
+      return [success, failure];
     case 'condition':
       return [
         { key: 'true', labelKey: 'TRUE', tone: 'green' },
@@ -163,9 +291,16 @@ export const validateFlow = nodes =>
     if (!isKnownType(node.type)) return problem('UNSUPPORTED');
     if (
       ['send_message', 'ask_question'].includes(node.type) &&
-      !data.content?.trim()
+      !data.content?.trim() &&
+      !data.attachments?.length
     ) {
       return problem('MISSING_CONTENT');
+    }
+    if (node.type === 'branch' && !data.rules?.length) {
+      return problem('MISSING_RULES');
+    }
+    if (node.type === 'subflow' && !data.flow_name?.trim()) {
+      return problem('MISSING_SUBFLOW');
     }
     if (
       node.type === 'menu' &&
@@ -176,10 +311,10 @@ export const validateFlow = nodes =>
     if (node.type === 'add_label' && !data.labels?.length) {
       return problem('MISSING_LABELS');
     }
-    if (node.type === 'transfer_team' && !data.team_id) {
+    if (node.type === 'transfer_team' && !data.team_id && !data.team_name) {
       return problem('MISSING_TEAM');
     }
-    if (node.type === 'assign_agent' && !data.agent_id) {
+    if (node.type === 'assign_agent' && !data.agent_id && !data.agent_email) {
       return problem('MISSING_AGENT');
     }
     return [];

@@ -236,15 +236,34 @@ const resetPassword = async () => {
         : t('CRM.ACCESS.PASSWORD_SET_SUCCESS')
     );
   } catch (error) {
-    useAlert(error.response?.data?.error || t('CRM.ACCESS.PASSWORD_RESET_ERROR'));
+    useAlert(
+      error.response?.data?.error || t('CRM.ACCESS.PASSWORD_RESET_ERROR')
+    );
   } finally {
     isResettingPassword.value = false;
   }
 };
 const userTeamNames = user =>
-  teams.value.filter(team => user.team_ids.includes(team.id)).map(team => team.name).join(', ') || '—';
+  teams.value
+    .filter(team => user.team_ids.includes(team.id))
+    .map(team => team.name)
+    .join(', ') || '—';
 const availabilityLabel = availability =>
   t(`CRM.ACCESS.${availability.toUpperCase()}`);
+const accessProfiles = computed(() =>
+  [
+    ['administrator', 'i-lucide-shield-check'],
+    ['supervisor', 'i-lucide-eye'],
+    ['seller', 'i-lucide-briefcase-business'],
+    ['agent', 'i-lucide-headset'],
+  ].map(([value, icon]) => ({
+    value,
+    icon,
+    label: t(`CRM.ACCESS.PROFILE_${value.toUpperCase()}`),
+    help: t(`CRM.ACCESS.PROFILE_${value.toUpperCase()}_HELP`),
+  }))
+);
+
 const accessProfileLabel = profile =>
   t(`CRM.ACCESS.PROFILE_${profile?.toUpperCase() || 'AGENT'}`);
 const copyCredentials = async () => {
@@ -302,36 +321,77 @@ onMounted(fetchData);
     <template v-else>
       <div class="grid gap-4 md:grid-cols-3">
         <article class="rounded-xl border border-n-weak p-4">
-          <p class="text-sm text-n-slate-11">{{ $t('CRM.ACCESS.ALL_USERS') }}</p>
-          <p class="mt-1 text-2xl font-semibold text-n-slate-12">{{ users.length }}</p>
+          <p class="text-sm text-n-slate-11">
+            {{ $t('CRM.ACCESS.ALL_USERS') }}
+          </p>
+          <p class="mt-1 text-2xl font-semibold text-n-slate-12">
+            {{ users.length }}
+          </p>
         </article>
         <article class="rounded-xl border border-n-weak p-4">
-          <p class="text-sm text-n-slate-11">{{ $t('CRM.ACCESS.ONLINE_USERS') }}</p>
-          <p class="mt-1 text-2xl font-semibold text-n-slate-12">{{ userCounts.online || 0 }}</p>
+          <p class="text-sm text-n-slate-11">
+            {{ $t('CRM.ACCESS.ONLINE_USERS') }}
+          </p>
+          <p class="mt-1 text-2xl font-semibold text-n-slate-12">
+            {{ userCounts.online || 0 }}
+          </p>
         </article>
         <article class="rounded-xl border border-n-weak p-4">
           <p class="text-sm text-n-slate-11">{{ $t('CRM.ACCESS.BUSY') }}</p>
-          <p class="mt-1 text-2xl font-semibold text-n-slate-12">{{ userCounts.busy || 0 }}</p>
+          <p class="mt-1 text-2xl font-semibold text-n-slate-12">
+            {{ userCounts.busy || 0 }}
+          </p>
         </article>
       </div>
       <div class="mt-8">
-        <h2 class="text-heading-3 text-n-slate-12">{{ $t('CRM.ACCESS.USERS') }}</h2>
-        <p class="mt-1 text-sm text-n-slate-11">{{ $t('CRM.ACCESS.USERS_DESCRIPTION') }}</p>
-        <BaseTable class="mt-3" :headers="userHeaders" :items="users" :no-data-message="$t('CRM.COMMON.NO_RESULTS')">
+        <h2 class="text-heading-3 text-n-slate-12">
+          {{ $t('CRM.ACCESS.USERS') }}
+        </h2>
+        <p class="mt-1 text-sm text-n-slate-11">
+          {{ $t('CRM.ACCESS.USERS_DESCRIPTION') }}
+        </p>
+        <BaseTable
+          class="mt-3"
+          :headers="userHeaders"
+          :items="users"
+          :no-data-message="$t('CRM.COMMON.NO_RESULTS')"
+        >
           <template #row="{ items }">
             <tr v-for="user in items" :key="user.id">
               <td class="py-4 ltr:pr-4 rtl:pl-4 text-body-main text-n-slate-12">
                 <div>{{ user.name }}</div>
                 <div class="text-sm text-n-slate-11">{{ user.email }}</div>
               </td>
-              <td class="py-4 ltr:pr-4 rtl:pl-4 text-body-main text-n-slate-11">{{ accessProfileLabel(user.access_profile) }}</td>
-              <td class="py-4 ltr:pr-4 rtl:pl-4 text-body-main text-n-slate-11">{{ user.codusur || '—' }}</td>
-              <td class="py-4 ltr:pr-4 rtl:pl-4 text-body-main text-n-slate-11">{{ userTeamNames(user) }}</td>
               <td class="py-4 ltr:pr-4 rtl:pl-4 text-body-main text-n-slate-11">
-                <span class="inline-flex items-center gap-2"><span class="size-2 rounded-full" :class="user.availability === 'online' ? 'bg-n-teal-10' : user.availability === 'busy' ? 'bg-n-amber-10' : 'bg-n-slate-9'" />{{ availabilityLabel(user.availability) }}</span>
+                {{ accessProfileLabel(user.access_profile) }}
+              </td>
+              <td class="py-4 ltr:pr-4 rtl:pl-4 text-body-main text-n-slate-11">
+                {{ user.codusur || '—' }}
+              </td>
+              <td class="py-4 ltr:pr-4 rtl:pl-4 text-body-main text-n-slate-11">
+                {{ userTeamNames(user) }}
+              </td>
+              <td class="py-4 ltr:pr-4 rtl:pl-4 text-body-main text-n-slate-11">
+                <span class="inline-flex items-center gap-2"
+                  ><span
+                    class="size-2 rounded-full"
+                    :class="
+                      user.availability === 'online'
+                        ? 'bg-n-teal-10'
+                        : user.availability === 'busy'
+                          ? 'bg-n-amber-10'
+                          : 'bg-n-slate-9'
+                    "
+                  />{{ availabilityLabel(user.availability) }}</span
+                >
               </td>
               <td class="py-4 text-right">
-                <Button variant="link" size="sm" :label="$t('CRM.ACCESS.PASSWORD_RESET')" @click="openResetPasswordModal(user)" />
+                <Button
+                  variant="link"
+                  size="sm"
+                  :label="$t('CRM.ACCESS.PASSWORD_RESET')"
+                  @click="openResetPasswordModal(user)"
+                />
               </td>
             </tr>
           </template>
@@ -380,8 +440,9 @@ onMounted(fetchData);
           :headers="assignmentHeaders"
           :items="assignments"
           :no-data-message="$t('CRM.COMMON.NO_RESULTS')"
-          ><template #row="{ items }"
-            ><tr v-for="assignment in items" :key="assignment.id">
+        >
+          <template #row="{ items }">
+            <tr v-for="assignment in items" :key="assignment.id">
               <td class="py-4 ltr:pr-4 rtl:pl-4 text-body-main text-n-slate-12">
                 {{ agentName(assignment.user_id) }}
               </td>
@@ -398,8 +459,10 @@ onMounted(fetchData);
                     @click="deleteAssignment(assignment)"
                   />
                 </div>
-              </td></tr></template
-        ></BaseTable>
+              </td>
+            </tr>
+          </template>
+        </BaseTable>
       </div>
       <div class="mt-8">
         <div class="flex items-center justify-between gap-4">
@@ -418,8 +481,9 @@ onMounted(fetchData);
           :headers="headers"
           :items="supervisors"
           :no-data-message="$t('CRM.ACCESS.EMPTY')"
-          ><template #row="{ items }"
-            ><tr v-for="supervisor in items" :key="supervisor.id">
+        >
+          <template #row="{ items }">
+            <tr v-for="supervisor in items" :key="supervisor.id">
               <td class="py-4 ltr:pr-4 rtl:pl-4 text-body-main text-n-slate-12">
                 {{ agentName(supervisor.user_id) }}
               </td>
@@ -436,8 +500,10 @@ onMounted(fetchData);
                     @click="deleteSupervisor(supervisor)"
                   />
                 </div>
-              </td></tr></template
-        ></BaseTable>
+              </td>
+            </tr>
+          </template>
+        </BaseTable>
       </div>
     </template>
     <woot-modal v-model:show="showUserModal" :on-close="closeUserModal">
@@ -475,36 +541,84 @@ onMounted(fetchData);
             :aria-label="$t('CRM.ACCESS.CODUSUR')"
           />
         </label>
-        <label
-          >{{ $t('CRM.ACCESS.ACCESS_PROFILE')
-          }}<select v-model="userForm.access_profile" required>
-            <option value="administrator">{{ $t('CRM.ACCESS.PROFILE_ADMINISTRATOR') }}</option>
-            <option value="supervisor">{{ $t('CRM.ACCESS.PROFILE_SUPERVISOR') }}</option>
-            <option value="agent">{{ $t('CRM.ACCESS.PROFILE_AGENT') }}</option>
-          </select></label
-        >
-        <fieldset>
+        <fieldset class="crm-choice-group">
+          <legend>{{ $t('CRM.ACCESS.ACCESS_PROFILE') }}</legend>
+          <div class="grid gap-2 sm:grid-cols-2">
+            <label
+              v-for="profile in accessProfiles"
+              :key="profile.value"
+              class="crm-choice"
+            >
+              <input
+                v-model="userForm.access_profile"
+                type="radio"
+                name="access_profile"
+                :value="profile.value"
+              />
+              <span class="crm-choice-icon" :class="profile.icon" />
+              <span class="crm-choice-text">
+                <span class="crm-choice-title">{{ profile.label }}</span>
+                <span class="crm-choice-help">{{ profile.help }}</span>
+              </span>
+            </label>
+          </div>
+        </fieldset>
+        <fieldset class="crm-choice-group">
           <legend>{{ $t('CRM.ACCESS.PASSWORD_MODE') }}</legend>
-          <label>
-            <input v-model="userForm.password_mode" type="radio" value="temporary" />
-            {{ $t('CRM.ACCESS.PASSWORD_MODE_TEMPORARY') }}
+          <label class="crm-choice">
+            <input
+              v-model="userForm.password_mode"
+              type="radio"
+              name="password_mode"
+              value="temporary"
+            />
+            <span class="crm-choice-icon i-lucide-key-round" />
+            <span class="crm-choice-text">
+              <span class="crm-choice-title">
+                {{ $t('CRM.ACCESS.PASSWORD_MODE_TEMPORARY') }}
+              </span>
+              <span class="crm-choice-help">
+                {{ $t('CRM.ACCESS.PASSWORD_MODE_TEMPORARY_HELP') }}
+              </span>
+            </span>
           </label>
-          <p class="crm-form-help">{{ $t('CRM.ACCESS.PASSWORD_MODE_TEMPORARY_HELP') }}</p>
-          <label>
-            <input v-model="userForm.password_mode" type="radio" value="administrator" />
-            {{ $t('CRM.ACCESS.PASSWORD_MODE_ADMINISTRATOR') }}
+          <label class="crm-choice">
+            <input
+              v-model="userForm.password_mode"
+              type="radio"
+              name="password_mode"
+              value="administrator"
+            />
+            <span class="crm-choice-icon i-lucide-pencil-line" />
+            <span class="crm-choice-text">
+              <span class="crm-choice-title">
+                {{ $t('CRM.ACCESS.PASSWORD_MODE_ADMINISTRATOR') }}
+              </span>
+              <span class="crm-choice-help">
+                {{ $t('CRM.ACCESS.PASSWORD_MODE_ADMINISTRATOR_HELP') }}
+              </span>
+            </span>
           </label>
-          <p class="crm-form-help">{{ $t('CRM.ACCESS.PASSWORD_MODE_ADMINISTRATOR_HELP') }}</p>
         </fieldset>
         <template v-if="administratorDefinesPassword">
           <label
             >{{ $t('CRM.ACCESS.PASSWORD')
-            }}<input v-model="userForm.password" required type="password" autocomplete="new-password" />
+            }}<input
+              v-model="userForm.password"
+              required
+              type="password"
+              autocomplete="new-password"
+            />
           </label>
           <p class="crm-form-help">{{ $t('CRM.ACCESS.PASSWORD_HELP') }}</p>
           <label
             >{{ $t('CRM.ACCESS.PASSWORD_CONFIRMATION')
-            }}<input v-model="userForm.password_confirmation" required type="password" autocomplete="new-password" />
+            }}<input
+              v-model="userForm.password_confirmation"
+              required
+              type="password"
+              autocomplete="new-password"
+            />
           </label>
         </template>
         <div class="crm-form-actions">
@@ -526,17 +640,38 @@ onMounted(fetchData);
     <woot-modal v-model:show="showPasswordModal" :on-close="closePasswordModal">
       <div class="p-6">
         <woot-modal-header :header-title="$t('CRM.ACCESS.CREDENTIALS_READY')" />
-        <p class="mt-2 text-sm text-n-slate-11">{{ $t('CRM.ACCESS.TEMPORARY_PASSWORD_HELP') }}</p>
-        <dl class="mt-4 space-y-3 rounded-lg bg-n-slate-3 p-3 text-sm text-n-slate-12">
-          <div><dt class="text-n-slate-11">{{ $t('CRM.ACCESS.USER_EMAIL') }}</dt><dd class="mt-1 break-all font-medium">{{ credentials.login }}</dd></div>
-          <div><dt class="text-n-slate-11">{{ $t('CRM.ACCESS.TEMPORARY_PASSWORD') }}</dt><dd class="mt-1 break-all font-medium">{{ credentials.temporary_password }}</dd></div>
+        <p class="mt-2 text-sm text-n-slate-11">
+          {{ $t('CRM.ACCESS.TEMPORARY_PASSWORD_HELP') }}
+        </p>
+        <dl
+          class="mt-4 space-y-3 rounded-lg bg-n-slate-3 p-3 text-sm text-n-slate-12"
+        >
+          <div>
+            <dt class="text-n-slate-11">{{ $t('CRM.ACCESS.USER_EMAIL') }}</dt>
+            <dd class="mt-1 break-all font-medium">{{ credentials.login }}</dd>
+          </div>
+          <div>
+            <dt class="text-n-slate-11">
+              {{ $t('CRM.ACCESS.TEMPORARY_PASSWORD') }}
+            </dt>
+            <dd class="mt-1 break-all font-medium">
+              {{ credentials.temporary_password }}
+            </dd>
+          </div>
         </dl>
         <div class="mt-4 flex justify-end">
-          <Button :label="$t('CRM.ACCESS.COPY_CREDENTIALS')" icon="i-lucide-copy" @click="copyCredentials" />
+          <Button
+            :label="$t('CRM.ACCESS.COPY_CREDENTIALS')"
+            icon="i-lucide-copy"
+            @click="copyCredentials"
+          />
         </div>
       </div>
     </woot-modal>
-    <woot-modal v-model:show="showResetPasswordModal" :on-close="closeResetPasswordModal">
+    <woot-modal
+      v-model:show="showResetPasswordModal"
+      :on-close="closeResetPasswordModal"
+    >
       <form class="crm-modal-form" @submit.prevent="resetPassword">
         <woot-modal-header
           :header-title="$t('CRM.ACCESS.PASSWORD_RESET_TITLE')"
@@ -545,25 +680,47 @@ onMounted(fetchData);
         <fieldset>
           <legend>{{ $t('CRM.ACCESS.PASSWORD_MODE') }}</legend>
           <label>
-            <input v-model="passwordResetForm.password_mode" type="radio" value="temporary" />
+            <input
+              v-model="passwordResetForm.password_mode"
+              type="radio"
+              value="temporary"
+            />
             {{ $t('CRM.ACCESS.PASSWORD_MODE_TEMPORARY') }}
           </label>
-          <p class="crm-form-help">{{ $t('CRM.ACCESS.PASSWORD_MODE_TEMPORARY_HELP') }}</p>
+          <p class="crm-form-help">
+            {{ $t('CRM.ACCESS.PASSWORD_MODE_TEMPORARY_HELP') }}
+          </p>
           <label>
-            <input v-model="passwordResetForm.password_mode" type="radio" value="administrator" />
+            <input
+              v-model="passwordResetForm.password_mode"
+              type="radio"
+              value="administrator"
+            />
             {{ $t('CRM.ACCESS.PASSWORD_MODE_ADMINISTRATOR') }}
           </label>
-          <p class="crm-form-help">{{ $t('CRM.ACCESS.PASSWORD_MODE_ADMINISTRATOR_HELP') }}</p>
+          <p class="crm-form-help">
+            {{ $t('CRM.ACCESS.PASSWORD_MODE_ADMINISTRATOR_HELP') }}
+          </p>
         </fieldset>
         <template v-if="administratorDefinesResetPassword">
           <label
             >{{ $t('CRM.ACCESS.PASSWORD')
-            }}<input v-model="passwordResetForm.password" required type="password" autocomplete="new-password" />
+            }}<input
+              v-model="passwordResetForm.password"
+              required
+              type="password"
+              autocomplete="new-password"
+            />
           </label>
           <p class="crm-form-help">{{ $t('CRM.ACCESS.PASSWORD_HELP') }}</p>
           <label
             >{{ $t('CRM.ACCESS.PASSWORD_CONFIRMATION')
-            }}<input v-model="passwordResetForm.password_confirmation" required type="password" autocomplete="new-password" />
+            }}<input
+              v-model="passwordResetForm.password_confirmation"
+              required
+              type="password"
+              autocomplete="new-password"
+            />
           </label>
         </template>
         <div class="crm-form-actions">
