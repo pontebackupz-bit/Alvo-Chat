@@ -11,7 +11,8 @@
       "DASHBOARD": "Sales dashboard",
       "TEAM_ACCESS": "Team and access",
       "USERS": "Users and roles",
-      "MANAGE_TEAMS": "Manage teams"
+      "MANAGE_TEAMS": "Manage teams",
+      "CONNECTIONS": "Connections"
     },
     "COMMON": {
       "CREATE": "Create",
@@ -629,6 +630,48 @@
       "KEEP_EDITING": "Keep editing",
       "DISCARD": "Discard",
       "HELP_TITLE": "How to build"
+    },
+    "CONNECTIONS": {
+      "TITLE": "WhatsApp connections",
+      "DESCRIPTION": "Every number connected to the account, who registered it and whether it is online now.",
+      "ADD": "Connect number",
+      "REFRESH": "Refresh",
+      "SEARCH": "Search by name, number or team",
+      "ANY_CREATOR": "Registered by anyone",
+      "UNKNOWN_CREATOR": "Not recorded",
+      "ANY_STATUS": "Any status",
+      "CREATED_BY": "Registered by",
+      "CREATED_AT": "Registered on",
+      "TEAM": "Default team",
+      "NO_TEAM": "No team",
+      "PROVIDER": "Connection",
+      "OPEN_CONVERSATIONS": "Open conversations",
+      "LAST_ACTIVITY": "Last activity",
+      "NO_PHONE": "Number not identified yet",
+      "RECONNECT": "Reconnect",
+      "SETTINGS": "Settings",
+      "RECONNECT_SUCCESS": "Reconnection of {name} requested. The status updates in a few seconds.",
+      "RECONNECT_ERROR": "Could not reconnect the number.",
+      "FETCH_ERROR": "Could not load the connections.",
+      "EMPTY": "No WhatsApp number connected yet.",
+      "NO_MATCH": "No connection matches the filters.",
+      "SUMMARY": {
+        "total": "Numbers",
+        "connected": "Online",
+        "disconnected": "Disconnected",
+        "open": "Open conversations"
+      },
+      "STATUS": {
+        "connected": "Online",
+        "connecting": "Connecting",
+        "disconnected": "Disconnected",
+        "unreachable": "Not responding"
+      },
+      "PROVIDERS": {
+        "wppconnect": "WhatsApp (QR code)",
+        "baileys": "WhatsApp (Baileys)",
+        "whatsapp_cloud": "WhatsApp Cloud API"
+      }
     }
   }
 }

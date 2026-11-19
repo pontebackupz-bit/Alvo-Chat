@@ -298,6 +298,16 @@ class CrmAPI extends ApiClient {
     );
   }
 
+  getConnections(accountId) {
+    return axios.get(`${this.accountUrl(accountId)}/connections`);
+  }
+
+  reconnectConnection(accountId, inboxId) {
+    return axios.post(
+      `${this.accountUrl(accountId)}/connections/${inboxId}/reconnect`
+    );
+  }
+
   getDashboardMetrics(accountId, params = {}) {
     return axios.get(`${this.accountUrl(accountId)}/dashboard`, { params });
   }

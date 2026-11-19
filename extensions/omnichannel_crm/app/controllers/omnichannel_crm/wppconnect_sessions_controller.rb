@@ -57,6 +57,7 @@ class OmnichannelCrm::WppconnectSessionsController < OmnichannelCrm::Application
       'provider' => 'wppconnect',
       'session_id' => session_id
     )
+    attributes['created_by_id'] ||= current_user.id
     connected_phone_number = bridge.connected_phone_number(session_id)
     attributes['phone_number'] = connected_phone_number if connected_phone_number.present?
 

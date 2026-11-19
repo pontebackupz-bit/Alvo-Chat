@@ -72,8 +72,11 @@ export function usePolicy() {
     if (!checkPermissions(perms)) return false;
     if (!checkInstallationType(installation)) return false;
 
-    if (isACustomBrandedInstance.value) {
-      // if this is a custom branded instance, we just use the feature flag as a reference
+    // AlvoChat renames the installation, which made Chatwoot treat it as a
+    // custom-branded cloud reseller and hide every settings page whose account
+    // feature flag is off (inboxes, agents, teams...). Branding no longer
+    // changes what is shown: the self-hosted rules below apply.
+    if (isACustomBrandedInstance.value && isOnChatwootCloud.value) {
       return isFeatureFlagEnabled(flag);
     }
 

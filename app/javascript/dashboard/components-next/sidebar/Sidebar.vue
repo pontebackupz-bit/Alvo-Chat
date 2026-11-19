@@ -710,6 +710,13 @@ const menuItems = computed(() => {
       activeOn: ['crm_workflows'],
     },
     {
+      name: 'CRM Connections',
+      label: t('CRM.NAV.CONNECTIONS'),
+      icon: 'i-lucide-smartphone',
+      to: accountScopedRoute('crm_connections'),
+      activeOn: ['crm_connections'],
+    },
+    {
       name: 'CRM Distribution',
       label: t('CRM.NAV.DISTRIBUTION'),
       icon: 'i-lucide-git-fork',
@@ -773,12 +780,6 @@ const menuItems = computed(() => {
         //   icon: 'i-woot-captain',
         //   to: accountScopedRoute('captain_settings_index'),
         // },
-        {
-          name: 'Settings Agents',
-          label: t('SIDEBAR.AGENTS'),
-          icon: 'i-lucide-square-user',
-          to: accountScopedRoute('agent_list'),
-        },
         {
           name: 'Settings Teams',
           label: t('SIDEBAR.TEAMS'),

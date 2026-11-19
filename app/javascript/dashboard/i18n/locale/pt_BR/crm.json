@@ -12,7 +12,8 @@
       "DASHBOARD": "Painel comercial",
       "TEAM_ACCESS": "Equipe e acessos",
       "USERS": "Usuários e papéis",
-      "MANAGE_TEAMS": "Gerenciar times"
+      "MANAGE_TEAMS": "Gerenciar times",
+      "CONNECTIONS": "Conexões"
     },
     "COMMON": {
       "CREATE": "Criar",
@@ -634,6 +635,48 @@
       "KEEP_EDITING": "Continuar editando",
       "DISCARD": "Descartar",
       "HELP_TITLE": "Como montar"
+    },
+    "CONNECTIONS": {
+      "TITLE": "Conexões de WhatsApp",
+      "DESCRIPTION": "Todos os números conectados à conta, quem cadastrou cada um e se está online agora.",
+      "ADD": "Conectar número",
+      "REFRESH": "Atualizar",
+      "SEARCH": "Buscar por nome, número ou equipe",
+      "ANY_CREATOR": "Cadastrado por qualquer pessoa",
+      "UNKNOWN_CREATOR": "Não registrado",
+      "ANY_STATUS": "Qualquer status",
+      "CREATED_BY": "Cadastrado por",
+      "CREATED_AT": "Cadastrado em",
+      "TEAM": "Equipe padrão",
+      "NO_TEAM": "Sem equipe",
+      "PROVIDER": "Conexão",
+      "OPEN_CONVERSATIONS": "Conversas abertas",
+      "LAST_ACTIVITY": "Última atividade",
+      "NO_PHONE": "Número ainda não identificado",
+      "RECONNECT": "Reconectar",
+      "SETTINGS": "Configurar",
+      "RECONNECT_SUCCESS": "Reconexão de {name} solicitada. O status atualiza em alguns segundos.",
+      "RECONNECT_ERROR": "Não foi possível reconectar o número.",
+      "FETCH_ERROR": "Não foi possível carregar as conexões.",
+      "EMPTY": "Nenhum número de WhatsApp conectado ainda.",
+      "NO_MATCH": "Nenhuma conexão corresponde aos filtros.",
+      "SUMMARY": {
+        "total": "Números",
+        "connected": "Online",
+        "disconnected": "Desconectados",
+        "open": "Conversas abertas"
+      },
+      "STATUS": {
+        "connected": "Online",
+        "connecting": "Conectando",
+        "disconnected": "Desconectado",
+        "unreachable": "Sem resposta"
+      },
+      "PROVIDERS": {
+        "wppconnect": "WhatsApp (QR Code)",
+        "baileys": "WhatsApp (Baileys)",
+        "whatsapp_cloud": "WhatsApp Cloud API"
+      }
     }
   }
 }
