@@ -781,22 +781,6 @@ const menuItems = computed(() => {
         //   to: accountScopedRoute('captain_settings_index'),
         // },
         {
-          name: 'Settings Teams',
-          label: t('SIDEBAR.TEAMS'),
-          icon: 'i-lucide-users',
-          activeOn: [
-            'settings_teams_list',
-            'settings_teams_new',
-            'settings_teams_finish',
-            'settings_teams_add_agents',
-            'settings_teams_show',
-            'settings_teams_edit',
-            'settings_teams_edit_members',
-            'settings_teams_edit_finish',
-          ],
-          to: accountScopedRoute('settings_teams_list'),
-        },
-        {
           name: 'Settings CRM Access',
           label: t('CRM.NAV.ACCESS'),
           icon: 'i-lucide-shield-check',
