@@ -676,7 +676,14 @@
         "wppconnect": "WhatsApp (QR Code)",
         "baileys": "WhatsApp (Baileys)",
         "whatsapp_cloud": "WhatsApp Cloud API"
-      }
+      },
+      "CONNECTED": "{name} está online.",
+      "QR_TITLE": "Escaneie o QR Code",
+      "QR_DESCRIPTION": "O WhatsApp desconectou {name}. Escaneie o código com o celular desse número para conectá-lo de novo.",
+      "QR_STEP_1": "Abra o WhatsApp no celular do número.",
+      "QR_STEP_2": "Toque em Mais opções ou Configurações e depois em Aparelhos conectados.",
+      "QR_STEP_3": "Toque em Conectar um aparelho e aponte a câmera para o código.",
+      "QR_WAITING": "Aguardando a leitura do código…"
     }
   }
 }

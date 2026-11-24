@@ -15,8 +15,8 @@ class OmnichannelCrm::ConnectionsService
     inboxes = whatsapp_inboxes.to_a
     creators = creators_for(inboxes)
     open_counts = @account.conversations.open.where(inbox_id: inboxes.map(&:id)).group(:inbox_id).count
-    statuses = inboxes.map { |inbox| Thread.new { live_status(inbox) } }.map(&:value)
-    inboxes.zip(statuses).map { |inbox, status| row(inbox, status, creators[inbox.id], open_counts.fetch(inbox.id, 0)) }
+    states = inboxes.map { |inbox| Thread.new { live_status(inbox) } }.map(&:value)
+    inboxes.zip(states).map { |inbox, state| row(inbox, state, creators[inbox.id], open_counts.fetch(inbox.id, 0)) }
   end
 
   def find(inbox_id)
@@ -30,11 +30,38 @@ class OmnichannelCrm::ConnectionsService
   end
 
   def self.reconnect(inbox)
-    session_id = inbox.channel.additional_attributes.to_h['session_id']
+    session_id = session_id_for(inbox)
+    raise 'Este número não tem sessão do WhatsApp registrada. Conecte-o novamente pela caixa de entrada.' if session_id.blank?
+
     case provider(inbox)
     when 'wppconnect' then OmnichannelCrm::WppconnectBridgeClient.new.create_session(session_id)
     when 'baileys' then OmnichannelCrm::BaileysBridgeClient.new.create_session(session_id)
     end
+    session_state(inbox)
+  end
+
+  # `{ status:, qr: }`; `qr` is an image data URL while WhatsApp waits for a scan.
+  def self.session_state(inbox)
+    session = case provider(inbox)
+              when 'wppconnect' then OmnichannelCrm::WppconnectBridgeClient.new.session(session_id_for(inbox))
+              when 'baileys' then OmnichannelCrm::BaileysBridgeClient.new.session(session_id_for(inbox)).to_h
+              else return { status: 'connected' }
+              end
+    qr = session['qrcode'].presence || session['qr'].presence
+    qr = "data:image/png;base64,#{qr}" if qr && !qr.start_with?('data:')
+    { status: normalize(session['status']), qr: qr }
+  end
+
+  def self.session_id_for(inbox)
+    inbox.channel.try(:additional_attributes).to_h['session_id']
+  end
+
+  def self.normalize(status)
+    value = status.to_s.downcase
+    return 'connected' if CONNECTED.include?(value)
+    return 'connecting' if CONNECTING.include?(value)
+
+    'disconnected'
   end
 
   private
@@ -53,11 +80,11 @@ class OmnichannelCrm::ConnectionsService
     @account.account_users.find_by(user_id: @user.id)&.administrator?
   end
 
-  def row(inbox, status, creator, open_conversations)
+  def row(inbox, state, creator, open_conversations)
     attributes = inbox.channel.respond_to?(:additional_attributes) ? inbox.channel.additional_attributes.to_h : {}
     team = @account.teams.find_by(id: attributes['default_team_id'])
     {
-      id: inbox.id, name: inbox.name, provider: self.class.provider(inbox), status: status,
+      id: inbox.id, name: inbox.name, provider: self.class.provider(inbox), status: state[:status], status_error: state[:error],
       phone: phone_for(inbox, attributes), team: team && { id: team.id, name: team.name },
       created_by: creator && { id: creator.id, name: creator.name, email: creator.email },
       created_at: inbox.created_at, open_conversations: open_conversations,
@@ -87,25 +114,16 @@ class OmnichannelCrm::ConnectionsService
                   .pluck(:auditable_id, :user_id).to_h
   end
 
+  # `{ status:, error: }`; the error says why the bridge did not answer.
   def live_status(inbox)
-    session_id = inbox.channel.try(:additional_attributes).to_h['session_id']
-    case self.class.provider(inbox)
-    when 'wppconnect' then normalize(OmnichannelCrm::WppconnectBridgeClient.new.session(session_id)['status'])
-    when 'baileys' then normalize(OmnichannelCrm::BaileysBridgeClient.new.session(session_id).to_h['status'])
-    else 'connected'
-    end
+    return { status: 'disconnected', error: 'Sem sessão do WhatsApp registrada.' } if
+      self.class.provider(inbox) != 'whatsapp_cloud' && self.class.session_id_for(inbox).blank?
+
+    { status: self.class.session_state(inbox)[:status] }
   rescue StandardError => e
     Rails.logger.warn("Connection status for inbox #{inbox.id} failed: #{e.message}")
-    'unreachable'
+    { status: 'unreachable', error: e.message.to_s.truncate(200) }
   ensure
     ActiveRecord::Base.connection_pool.release_connection
-  end
-
-  def normalize(status)
-    value = status.to_s.downcase
-    return 'connected' if CONNECTED.include?(value)
-    return 'connecting' if CONNECTING.include?(value)
-
-    'disconnected'
   end
 end

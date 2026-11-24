@@ -41,9 +41,16 @@ const deferredWebhook = "      if (!message.fromMe) {\n        await (0, _functi
 // Formatting has changed across WPPConnect releases. Match the actual call
 // instead of one compiled indentation layout, otherwise the container starts
 // with the old early webhook and media from a previous event is published.
-const earlyWebhook = /\s*\(0, _functions\.callWebHook\)\(client, req, 'onmessage', message\);\s*\n/;
+// Only a line that *starts* with the call is the early webhook: the deferred
+// one added below reads `await (0, ...)` and must survive later restarts.
+const earlyWebhook = /\n[ \t]*\(0, _functions\.callWebHook\)\(client, req, 'onmessage', message\);[ \t]*\n/;
 
-if (earlyWebhook.test(sessionUtil)) {
+// A restarted container keeps its patched files, so this must be safe to run
+// again: patching twice used to strip the deferred call, leave a dangling
+// `await`, and WPPConnect then crashed on every start.
+if (sessionUtil.includes(deferredWebhook)) {
+  // Already patched by a previous start of this container.
+} else if (earlyWebhook.test(sessionUtil)) {
   if (!sessionUtil.includes(receivedMessageMarker)) {
     throw new Error(`Could not find the WPPConnect message delivery marker in ${sessionUtilPath}`);
   }
@@ -51,7 +58,7 @@ if (earlyWebhook.test(sessionUtil)) {
   sessionUtil = sessionUtil.replace(earlyWebhook, '\n');
   sessionUtil = sessionUtil.replace(receivedMessageMarker, `${deferredWebhook}${receivedMessageMarker}`);
   fs.writeFileSync(sessionUtilPath, sessionUtil);
-} else if (!sessionUtil.includes(deferredWebhook)) {
+} else {
   // Fail visibly after an upstream image format change rather than starting a
   // server that silently reintroduces stale-media webhooks.
   throw new Error(`Could not patch WPPConnect webhook ordering in ${sessionUtilPath}`);
@@ -75,6 +82,14 @@ if (functions.includes(upstreamMediaGuard)) {
 NODE
 
 cd /usr/src/wpp-server
+
+# Chromium leaves Singleton* lock files in each session profile, stamped with
+# the container's hostname. The profiles live in a volume, so after the
+# container is recreated Chromium sees the old lock, decides the profile is
+# "in use by another computer" and refuses to start: every number stays
+# offline. No browser runs yet at this point, so the locks are stale.
+find /usr/src/wpp-server/userDataDir -maxdepth 2 -name 'Singleton*' -exec rm -f {} + 2>/dev/null || true
+
 # alvochat-server.js starts the same server with the onselfmessage webhook on,
 # so messages typed on the connected phone reach AlvoChat.
 exec node alvochat-server.js

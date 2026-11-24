@@ -80,6 +80,9 @@ compose build
 
 step "Subindo os containers"
 compose up -d --remove-orphans
+# A fresh WPPConnect container drops any file its boot script patched before;
+# the WhatsApp sessions themselves live in volumes and are kept.
+compose up -d --force-recreate --no-deps wppconnect
 
 step "Aguardando o Rails responder"
 elapsed=0

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { useAlert } from 'dashboard/composables';
@@ -51,23 +51,63 @@ const fetchConnections = async () => {
   }
 };
 
+// While WhatsApp waits for a scan, the QR code stays open and the status is
+// checked every few seconds until the number connects.
+const qrSession = ref(null);
+const POLL_MS = 3000;
+const POLL_LIMIT = 60;
+let pollTimer = null;
+
+const stopPolling = () => {
+  clearTimeout(pollTimer);
+  pollTimer = null;
+};
+
+const closeQr = () => {
+  stopPolling();
+  qrSession.value = null;
+  fetchConnections();
+};
+
+const pollSession = async (connection, attempt = 0) => {
+  if (!qrSession.value || attempt > POLL_LIMIT) return;
+  try {
+    const { data } = await crmAPI.getConnection(accountId.value, connection.id);
+    if (data.status === 'connected') {
+      useAlert(t('CRM.CONNECTIONS.CONNECTED', { name: connection.name }), {
+        status: 'success',
+      });
+      closeQr();
+      return;
+    }
+    if (data.qr) qrSession.value = { ...qrSession.value, qr: data.qr };
+  } catch (_) {
+    // Keep showing the last QR code; the next check may succeed.
+  }
+  pollTimer = setTimeout(() => pollSession(connection, attempt + 1), POLL_MS);
+};
+
 const reconnect = async connection => {
   reconnecting.value = connection.id;
   try {
-    await crmAPI.reconnectConnection(accountId.value, connection.id);
-    useAlert(
-      t('CRM.CONNECTIONS.RECONNECT_SUCCESS', { name: connection.name }),
-      {
-        status: 'success',
-      }
+    const { data } = await crmAPI.reconnectConnection(
+      accountId.value,
+      connection.id
     );
-    setTimeout(fetchConnections, 4000);
+    if (data.qr) {
+      qrSession.value = { connection, qr: data.qr };
+      pollSession(connection);
+    } else {
+      useAlert(
+        t('CRM.CONNECTIONS.RECONNECT_SUCCESS', { name: connection.name }),
+        { status: 'success' }
+      );
+      setTimeout(fetchConnections, 4000);
+    }
   } catch (error) {
     useAlert(
       error.response?.data?.error || t('CRM.CONNECTIONS.RECONNECT_ERROR'),
-      {
-        status: 'error',
-      }
+      { status: 'error' }
     );
   } finally {
     reconnecting.value = null;
@@ -169,6 +209,7 @@ const canReconnect = connection =>
   BRIDGES.includes(connection.provider) && connection.status !== 'connected';
 
 onMounted(fetchConnections);
+onBeforeUnmount(stopPolling);
 </script>
 
 <template>
@@ -295,6 +336,14 @@ onMounted(fetchConnections);
           </span>
         </header>
 
+        <p
+          v-if="connection.status_error"
+          class="flex gap-2 p-3 -mt-1 text-xs rounded-lg bg-n-alpha-1 text-n-slate-11"
+        >
+          <span class="i-lucide-info size-4 shrink-0 text-n-slate-10" />
+          <span class="break-words">{{ connection.status_error }}</span>
+        </p>
+
         <dl class="grid grid-cols-2 text-sm gap-x-4 gap-y-3">
           <div>
             <dt class="text-xs text-n-slate-11">
@@ -371,5 +420,44 @@ onMounted(fetchConnections);
         </footer>
       </article>
     </div>
+
+    <woot-modal :show="!!qrSession" :on-close="closeQr">
+      <div v-if="qrSession" class="crm-modal-form">
+        <woot-modal-header
+          :header-title="$t('CRM.CONNECTIONS.QR_TITLE')"
+          :header-content="
+            $t('CRM.CONNECTIONS.QR_DESCRIPTION', {
+              name: qrSession.connection.name,
+            })
+          "
+        />
+        <div class="flex flex-col items-center gap-4">
+          <img
+            :src="qrSession.qr"
+            :alt="$t('CRM.CONNECTIONS.QR_TITLE')"
+            class="p-3 bg-white rounded-xl size-64"
+          />
+          <ol
+            class="flex flex-col gap-1.5 text-sm list-decimal list-inside text-n-slate-11"
+          >
+            <li>{{ $t('CRM.CONNECTIONS.QR_STEP_1') }}</li>
+            <li>{{ $t('CRM.CONNECTIONS.QR_STEP_2') }}</li>
+            <li>{{ $t('CRM.CONNECTIONS.QR_STEP_3') }}</li>
+          </ol>
+          <p class="flex items-center gap-2 text-xs text-n-slate-11">
+            <span class="i-lucide-loader-circle size-4 animate-spin" />
+            {{ $t('CRM.CONNECTIONS.QR_WAITING') }}
+          </p>
+        </div>
+        <div class="crm-form-actions">
+          <Button
+            variant="faded"
+            color="slate"
+            :label="$t('CRM.COMMON.CLOSE')"
+            @click="closeQr"
+          />
+        </div>
+      </div>
+    </woot-modal>
   </section>
 </template>
