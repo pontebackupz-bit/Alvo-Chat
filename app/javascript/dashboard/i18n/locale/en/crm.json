@@ -680,7 +680,23 @@
       "QR_STEP_2": "Tap More options or Settings, then Linked devices.",
       "QR_STEP_3": "Tap Link a device and point the camera at the code.",
       "QR_WAITING": "Waiting for the code to be scanned…",
-      "SHOW_QR": "Show QR code"
+      "SHOW_QR": "Show QR code",
+      "CREATE_TITLE": "Connect a WhatsApp number",
+      "CREATE_DESCRIPTION": "Name the number and pick the team. The QR code to scan with the phone comes next.",
+      "CREATE_SUBMIT": "Generate QR code",
+      "SETTINGS_TITLE": "Number settings",
+      "SETTINGS_DESCRIPTION": "Change the name shown in AlvoChat and the team that receives the conversations.",
+      "NAME": "Number name",
+      "NAME_PLACEHOLDER": "E.g. Purchasing - Jamile",
+      "NAME_REQUIRED": "Enter a name for the number.",
+      "TEAM_HELP": "New conversations from this number go to this team, and its supervisor follows them.",
+      "READ_ONLY": "Only whoever registered the number, supervisors and administrators can change it.",
+      "DELETE": "Delete number",
+      "ADVANCED": "Advanced settings",
+      "SAVED": "Number updated.",
+      "DELETED": "Number deleted.",
+      "SAVE_ERROR": "Could not save the number.",
+      "QR_GENERATING": "Generating the QR code…"
     }
   }
 }

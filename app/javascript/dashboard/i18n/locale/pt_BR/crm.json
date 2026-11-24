@@ -685,7 +685,23 @@
       "QR_STEP_2": "Toque em Mais opções ou Configurações e depois em Aparelhos conectados.",
       "QR_STEP_3": "Toque em Conectar um aparelho e aponte a câmera para o código.",
       "QR_WAITING": "Aguardando a leitura do código…",
-      "SHOW_QR": "Mostrar QR Code"
+      "SHOW_QR": "Mostrar QR Code",
+      "CREATE_TITLE": "Conectar número de WhatsApp",
+      "CREATE_DESCRIPTION": "Dê um nome ao número e escolha a equipe. Em seguida aparece o QR Code para escanear com o celular.",
+      "CREATE_SUBMIT": "Gerar QR Code",
+      "SETTINGS_TITLE": "Configurar número",
+      "SETTINGS_DESCRIPTION": "Altere o nome que aparece no AlvoChat e a equipe que recebe as conversas.",
+      "NAME": "Nome do número",
+      "NAME_PLACEHOLDER": "Ex.: Compras - Jamile",
+      "NAME_REQUIRED": "Informe um nome para o número.",
+      "TEAM_HELP": "As conversas novas deste número vão para essa equipe, e o supervisor dela passa a acompanhá-las.",
+      "READ_ONLY": "Só quem cadastrou o número, supervisores e administradores podem alterá-lo.",
+      "DELETE": "Excluir número",
+      "ADVANCED": "Configurações avançadas",
+      "SAVED": "Número atualizado.",
+      "DELETED": "Número excluído.",
+      "SAVE_ERROR": "Não foi possível salvar o número.",
+      "QR_GENERATING": "Gerando o QR Code…"
     }
   }
 }

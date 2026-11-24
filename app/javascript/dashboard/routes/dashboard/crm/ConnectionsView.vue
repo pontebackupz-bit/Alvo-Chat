@@ -3,11 +3,16 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { useAlert } from 'dashboard/composables';
+import { useAdmin } from 'dashboard/composables/useAdmin';
+import { useMapGetter, useStore } from 'dashboard/composables/store';
 import Button from 'dashboard/components-next/button/Button.vue';
 import crmAPI from 'dashboard/api/crm';
 import CrmPageHeader from './CrmPageHeader.vue';
 
 const { t, locale } = useI18n();
+const store = useStore();
+const teams = useMapGetter('teams/getTeams');
+const { isAdmin } = useAdmin();
 const route = useRoute();
 const router = useRouter();
 const accountId = computed(() => route.params.accountId);
@@ -132,17 +137,91 @@ const reconnect = async connection => {
   }
 };
 
-const openSettings = connection =>
+// `{ id?, name, team_id }` while the create or settings form is open; no id
+// means a new number.
+const form = ref(null);
+const isSaving = ref(false);
+const isDeleting = ref(false);
+
+const addNumber = () => {
+  form.value = { name: '', team_id: '' };
+};
+
+const openSettings = connection => {
+  form.value = {
+    id: connection.id,
+    name: connection.name,
+    team_id: connection.team?.id || '',
+    canManage: connection.can_manage,
+    hasConversations: Boolean(connection.last_activity_at),
+  };
+};
+
+const closeForm = () => {
+  form.value = null;
+};
+
+const advancedSettings = () =>
   router.push({
     name: 'settings_inbox_show',
-    params: { accountId: accountId.value, inboxId: connection.id },
+    params: { accountId: accountId.value, inboxId: form.value.id },
   });
 
-const addNumber = () =>
-  router.push({
-    name: 'settings_inbox_new',
-    params: { accountId: accountId.value },
-  });
+const saveForm = async () => {
+  const { id, name, team_id: teamId } = form.value;
+  if (!name.trim()) {
+    useAlert(t('CRM.CONNECTIONS.NAME_REQUIRED'), { status: 'warning' });
+    return;
+  }
+  isSaving.value = true;
+  try {
+    if (id) {
+      await crmAPI.updateConnection(accountId.value, id, {
+        name: name.trim(),
+        team_id: teamId || null,
+      });
+      useAlert(t('CRM.CONNECTIONS.SAVED'), { status: 'success' });
+      closeForm();
+      fetchConnections();
+      return;
+    }
+    const { data } = await crmAPI.createConnection(accountId.value, {
+      name: name.trim(),
+      team_id: teamId || null,
+    });
+    closeForm();
+    await fetchConnections();
+    const connection = connections.value.find(item => item.id === data.id) || {
+      id: data.id,
+      name: name.trim(),
+    };
+    // The QR code may take a few seconds to exist; polling picks it up.
+    qrSession.value = { connection, qr: data.qr || null };
+    pollSession(connection);
+  } catch (error) {
+    useAlert(error.response?.data?.error || t('CRM.CONNECTIONS.SAVE_ERROR'), {
+      status: 'error',
+    });
+  } finally {
+    isSaving.value = false;
+  }
+};
+
+const deleteConnection = async () => {
+  isDeleting.value = true;
+  try {
+    await crmAPI.deleteConnection(accountId.value, form.value.id);
+    useAlert(t('CRM.CONNECTIONS.DELETED'), { status: 'success' });
+    closeForm();
+    fetchConnections();
+  } catch (error) {
+    useAlert(error.response?.data?.error || t('CRM.CONNECTIONS.SAVE_ERROR'), {
+      status: 'error',
+    });
+  } finally {
+    isDeleting.value = false;
+  }
+};
 
 const creators = computed(() => {
   const people = new Map();
@@ -226,7 +305,10 @@ const providerLabel = provider => t(`CRM.CONNECTIONS.PROVIDERS.${provider}`);
 const canReconnect = connection =>
   BRIDGES.includes(connection.provider) && connection.status !== 'connected';
 
-onMounted(fetchConnections);
+onMounted(() => {
+  fetchConnections();
+  store.dispatch('teams/get');
+});
 onBeforeUnmount(stopPolling);
 </script>
 
@@ -447,6 +529,89 @@ onBeforeUnmount(stopPolling);
       </article>
     </div>
 
+    <woot-modal :show="!!form" :on-close="closeForm">
+      <form v-if="form" class="crm-modal-form" @submit.prevent="saveForm">
+        <woot-modal-header
+          :header-title="
+            form.id
+              ? $t('CRM.CONNECTIONS.SETTINGS_TITLE')
+              : $t('CRM.CONNECTIONS.CREATE_TITLE')
+          "
+          :header-content="
+            form.id
+              ? $t('CRM.CONNECTIONS.SETTINGS_DESCRIPTION')
+              : $t('CRM.CONNECTIONS.CREATE_DESCRIPTION')
+          "
+        />
+        <label>
+          {{ $t('CRM.CONNECTIONS.NAME') }}
+          <input
+            v-model="form.name"
+            type="text"
+            required
+            :disabled="form.id && !form.canManage"
+            :placeholder="$t('CRM.CONNECTIONS.NAME_PLACEHOLDER')"
+          />
+        </label>
+        <label>
+          {{ $t('CRM.CONNECTIONS.TEAM') }}
+          <select v-model="form.team_id" :disabled="form.id && !form.canManage">
+            <option value="">{{ $t('CRM.CONNECTIONS.NO_TEAM') }}</option>
+            <option v-for="team in teams" :key="team.id" :value="team.id">
+              {{ team.name }}
+            </option>
+          </select>
+        </label>
+        <p class="crm-form-help">{{ $t('CRM.CONNECTIONS.TEAM_HELP') }}</p>
+        <p
+          v-if="form.id && !form.canManage"
+          class="p-3 text-xs rounded-lg bg-n-amber-2 text-n-amber-11"
+        >
+          {{ $t('CRM.CONNECTIONS.READ_ONLY') }}
+        </p>
+        <div class="crm-form-actions">
+          <Button
+            v-if="form.id && form.canManage && !form.hasConversations"
+            type="button"
+            variant="faded"
+            color="ruby"
+            icon="i-lucide-trash-2"
+            class="ltr:mr-auto rtl:ml-auto"
+            :is-loading="isDeleting"
+            :label="$t('CRM.CONNECTIONS.DELETE')"
+            @click="deleteConnection"
+          />
+          <Button
+            v-if="form.id && isAdmin"
+            type="button"
+            variant="faded"
+            color="slate"
+            icon="i-lucide-settings-2"
+            :label="$t('CRM.CONNECTIONS.ADVANCED')"
+            @click="advancedSettings"
+          />
+          <Button
+            type="button"
+            variant="faded"
+            color="slate"
+            :label="$t('CRM.COMMON.CANCEL')"
+            @click="closeForm"
+          />
+          <Button
+            v-if="!form.id || form.canManage"
+            type="submit"
+            :icon="form.id ? 'i-lucide-check' : 'i-lucide-qr-code'"
+            :is-loading="isSaving"
+            :label="
+              form.id
+                ? $t('CRM.COMMON.SAVE')
+                : $t('CRM.CONNECTIONS.CREATE_SUBMIT')
+            "
+          />
+        </div>
+      </form>
+    </woot-modal>
+
     <woot-modal :show="!!qrSession" :on-close="closeQr">
       <div v-if="qrSession" class="crm-modal-form">
         <woot-modal-header
@@ -459,10 +624,18 @@ onBeforeUnmount(stopPolling);
         />
         <div class="flex flex-col items-center gap-4">
           <img
+            v-if="qrSession.qr"
             :src="qrSession.qr"
             :alt="$t('CRM.CONNECTIONS.QR_TITLE')"
             class="p-3 bg-white rounded-xl size-64"
           />
+          <div
+            v-else
+            class="flex flex-col items-center justify-center gap-3 text-sm rounded-xl size-64 bg-n-alpha-1 text-n-slate-11"
+          >
+            <span class="i-lucide-loader-circle size-6 animate-spin" />
+            {{ $t('CRM.CONNECTIONS.QR_GENERATING') }}
+          </div>
           <ol
             class="flex flex-col gap-1.5 text-sm list-decimal list-inside text-n-slate-11"
           >

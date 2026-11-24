@@ -302,6 +302,21 @@ class CrmAPI extends ApiClient {
     return axios.get(`${this.accountUrl(accountId)}/connections`);
   }
 
+  createConnection(accountId, data) {
+    return axios.post(`${this.accountUrl(accountId)}/connections`, data);
+  }
+
+  updateConnection(accountId, inboxId, data) {
+    return axios.patch(
+      `${this.accountUrl(accountId)}/connections/${inboxId}`,
+      data
+    );
+  }
+
+  deleteConnection(accountId, inboxId) {
+    return axios.delete(`${this.accountUrl(accountId)}/connections/${inboxId}`);
+  }
+
   getConnection(accountId, inboxId) {
     return axios.get(`${this.accountUrl(accountId)}/connections/${inboxId}`);
   }

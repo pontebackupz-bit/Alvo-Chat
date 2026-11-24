@@ -41,7 +41,7 @@ OmnichannelCrm::Engine.routes.draw do
       post :refresh
     end
     resource :dashboard, only: [:show]
-    resources :connections, only: [:index, :show] do
+    resources :connections, only: [:index, :show, :create, :update, :destroy] do
       post :reconnect, on: :member
     end
     resources :audit_logs, only: [:index]

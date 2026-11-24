@@ -91,8 +91,13 @@ class OmnichannelCrm::ConnectionsService
       phone: phone_for(inbox, attributes), team: team && { id: team.id, name: team.name },
       created_by: creator && { id: creator.id, name: creator.name, email: creator.email },
       created_at: inbox.created_at, open_conversations: open_conversations,
-      last_activity_at: @account.conversations.where(inbox_id: inbox.id).maximum(:last_activity_at)
+      last_activity_at: @account.conversations.where(inbox_id: inbox.id).maximum(:last_activity_at),
+      can_manage: registration.can_manage?(inbox)
     }
+  end
+
+  def registration
+    @registration ||= OmnichannelCrm::ConnectionRegistration.new(account: @account, user: @user)
   end
 
   def phone_for(inbox, attributes)
