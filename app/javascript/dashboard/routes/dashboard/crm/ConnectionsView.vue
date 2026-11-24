@@ -24,9 +24,13 @@ const STATUS = {
     dot: 'bg-n-teal-9',
     pill: 'bg-n-teal-3 text-n-teal-11',
   },
-  connecting: {
+  needs_qr: {
     dot: 'bg-n-amber-9',
     pill: 'bg-n-amber-3 text-n-amber-11',
+  },
+  connecting: {
+    dot: 'bg-n-blue-9',
+    pill: 'bg-n-blue-3 text-n-blue-11',
   },
   disconnected: {
     dot: 'bg-n-ruby-9',
@@ -80,7 +84,19 @@ const pollSession = async (connection, attempt = 0) => {
       closeQr();
       return;
     }
-    if (data.qr) qrSession.value = { ...qrSession.value, qr: data.qr };
+    if (data.qr) {
+      qrSession.value = { ...qrSession.value, qr: data.qr };
+    } else if (data.status === 'disconnected') {
+      // The unscanned code expired and WPPConnect closed the browser: start
+      // the session again for a fresh code.
+      const restart = await crmAPI.reconnectConnection(
+        accountId.value,
+        connection.id
+      );
+      if (restart.data.qr) {
+        qrSession.value = { ...qrSession.value, qr: restart.data.qr };
+      }
+    }
   } catch (_) {
     // Keep showing the last QR code; the next check may succeed.
   }
@@ -90,10 +106,12 @@ const pollSession = async (connection, attempt = 0) => {
 const reconnect = async connection => {
   reconnecting.value = connection.id;
   try {
-    const { data } = await crmAPI.reconnectConnection(
-      accountId.value,
-      connection.id
-    );
+    // A number already waiting for a scan only needs its current code.
+    const request =
+      connection.status === 'needs_qr'
+        ? crmAPI.getConnection(accountId.value, connection.id)
+        : crmAPI.reconnectConnection(accountId.value, connection.id);
+    const { data } = await request;
     if (data.qr) {
       qrSession.value = { connection, qr: data.qr };
       pollSession(connection);
@@ -403,10 +421,18 @@ onBeforeUnmount(stopPolling);
         >
           <Button
             v-if="canReconnect(connection)"
-            icon="i-lucide-plug-zap"
+            :icon="
+              connection.status === 'needs_qr'
+                ? 'i-lucide-qr-code'
+                : 'i-lucide-plug-zap'
+            "
             size="sm"
             :is-loading="reconnecting === connection.id"
-            :label="$t('CRM.CONNECTIONS.RECONNECT')"
+            :label="
+              connection.status === 'needs_qr'
+                ? $t('CRM.CONNECTIONS.SHOW_QR')
+                : $t('CRM.CONNECTIONS.RECONNECT')
+            "
             @click="reconnect(connection)"
           />
           <Button

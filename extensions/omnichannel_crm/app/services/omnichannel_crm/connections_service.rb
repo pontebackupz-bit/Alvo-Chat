@@ -4,7 +4,9 @@
 class OmnichannelCrm::ConnectionsService
   BRIDGE_PROVIDERS = %w[wppconnect baileys].freeze
   CONNECTED = %w[connected islogged open inchat].freeze
-  CONNECTING = %w[qrcode qrreadsuccess notlogged starting connecting initializing].freeze
+  # Signed out: WhatsApp waits for the QR code to be scanned on the phone.
+  NEEDS_QR = %w[qrcode notlogged].freeze
+  CONNECTING = %w[qrreadsuccess starting connecting initializing].freeze
 
   def initialize(account:, user:)
     @account = account
@@ -59,6 +61,7 @@ class OmnichannelCrm::ConnectionsService
   def self.normalize(status)
     value = status.to_s.downcase
     return 'connected' if CONNECTED.include?(value)
+    return 'needs_qr' if NEEDS_QR.include?(value)
     return 'connecting' if CONNECTING.include?(value)
 
     'disconnected'

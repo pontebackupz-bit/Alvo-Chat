@@ -665,7 +665,8 @@
         "connected": "Online",
         "connecting": "Connecting",
         "disconnected": "Disconnected",
-        "unreachable": "Not responding"
+        "unreachable": "Not responding",
+        "needs_qr": "Waiting for QR code"
       },
       "PROVIDERS": {
         "wppconnect": "WhatsApp (QR code)",
@@ -674,11 +675,12 @@
       },
       "CONNECTED": "{name} is online.",
       "QR_TITLE": "Scan the QR code",
-      "QR_DESCRIPTION": "WhatsApp signed {name} out. Scan the code with that number's phone to connect it again.",
+      "QR_DESCRIPTION": "WhatsApp signed {name} out. Scan the code with that number's phone to connect it again. An expired code is replaced automatically.",
       "QR_STEP_1": "Open WhatsApp on the number's phone.",
       "QR_STEP_2": "Tap More options or Settings, then Linked devices.",
       "QR_STEP_3": "Tap Link a device and point the camera at the code.",
-      "QR_WAITING": "Waiting for the code to be scanned…"
+      "QR_WAITING": "Waiting for the code to be scanned…",
+      "SHOW_QR": "Show QR code"
     }
   }
 }
