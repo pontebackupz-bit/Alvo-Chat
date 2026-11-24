@@ -21,6 +21,23 @@ class OmnichannelCrm::ConnectionsController < OmnichannelCrm::ApplicationControl
     render json: { error: e.message }, status: :unprocessable_entity
   end
 
+  # Brings the chats already on the phone into AlvoChat, in the background.
+  def import_history
+    inbox = service.find(params[:id])
+    raise OmnichannelCrm::ConnectionRegistration::NotAllowed, 'Só números conectados por QR Code têm histórico para importar.' unless
+      OmnichannelCrm::ConnectionsService.provider(inbox) == 'wppconnect'
+
+    raise OmnichannelCrm::ConnectionRegistration::NotAllowed, 'O número está desconectado. Conecte-o antes de importar o histórico.' unless
+      OmnichannelCrm::WhatsappHistoryImport.online?(inbox)
+
+    attributes = inbox.channel.additional_attributes.to_h
+    inbox.channel.update!(additional_attributes: attributes.merge('history_import' => { 'status' => 'queued',
+                                                                                         'updated_at' => Time.current.iso8601 }))
+    OmnichannelCrm::WhatsappHistoryImportJob.perform_later(inbox.id, history_limit(:chats), history_limit(:messages))
+    audit!('connection_history_imported', subject: inbox)
+    head :accepted
+  end
+
   def show
     render json: OmnichannelCrm::ConnectionsService.session_state(service.find(params[:id]))
   rescue ActiveRecord::RecordNotFound
@@ -31,7 +48,7 @@ class OmnichannelCrm::ConnectionsController < OmnichannelCrm::ApplicationControl
 
   # New number: returns its id and the QR code to scan.
   def create
-    inbox = registration.create(name: params[:name], team_id: params[:team_id])
+    inbox = registration.create(name: params[:name], team_id: params.key?(:team_id) ? params[:team_id] : :own)
     audit!('connection_created', subject: inbox)
     render json: { id: inbox.id }.merge(safe_state(inbox)), status: :created
   rescue ArgumentError, ActiveRecord::RecordInvalid => e
@@ -40,7 +57,8 @@ class OmnichannelCrm::ConnectionsController < OmnichannelCrm::ApplicationControl
 
   def update
     inbox = registration.update(service.find(params[:id]), name: params[:name],
-                                                           team_id: params.key?(:team_id) ? params[:team_id] : :keep)
+                                                           team_id: params.key?(:team_id) ? params[:team_id] : :keep,
+                                                           owner_id: params.key?(:owner_id) ? params[:owner_id] : :keep)
     audit!('connection_updated', subject: inbox)
     head :no_content
   rescue ActiveRecord::RecordInvalid => e
@@ -55,6 +73,10 @@ class OmnichannelCrm::ConnectionsController < OmnichannelCrm::ApplicationControl
   end
 
   private
+
+  def history_limit(key)
+    params[key].present? ? params[key].to_i.clamp(1, 500) : 100
+  end
 
   def service
     @service ||= OmnichannelCrm::ConnectionsService.new(account: current_account, user: current_user)

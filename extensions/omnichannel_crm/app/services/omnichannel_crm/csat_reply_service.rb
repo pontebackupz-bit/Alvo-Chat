@@ -19,7 +19,8 @@ class OmnichannelCrm::CsatReplyService
   def self.bridge_survey?(message)
     channel = message.inbox&.channel
     message.template? && message.input_csat? && channel.is_a?(Channel::Api) &&
-      PROVIDERS.include?(channel.additional_attributes&.dig('provider'))
+      PROVIDERS.include?(channel.additional_attributes&.dig('provider')) &&
+      !OmnichannelCrm::WhatsappGroup.conversation?(message.conversation)
   end
 
   # `source_id` is the WhatsApp message id, so a webhook delivered twice is

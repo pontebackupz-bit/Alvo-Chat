@@ -153,9 +153,10 @@ onMounted(fetchMetrics);
     <template v-else>
       <div class="grid gap-4 mt-6 sm:grid-cols-2 xl:grid-cols-5">
         <article
-          v-for="card in cards"
+          v-for="(card, index) in cards"
           :key="card.label"
-          class="p-5 border rounded-xl border-n-weak bg-n-solid-1"
+          class="p-5 border rounded-xl border-n-weak bg-n-solid-1 alvo-rise alvo-card"
+          :style="{ '--alvo-delay': `${index * 60}ms` }"
         >
           <div class="flex items-center gap-2 text-sm text-n-slate-11">
             <span :class="card.icon" class="size-4" />

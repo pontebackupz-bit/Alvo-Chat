@@ -2,23 +2,18 @@
 import { useVuelidate } from '@vuelidate/core';
 import { required, minLength } from '@vuelidate/validators';
 import { useAlert } from 'dashboard/composables';
-import { useMapGetter } from 'dashboard/composables/store';
-import FormInput from '../../../components/Form/Input.vue';
-import NextButton from 'dashboard/components-next/button/Button.vue';
+import AuthLayout from '../../../components/AuthLayout.vue';
+import Spinner from 'shared/components/Spinner.vue';
 import { DEFAULT_REDIRECT_URL } from 'dashboard/constants/globals';
 import { setNewPassword } from '../../../api/auth';
 
 export default {
-  components: {
-    FormInput,
-    NextButton,
-  },
+  components: { AuthLayout, Spinner },
   props: {
     resetPasswordToken: { type: String, default: '' },
   },
   setup() {
-    const globalConfig = useMapGetter('globalConfig/get');
-    return { v$: useVuelidate(), globalConfig };
+    return { v$: useVuelidate() };
   },
   data() {
     return {
@@ -33,6 +28,7 @@ export default {
         showLoading: false,
       },
       error: '',
+      showPassword: false,
     };
   },
   mounted() {
@@ -64,7 +60,7 @@ export default {
     showAlertMessage(message) {
       // Reset loading, current selected agent
       this.newPasswordAPI.showLoading = false;
-      useAlert(message);
+      useAlert(message, { status: 'error' });
     },
     submitForm() {
       this.newPasswordAPI.showLoading = true;
@@ -88,67 +84,84 @@ export default {
 </script>
 
 <template>
-  <div
-    class="flex flex-col justify-center w-full min-h-screen py-12 bg-n-brand/5 dark:bg-n-background sm:px-6 lg:px-8"
-  >
-    <div class="mb-6 text-center">
-      <img
-        :src="globalConfig.logo"
-        :alt="globalConfig.installationName"
-        class="inline-block w-auto h-8 dark:hidden"
-      />
-      <img
-        v-if="globalConfig.logoDark"
-        :src="globalConfig.logoDark"
-        :alt="globalConfig.installationName"
-        class="hidden w-auto h-8 dark:inline-block"
-      />
-    </div>
-    <form
-      class="bg-white shadow sm:mx-auto sm:w-full sm:max-w-lg dark:bg-n-solid-2 p-11 sm:shadow-lg sm:rounded-lg"
-      @submit.prevent="submitForm"
-    >
-      <h1
-        class="mb-1 text-2xl font-medium tracking-tight text-left text-n-slate-12"
-      >
-        {{ $t('SET_NEW_PASSWORD.TITLE') }}
-      </h1>
+  <AuthLayout>
+    <h1 class="auth-title">{{ $t('SET_NEW_PASSWORD.TITLE') }}</h1>
+    <p class="auth-description">{{ $t('SET_NEW_PASSWORD.DESCRIPTION') }}</p>
 
-      <div class="space-y-5">
-        <FormInput
-          v-model="credentials.password"
-          class="mt-3"
-          name="password"
-          type="password"
-          :has-error="v$.credentials.password.$error"
-          :error-message="$t('SET_NEW_PASSWORD.PASSWORD.ERROR')"
-          :placeholder="$t('SET_NEW_PASSWORD.PASSWORD.PLACEHOLDER')"
-          @blur="v$.credentials.password.$touch"
-        />
-        <FormInput
-          v-model="credentials.confirmPassword"
-          class="mt-3"
-          name="confirm_password"
-          type="password"
-          :has-error="v$.credentials.confirmPassword.$error"
-          :error-message="$t('SET_NEW_PASSWORD.CONFIRM_PASSWORD.ERROR')"
-          :placeholder="$t('SET_NEW_PASSWORD.CONFIRM_PASSWORD.PLACEHOLDER')"
-          @blur="v$.credentials.confirmPassword.$touch"
-        />
-        <NextButton
-          lg
-          type="submit"
-          data-testid="submit_button"
-          class="w-full"
-          :label="$t('SET_NEW_PASSWORD.SUBMIT')"
-          :disabled="
-            v$.credentials.password.$invalid ||
-            v$.credentials.confirmPassword.$invalid ||
-            newPasswordAPI.showLoading
-          "
-          :is-loading="newPasswordAPI.showLoading"
-        />
-      </div>
+    <form class="mt-8 space-y-5" @submit.prevent="submitForm">
+      <label class="block">
+        <span class="auth-label">{{
+          $t('SET_NEW_PASSWORD.PASSWORD.LABEL')
+        }}</span>
+        <span class="relative block">
+          <span class="auth-input-icon i-lucide-lock" />
+          <input
+            v-model="credentials.password"
+            name="password"
+            :type="showPassword ? 'text' : 'password'"
+            autocomplete="new-password"
+            class="auth-input !pr-12"
+            :class="{ '!border-[#f87171]': v$.credentials.password.$error }"
+            :placeholder="$t('SET_NEW_PASSWORD.PASSWORD.PLACEHOLDER')"
+            @blur="v$.credentials.password.$touch"
+          />
+          <button
+            type="button"
+            class="absolute flex items-center justify-center -translate-y-1/2 rounded-md right-2 top-1/2 size-8 text-[#64748b] hover:text-[#e2e8f0]"
+            :aria-label="$t('SET_NEW_PASSWORD.TOGGLE_VISIBILITY')"
+            @click="showPassword = !showPassword"
+          >
+            <span
+              class="size-4"
+              :class="showPassword ? 'i-lucide-eye-off' : 'i-lucide-eye'"
+            />
+          </button>
+        </span>
+        <span v-if="v$.credentials.password.$error" class="block auth-error">
+          {{ $t('SET_NEW_PASSWORD.PASSWORD.ERROR') }}
+        </span>
+      </label>
+
+      <label class="block">
+        <span class="auth-label">
+          {{ $t('SET_NEW_PASSWORD.CONFIRM_PASSWORD.LABEL') }}
+        </span>
+        <span class="relative block">
+          <span class="auth-input-icon i-lucide-lock-keyhole" />
+          <input
+            v-model="credentials.confirmPassword"
+            name="confirm_password"
+            :type="showPassword ? 'text' : 'password'"
+            autocomplete="new-password"
+            class="auth-input"
+            :class="{
+              '!border-[#f87171]': v$.credentials.confirmPassword.$error,
+            }"
+            :placeholder="$t('SET_NEW_PASSWORD.CONFIRM_PASSWORD.PLACEHOLDER')"
+            @blur="v$.credentials.confirmPassword.$touch"
+          />
+        </span>
+        <span
+          v-if="v$.credentials.confirmPassword.$error"
+          class="block auth-error"
+        >
+          {{ $t('SET_NEW_PASSWORD.CONFIRM_PASSWORD.ERROR') }}
+        </span>
+      </label>
+
+      <button
+        type="submit"
+        data-testid="submit_button"
+        class="auth-button !mt-7"
+        :disabled="
+          v$.credentials.password.$invalid ||
+          v$.credentials.confirmPassword.$invalid ||
+          newPasswordAPI.showLoading
+        "
+      >
+        <Spinner v-if="newPasswordAPI.showLoading" size="small" />
+        <template v-else>{{ $t('SET_NEW_PASSWORD.SUBMIT') }}</template>
+      </button>
     </form>
-  </div>
+  </AuthLayout>
 </template>

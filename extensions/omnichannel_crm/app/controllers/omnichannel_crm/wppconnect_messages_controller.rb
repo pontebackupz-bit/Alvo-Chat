@@ -4,7 +4,7 @@ class OmnichannelCrm::WppconnectMessagesController < OmnichannelCrm::BaileysMess
 
   def create
     return head :accepted unless %w[onmessage onselfmessage].include?(params[:event])
-    return head :accepted if phone_number.blank?
+    return head :accepted if phone_number.blank? && !group?
     return ignore_unavailable_media if media? && media_data.blank?
     return ignore_empty_event if !media? && content.blank?
 
@@ -45,12 +45,63 @@ class OmnichannelCrm::WppconnectMessagesController < OmnichannelCrm::BaileysMess
   end
 
   def contact_inbox
+    return @contact_inbox ||= OmnichannelCrm::WhatsappGroup.contact_inbox_for(inbox, chat_jid, group_name) if group?
+
     # On messages sent from the phone the sender names are our own profile.
     super.tap { |record| sync_contact_name(record.contact) unless from_me? }
   end
 
+  # Group messages: the conversation is the group, and each incoming message
+  # names the participant who wrote it.
+  def group?
+    OmnichannelCrm::WhatsappGroup.jid?(chat_jid)
+  end
+
+  def group_name
+    @group_name ||= [params.dig(:chat, :name), params.dig(:chat, :contact, :name), params[:groupName]]
+                    .filter_map { |name| name.to_s.strip.presence }.first || bridge.chat_name(session_id, chat_jid)
+  rescue StandardError => e
+    Rails.logger.warn("Unable to fetch the WhatsApp group name: #{e.message}")
+    @group_name = nil
+  end
+
+  def group_author
+    names = [params.dig(:sender, :pushname), params.dig(:sender, :name), params.dig(:sender, :formattedName), params[:notifyName]]
+    names.filter_map { |name| name.to_s.strip.presence }.first || jid_user(params[:author]).presence
+  end
+
+  def message_attributes
+    attributes = super
+    return attributes unless group? && !from_me?
+
+    attributes.merge(
+      content: OmnichannelCrm::WhatsappGroup.with_author(attributes[:content], group_author),
+      content_attributes: attributes[:content_attributes].merge(group_author: { name: group_author, id: params[:author].to_s })
+    )
+  end
+
+  def csat_reply?
+    group? ? false : super
+  end
+
   def conversation
-    super.tap { |record| assign_default_team(record) }
+    @conversation_record ||= super.tap do |record|
+      created = record.previously_new_record?
+      assign_default_team(record)
+      assign_owner(record, created)
+    end
+  end
+
+  # Numbers registered by a person in Conexões belong to them: their new
+  # conversations go to that person, even if automatic assignment already
+  # picked someone (groups stay with the team). Applied after the team, so
+  # the team change does not drop them.
+  def assign_owner(conversation, created)
+    return if group? || (conversation.assignee_id.present? && !created)
+
+    owner_id = inbox.channel.additional_attributes&.fetch('owner_id', nil)
+    owner = owner_id && inbox.account.users.find_by(id: owner_id)
+    conversation.update!(assignee: owner) if owner
   end
 
   def phone_number

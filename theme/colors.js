@@ -226,7 +226,8 @@ export const colors = {
     },
 
     black: '#000000',
-    brand: '#2781F6',
+    // AlvoChat: a more vivid blue for buttons, links and highlights.
+    brand: '#2370FF',
     portal: 'var(--dynamic-portal-color)',
     'portal-soft': 'var(--dynamic-portal-color-soft)',
     'portal-faint': 'var(--dynamic-portal-color-faint)',

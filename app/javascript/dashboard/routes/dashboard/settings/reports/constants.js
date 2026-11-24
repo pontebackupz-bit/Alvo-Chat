@@ -105,13 +105,14 @@ export const CHART_FONT_FAMILY =
 export const DEFAULT_LINE_CHART = {
   type: 'line',
   fill: false,
-  borderColor: '#779BBB',
-  pointBackgroundColor: '#779BBB',
+  // AlvoChat blues
+  borderColor: '#6EA8FF',
+  pointBackgroundColor: '#6EA8FF',
 };
 
 export const DEFAULT_BAR_CHART = {
   type: 'bar',
-  backgroundColor: 'rgb(31, 147, 255)',
+  backgroundColor: 'rgb(35, 112, 255)',
 };
 
 const createChartConfig = yAxisTickCallback => ({

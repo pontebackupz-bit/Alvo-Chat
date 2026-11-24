@@ -41,8 +41,14 @@ OmnichannelCrm::Engine.routes.draw do
       post :refresh
     end
     resource :dashboard, only: [:show]
+    get 'attendance/stats', to: 'attendance#stats'
+    get 'attendance/history', to: 'attendance#history'
+    resources :scheduled_messages, only: [:index, :create, :destroy]
+    resource :whatsapp_history, only: [:show, :create], path: 'conversations/:conversation_id/whatsapp_history',
+                                controller: 'conversation_histories'
     resources :connections, only: [:index, :show, :create, :update, :destroy] do
       post :reconnect, on: :member
+      post :import_history, on: :member
     end
     resources :audit_logs, only: [:index]
   end

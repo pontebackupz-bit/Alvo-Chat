@@ -4,6 +4,7 @@
 // alerts that do not pass one, from the wording of the message.
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import Button from 'dashboard/components-next/button/Button.vue';
 
 const props = defineProps({
   message: { type: String, default: '' },
@@ -88,14 +89,15 @@ const title = computed(() =>
         {{ action.message }}
       </router-link>
     </div>
-    <button
-      type="button"
-      class="flex items-center justify-center rounded-md size-6 shrink-0 text-n-slate-11 hover:bg-n-alpha-2 hover:text-n-slate-12"
+    <Button
+      icon="i-lucide-x"
+      size="xs"
+      variant="ghost"
+      color="slate"
+      class="shrink-0 -mt-0.5 -mr-1"
       :aria-label="$t('GENERAL_SETTINGS.STATUS_CARD.CLOSE')"
       @click="emit('close')"
-    >
-      <span class="i-lucide-x size-4" />
-    </button>
+    />
     <span
       class="absolute bottom-0 left-0 h-0.5 status-card-timer"
       :class="style.bar"

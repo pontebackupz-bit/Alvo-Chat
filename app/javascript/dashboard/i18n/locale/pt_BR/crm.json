@@ -701,7 +701,109 @@
       "SAVED": "Número atualizado.",
       "DELETED": "Número excluído.",
       "SAVE_ERROR": "Não foi possível salvar o número.",
-      "QR_GENERATING": "Gerando o QR Code…"
+      "QR_GENERATING": "Gerando o QR Code…",
+      "HISTORY": {
+        "IMPORT": "Importar histórico",
+        "STARTED": "Importando o histórico de {name}. As conversas aparecem aos poucos.",
+        "ERROR": "Não foi possível iniciar a importação do histórico.",
+        "RUNNING": "Importando histórico: {chats} conversas, {messages} mensagens…",
+        "DONE": "Histórico importado em {date}: {chats} conversas, {messages} mensagens.",
+        "FAILED": "A importação do histórico falhou. Tente de novo com o número online."
+      },
+      "WIZARD": {
+        "STEP_1": {
+          "TITLE": "Escolha o canal",
+          "DESCRIPTION": "Por onde os clientes vão falar com a equipe."
+        },
+        "STEP_2": {
+          "TITLE": "Dados da conexão",
+          "DESCRIPTION": "Nome do número e equipe que recebe as conversas."
+        },
+        "STEP_3": {
+          "TITLE": "Conectar",
+          "DESCRIPTION": "Escaneie o QR Code com o celular do número."
+        },
+        "CHOOSE_TITLE": "Escolha o canal",
+        "CHOOSE_DESCRIPTION": "WhatsApp conecta por QR Code em poucos segundos. Os demais canais são configurados por um administrador.",
+        "ADMIN_ONLY": "Só administradores configuram este canal. Para WhatsApp, use a opção WhatsApp.",
+        "BACK": "Voltar"
+      },
+      "OWNER": "Responsável",
+      "NO_OWNER": "Ninguém (só a equipe)",
+      "OWNER_HELP": "As conversas novas deste número são atribuídas ao responsável. Sem responsável, ficam com a equipe."
+    }
+  },
+  "ATTENDANCE": {
+    "NAV": {
+      "HISTORY": "Histórico de chats",
+      "SCHEDULED": "Mensagens agendadas"
+    },
+    "SECTIONS": {
+      "OVERVIEW": "Visão geral",
+      "ATTENDANCE": "Atendimento",
+      "COMMERCIAL": "Comercial",
+      "SYSTEM": "Sistema"
+    },
+    "COUNTERS": {
+      "RESOLVED": "Finalizados hoje",
+      "AGENTS": "Agentes online ou ocupados",
+      "LATE": "Aguardando resposta há mais de {minutes} min",
+      "ACTIVE": "Em atendimento"
+    },
+    "VIEWS": {
+      "ACTIVE": "Ativos",
+      "LATE": "Atrasados",
+      "PAUSED": "Pausados"
+    },
+    "SEARCH_PLACEHOLDER": "Protocolo, nome ou telefone",
+    "CLEAR_SEARCH": "Limpar busca",
+    "HISTORY": {
+      "TITLE": "Histórico de chats",
+      "DESCRIPTION": "Atendimentos finalizados, do mais recente para o mais antigo. Clique para abrir a conversa.",
+      "ANY_AGENT": "Qualquer agente",
+      "FROM": "De",
+      "TO": "Até",
+      "PROTOCOL": "Protocolo",
+      "CONTACT": "Contato",
+      "AGENT": "Agente",
+      "TEAM": "Equipe",
+      "INBOX": "Número",
+      "FINISHED_AT": "Última atividade",
+      "GROUP": "Grupo do WhatsApp",
+      "EMPTY": "Nenhum atendimento finalizado com esses filtros.",
+      "PAGE": "Página {page} de {pages} · {total} atendimentos",
+      "FETCH_ERROR": "Não foi possível carregar o histórico."
+    },
+    "SCHEDULE": {
+      "TOOLTIP": "Agendar mensagem",
+      "TITLE": "Agendar mensagem",
+      "DESCRIPTION": "A mensagem é enviada automaticamente no horário escolhido, em seu nome.",
+      "MESSAGE": "Mensagem",
+      "WHEN": "Quando enviar",
+      "SHORTCUTS": {
+        "HOUR": "Em 1 hora",
+        "TOMORROW": "Amanhã às 9h",
+        "MONDAY": "Segunda às 9h"
+      },
+      "PENDING": "Já agendadas nesta conversa",
+      "SUBMIT": "Agendar",
+      "CANCEL": "Cancelar",
+      "SAVED": "Mensagem agendada para {date}.",
+      "CANCELLED": "Agendamento cancelado.",
+      "ERROR": "Não foi possível salvar o agendamento."
+    },
+    "SCHEDULED": {
+      "TITLE": "Mensagens agendadas",
+      "DESCRIPTION": "Mensagens que a equipe programou para enviar depois. Para agendar, abra a conversa e use o botão de calendário.",
+      "STATUS": {
+        "pending": "Pendentes",
+        "sent": "Enviadas",
+        "failed": "Falharam",
+        "cancelled": "Canceladas"
+      },
+      "BY": "por {name}",
+      "EMPTY": "Nada por aqui.",
+      "FETCH_ERROR": "Não foi possível carregar as mensagens agendadas."
     }
   }
 }

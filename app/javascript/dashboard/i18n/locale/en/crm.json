@@ -696,7 +696,109 @@
       "SAVED": "Number updated.",
       "DELETED": "Number deleted.",
       "SAVE_ERROR": "Could not save the number.",
-      "QR_GENERATING": "Generating the QR code…"
+      "QR_GENERATING": "Generating the QR code…",
+      "HISTORY": {
+        "IMPORT": "Import history",
+        "STARTED": "Importing the history of {name}. Conversations appear gradually.",
+        "ERROR": "Could not start the history import.",
+        "RUNNING": "Importing history: {chats} conversations, {messages} messages…",
+        "DONE": "History imported on {date}: {chats} conversations, {messages} messages.",
+        "FAILED": "The history import failed. Try again with the number online."
+      },
+      "WIZARD": {
+        "STEP_1": {
+          "TITLE": "Choose the channel",
+          "DESCRIPTION": "Where customers will talk to the team."
+        },
+        "STEP_2": {
+          "TITLE": "Connection details",
+          "DESCRIPTION": "Number name and the team that receives the conversations."
+        },
+        "STEP_3": {
+          "TITLE": "Connect",
+          "DESCRIPTION": "Scan the QR code with the number's phone."
+        },
+        "CHOOSE_TITLE": "Choose the channel",
+        "CHOOSE_DESCRIPTION": "WhatsApp connects by QR code in seconds. Other channels are set up by an administrator.",
+        "ADMIN_ONLY": "Only administrators set up this channel. For WhatsApp, use the WhatsApp option.",
+        "BACK": "Back"
+      },
+      "OWNER": "Owner",
+      "NO_OWNER": "Nobody (team only)",
+      "OWNER_HELP": "New conversations from this number are assigned to the owner. Without an owner, they stay with the team."
+    }
+  },
+  "ATTENDANCE": {
+    "NAV": {
+      "HISTORY": "Chat history",
+      "SCHEDULED": "Scheduled messages"
+    },
+    "SECTIONS": {
+      "OVERVIEW": "Overview",
+      "ATTENDANCE": "Attendance",
+      "COMMERCIAL": "Sales",
+      "SYSTEM": "System"
+    },
+    "COUNTERS": {
+      "RESOLVED": "Finished today",
+      "AGENTS": "Agents online or busy",
+      "LATE": "Waiting for a reply for over {minutes} min",
+      "ACTIVE": "In progress"
+    },
+    "VIEWS": {
+      "ACTIVE": "Active",
+      "LATE": "Late",
+      "PAUSED": "Paused"
+    },
+    "SEARCH_PLACEHOLDER": "Protocol, name or phone",
+    "CLEAR_SEARCH": "Clear search",
+    "HISTORY": {
+      "TITLE": "Chat history",
+      "DESCRIPTION": "Finished conversations, newest first. Click to open the conversation.",
+      "ANY_AGENT": "Any agent",
+      "FROM": "From",
+      "TO": "To",
+      "PROTOCOL": "Protocol",
+      "CONTACT": "Contact",
+      "AGENT": "Agent",
+      "TEAM": "Team",
+      "INBOX": "Number",
+      "FINISHED_AT": "Last activity",
+      "GROUP": "WhatsApp group",
+      "EMPTY": "No finished conversations for these filters.",
+      "PAGE": "Page {page} of {pages} · {total} conversations",
+      "FETCH_ERROR": "Could not load the history."
+    },
+    "SCHEDULE": {
+      "TOOLTIP": "Schedule message",
+      "TITLE": "Schedule message",
+      "DESCRIPTION": "The message is sent automatically at the chosen time, on your behalf.",
+      "MESSAGE": "Message",
+      "WHEN": "When to send",
+      "SHORTCUTS": {
+        "HOUR": "In 1 hour",
+        "TOMORROW": "Tomorrow at 9am",
+        "MONDAY": "Monday at 9am"
+      },
+      "PENDING": "Already scheduled in this conversation",
+      "SUBMIT": "Schedule",
+      "CANCEL": "Cancel",
+      "SAVED": "Message scheduled for {date}.",
+      "CANCELLED": "Schedule cancelled.",
+      "ERROR": "Could not save the schedule."
+    },
+    "SCHEDULED": {
+      "TITLE": "Scheduled messages",
+      "DESCRIPTION": "Messages the team set to send later. To schedule, open the conversation and use the calendar button.",
+      "STATUS": {
+        "pending": "Pending",
+        "sent": "Sent",
+        "failed": "Failed",
+        "cancelled": "Cancelled"
+      },
+      "BY": "by {name}",
+      "EMPTY": "Nothing here.",
+      "FETCH_ERROR": "Could not load the scheduled messages."
     }
   }
 }

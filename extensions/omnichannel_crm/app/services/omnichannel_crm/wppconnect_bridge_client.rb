@@ -50,7 +50,28 @@ class OmnichannelCrm::WppconnectBridgeClient
     clear_session_data(session_id)
   end
 
-  def send_message(session_id, recipient, content, attachment = nil)
+  # Most recent chats on the phone (people and groups).
+  def list_chats(session_id, count)
+    response = request(session_id, :post, "/api/#{session_id}/list-chats", { count: count })
+    Array(response.is_a?(Hash) ? response['response'] : response)
+  end
+
+  # Latest messages of one chat, oldest first.
+  def chat_messages(session_id, jid, count)
+    response = request(session_id, :get, "/api/#{session_id}/get-messages/#{CGI.escape(jid)}?count=#{count.to_i}")
+    Array(response.is_a?(Hash) ? response['response'] : response)
+  end
+
+  # The group's name, for conversations created from group messages.
+  def chat_name(session_id, jid)
+    chat = request(session_id, :get, "/api/#{session_id}/chat-by-id/#{CGI.escape(jid)}?isGroup=#{jid.end_with?('@g.us')}")
+    chat = chat['response'] if chat['response'].is_a?(Hash)
+    [chat['name'], chat.dig('contact', 'name'), chat['formattedTitle'], chat.dig('groupMetadata', 'subject')]
+      .filter_map { |name| name.to_s.strip.presence }.first
+  end
+
+  # `group:` sends to a group id (`120363...`), otherwise to a phone number.
+  def send_message(session_id, recipient, content, attachment = nil, group: false)
     ensure_connected!(session_id)
 
     response = if attachment
@@ -59,10 +80,10 @@ class OmnichannelCrm::WppconnectBridgeClient
         :post,
         "/api/#{session_id}/send-file-base64",
         phone: [recipient], base64: data_url_for(attachment), filename: attachment.file.filename.to_s,
-        caption: content, isGroup: false, isLid: false
+        caption: content, isGroup: group, isLid: false
       )
     else
-      request(session_id, :post, "/api/#{session_id}/send-message", phone: [recipient], message: content, isGroup: false, isLid: false)
+      request(session_id, :post, "/api/#{session_id}/send-message", phone: [recipient], message: content, isGroup: group, isLid: false)
     end
 
     response.fetch('response').first

@@ -8,6 +8,8 @@ import DashboardView from './DashboardView.vue';
 import AuditLogsView from './AuditLogsView.vue';
 import WorkflowsView from './WorkflowsView.vue';
 import ConnectionsView from './ConnectionsView.vue';
+import HistoryView from './HistoryView.vue';
+import ScheduledMessagesView from './ScheduledMessagesView.vue';
 import { frontendURL } from '../../../helper/URLHelper';
 
 export const routes = [
@@ -40,6 +42,18 @@ export const routes = [
         path: 'workflows',
         name: 'crm_workflows',
         component: WorkflowsView,
+        meta: { permissions: ['administrator', 'agent', 'custom_role'] },
+      },
+      {
+        path: 'history',
+        name: 'crm_history',
+        component: HistoryView,
+        meta: { permissions: ['administrator', 'agent', 'custom_role'] },
+      },
+      {
+        path: 'scheduled-messages',
+        name: 'crm_scheduled_messages',
+        component: ScheduledMessagesView,
         meta: { permissions: ['administrator', 'agent', 'custom_role'] },
       },
       {

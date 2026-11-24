@@ -317,6 +317,50 @@ class CrmAPI extends ApiClient {
     return axios.delete(`${this.accountUrl(accountId)}/connections/${inboxId}`);
   }
 
+  getAttendanceStats(accountId) {
+    return axios.get(`${this.accountUrl(accountId)}/attendance/stats`);
+  }
+
+  getChatHistory(accountId, params = {}) {
+    return axios.get(`${this.accountUrl(accountId)}/attendance/history`, {
+      params,
+    });
+  }
+
+  getScheduledMessages(accountId, params = {}) {
+    return axios.get(`${this.accountUrl(accountId)}/scheduled_messages`, {
+      params,
+    });
+  }
+
+  createScheduledMessage(accountId, data) {
+    return axios.post(`${this.accountUrl(accountId)}/scheduled_messages`, data);
+  }
+
+  cancelScheduledMessage(accountId, id) {
+    return axios.delete(
+      `${this.accountUrl(accountId)}/scheduled_messages/${id}`
+    );
+  }
+
+  getConversationHistory(accountId, conversationId) {
+    return axios.get(
+      `${this.accountUrl(accountId)}/conversations/${conversationId}/whatsapp_history`
+    );
+  }
+
+  importConversationHistory(accountId, conversationId) {
+    return axios.post(
+      `${this.accountUrl(accountId)}/conversations/${conversationId}/whatsapp_history`
+    );
+  }
+
+  importConnectionHistory(accountId, inboxId) {
+    return axios.post(
+      `${this.accountUrl(accountId)}/connections/${inboxId}/import_history`
+    );
+  }
+
   getConnection(accountId, inboxId) {
     return axios.get(`${this.accountUrl(accountId)}/connections/${inboxId}`);
   }

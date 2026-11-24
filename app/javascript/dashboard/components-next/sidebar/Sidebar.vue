@@ -645,6 +645,20 @@ const menuItems = computed(() => {
       ],
     },
     {
+      name: 'CRM History',
+      label: t('ATTENDANCE.NAV.HISTORY'),
+      icon: 'i-lucide-history',
+      to: accountScopedRoute('crm_history'),
+      activeOn: ['crm_history'],
+    },
+    {
+      name: 'CRM Scheduled Messages',
+      label: t('ATTENDANCE.NAV.SCHEDULED'),
+      icon: 'i-lucide-calendar-clock',
+      to: accountScopedRoute('crm_scheduled_messages'),
+      activeOn: ['crm_scheduled_messages'],
+    },
+    {
       name: 'Companies',
       label: t('SIDEBAR.COMPANIES'),
       icon: 'i-lucide-building-2',
@@ -929,6 +943,51 @@ const menuItems = computed(() => {
       : []),
   ];
 });
+
+// Menu sections, in display order; items not listed fall into "Atendimento".
+const MENU_SECTIONS = [
+  { key: 'OVERVIEW', items: ['CRM Dashboard', 'Reports'] },
+  {
+    key: 'ATTENDANCE',
+    items: [
+      'Inbox',
+      'Conversation',
+      'CRM History',
+      'Contacts',
+      'Companies',
+      'CRM Scheduled Messages',
+    ],
+  },
+  {
+    key: 'COMMERCIAL',
+    items: [
+      'CRM Leads',
+      'CRM Team Access',
+      'CRM Workflows',
+      'CRM Connections',
+      'CRM Distribution',
+    ],
+  },
+  { key: 'SYSTEM', items: ['Settings', 'Development'] },
+];
+
+const sectionedMenuItems = computed(() => {
+  const sectionOf = name =>
+    Math.max(
+      MENU_SECTIONS.findIndex(section => section.items.includes(name)),
+      MENU_SECTIONS.findIndex(section => section.key === 'ATTENDANCE')
+    );
+  const ordered = menuItems.value
+    .map((item, index) => ({ item, index, section: sectionOf(item.name) }))
+    .sort((a, b) => a.section - b.section || a.index - b.index);
+  return ordered.map(({ item, section }, position) => ({
+    ...item,
+    sectionTitle:
+      position === 0 || ordered[position - 1].section !== section
+        ? t(`ATTENDANCE.SECTIONS.${MENU_SECTIONS[section].key}`)
+        : '',
+  }));
+});
 </script>
 
 <template>
@@ -972,7 +1031,7 @@ const menuItems = computed(() => {
           />
         </template>
         <template v-else>
-          <AlvoradaWordmark variant="icon" />
+          <AlvoradaWordmark variant="icon" size="small" />
           <SidebarAccountSwitcher
             class="flex-grow -mx-1 min-w-0"
             @show-create-account-modal="emit('showCreateAccountModal')"
@@ -1032,11 +1091,15 @@ const menuItems = computed(() => {
         class="flex flex-col gap-1 m-0 list-none min-w-0"
         :class="{ 'items-center': isEffectivelyCollapsed }"
       >
-        <SidebarGroup
-          v-for="item in menuItems"
-          :key="item.name"
-          v-bind="item"
-        />
+        <template v-for="item in sectionedMenuItems" :key="item.name">
+          <li
+            v-if="item.sectionTitle && !isEffectivelyCollapsed"
+            class="px-2 pt-4 pb-1 text-[11px] font-semibold tracking-wider uppercase text-n-slate-10 first:pt-1 list-none"
+          >
+            {{ item.sectionTitle }}
+          </li>
+          <SidebarGroup v-bind="item" />
+        </template>
       </ul>
     </nav>
     <section

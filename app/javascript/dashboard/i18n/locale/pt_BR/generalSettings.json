@@ -247,6 +247,12 @@
       "DARK_MODE": "Escuro",
       "SYSTEM_MODE": "Sistema",
       "SNOOZE_NOTIFICATION": "Adiar Notificação"
+    },
+    "FOOTER": {
+      "SELECT": "selecionar",
+      "NAVIGATE": "navegar",
+      "CLOSE": "fechar",
+      "BACK": "voltar"
     }
   },
   "DASHBOARD_APPS": {

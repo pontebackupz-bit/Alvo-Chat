@@ -346,6 +346,14 @@
       "UNMUTE": "Desilenciar microfone",
       "VIEW_CHAT_HISTORY": "Ver histórico da conversa",
       "GO_TO_CONVERSATION": "Ir para a conversa"
+    },
+    "WHATSAPP_HISTORY": {
+      "BUTTON": "Histórico do WhatsApp",
+      "LOADING": "Carregando histórico…",
+      "TOOLTIP": "Traz todas as mensagens deste contato que estão no WhatsApp",
+      "DONE": "{count} mensagens antigas do WhatsApp foram adicionadas. Role para cima para ver.",
+      "UP_TO_DATE": "O histórico do WhatsApp já está completo nesta conversa.",
+      "ERROR": "Não foi possível carregar o histórico do WhatsApp."
     }
   },
   "EMAIL_TRANSCRIPT": {

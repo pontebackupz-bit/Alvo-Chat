@@ -281,6 +281,7 @@ export default {
       <NextButton
         v-if="!isEditorDisabled"
         v-tooltip.top-end="$t('CONVERSATION.REPLYBOX.TIP_EMOJI_ICON')"
+        data-emoji-toggle
         icon="i-ph-smiley-sticker"
         slate
         faded

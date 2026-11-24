@@ -14,7 +14,11 @@ defineEmits(['action']);
 </script>
 
 <template>
-  <BaseSettingsHeader :title="title" :description="description">
+  <BaseSettingsHeader
+    class="alvo-rise"
+    :title="title"
+    :description="description"
+  >
     <template v-if="actionLabel || $slots.actions" #actions>
       <div class="flex flex-wrap items-center gap-2">
         <slot name="actions" />

@@ -10,13 +10,16 @@ class OmnichannelCrm::ConnectionRegistration
     @user = user
   end
 
-  def create(name:, team_id: nil)
+  # `team_id`: a team, nil for none, or :own for the person's own team.
+  def create(name:, team_id: :own)
     raise ArgumentError, 'Informe um nome para o número.' if name.to_s.strip.blank?
 
-    team = team_id.present? ? @account.teams.find(team_id) : nil
+    # The number belongs to whoever registers it, and to their team unless
+    # another one is chosen: its new conversations go to them.
+    team = team_id == :own ? own_team : (team_id.present? ? @account.teams.find(team_id) : nil)
     inbox = ActiveRecord::Base.transaction do
       channel = Channel::Api.create!(account: @account, additional_attributes: {
-                                       'provider' => 'wppconnect', 'created_by_id' => @user.id,
+                                       'provider' => 'wppconnect', 'created_by_id' => @user.id, 'owner_id' => @user.id,
                                        'default_team_id' => team&.id
                                      }.compact)
       @account.inboxes.create!(name: name.to_s.strip, channel: channel).tap do |record|
@@ -28,14 +31,13 @@ class OmnichannelCrm::ConnectionRegistration
     inbox
   end
 
-  def update(inbox, name: nil, team_id: :keep)
+  def update(inbox, name: nil, team_id: :keep, owner_id: :keep)
     authorize_manage!(inbox)
     inbox.update!(name: name.to_s.strip) if name.to_s.strip.present?
-    return inbox if team_id == :keep
-
-    team = team_id.present? ? @account.teams.find(team_id) : nil
-    attributes = inbox.channel.additional_attributes.to_h.merge('default_team_id' => team&.id).compact
-    inbox.channel.update!(additional_attributes: attributes)
+    attributes = inbox.channel.additional_attributes.to_h
+    attributes['default_team_id'] = (team_id.present? ? @account.teams.find(team_id).id : nil) unless team_id == :keep
+    attributes['owner_id'] = owner_for(owner_id, inbox)&.id unless owner_id == :keep
+    inbox.channel.update!(additional_attributes: attributes.compact)
     inbox
   end
 
@@ -54,6 +56,16 @@ class OmnichannelCrm::ConnectionRegistration
     inbox.destroy!
   end
 
+  # The person who receives the number's new conversations; they become a
+  # member of the inbox so they can open them.
+  def owner_for(owner_id, inbox)
+    return if owner_id.blank?
+
+    owner = @account.users.find(owner_id)
+    InboxMember.find_or_create_by!(inbox: inbox, user: owner)
+    owner
+  end
+
   def can_manage?(inbox)
     administrator? || supervisor? || inbox.channel.try(:additional_attributes).to_h['created_by_id'].to_i == @user.id
   end
@@ -62,6 +74,10 @@ class OmnichannelCrm::ConnectionRegistration
 
   def authorize_manage!(inbox)
     raise NotAllowed, 'Só quem cadastrou o número, supervisores e administradores podem alterá-lo.' unless can_manage?(inbox)
+  end
+
+  def own_team
+    @account.teams.joins(:team_members).where(team_members: { user_id: @user.id }).order(:id).first
   end
 
   def session_id_for(inbox)

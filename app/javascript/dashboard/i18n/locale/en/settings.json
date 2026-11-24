@@ -253,7 +253,9 @@
     "SUPER_ADMIN_CONSOLE": "SuperAdmin console",
     "DOCS": "Read documentation",
     "CHANGELOG": "Changelog",
-    "LOGOUT": "Log out"
+    "LOGOUT": "Log out",
+    "USE_LIGHT_THEME": "Use light theme",
+    "USE_DARK_THEME": "Use dark theme"
   },
   "APP_GLOBAL": {
     "TRIAL_MESSAGE": "days trial remaining.",

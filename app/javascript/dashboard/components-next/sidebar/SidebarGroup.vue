@@ -266,6 +266,8 @@ watch(
           class="flex items-center justify-center size-10 rounded-lg"
           :class="{
             'text-n-slate-12 bg-n-alpha-2': isActive || hasActiveChild,
+            'dark:!bg-n-brand/15 dark:ring-1 dark:ring-inset dark:ring-n-brand/40 dark:!text-white':
+              isActive && !hasActiveChild,
             'text-n-slate-11 hover:bg-n-alpha-2': !isActive && !hasActiveChild,
           }"
           :title="label"

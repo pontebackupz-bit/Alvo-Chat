@@ -21,9 +21,19 @@ module OmnichannelCrm
       { Conversations::PermissionFilterService => scope::PermissionFilter,
         ConversationPolicy => scope::Policy,
         SearchService => scope::Search,
+        MessageFinder => OmnichannelCrm::MessageFinderChronology,
+        ConversationFinder => OmnichannelCrm::AttendanceFilters::Finder,
         DataImport::ContactManager => OmnichannelCrm::ContactImportDedup::Manager,
         DataImportJob => OmnichannelCrm::ContactImportDedup::Job }.each do |target, mod|
         target.prepend(mod) unless target.ancestors.include?(mod)
+      end
+
+      # AI features on Groq when GROQ_API_KEY is set (see OmnichannelCrm::GroqLlm).
+      groq = OmnichannelCrm::GroqLlm
+      Llm::Config.singleton_class.prepend(groq::Config) unless Llm::Config.singleton_class <= groq::Config
+      Captain::BaseTaskService.prepend(groq::TaskService) unless Captain::BaseTaskService <= groq::TaskService
+      if defined?(Llm::BaseAiService) && !(Llm::BaseAiService <= groq::BaseAiService)
+        Llm::BaseAiService.prepend(groq::BaseAiService)
       end
     end
   end

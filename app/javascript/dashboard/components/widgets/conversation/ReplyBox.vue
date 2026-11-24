@@ -1002,7 +1002,10 @@ export default {
         this.$refs.audioRecorderInput.playPause();
       }
     },
-    hideEmojiPicker() {
+    // The click that opens the picker also reaches the page; without this
+    // check the click-away handler closed the picker as soon as it opened.
+    hideEmojiPicker(event) {
+      if (event?.target?.closest?.('[data-emoji-toggle]')) return;
       if (this.showEmojiPicker) {
         this.toggleEmojiPicker();
       }
@@ -1501,11 +1504,12 @@ export default {
 }
 
 .emoji-dialog {
-  @apply top-[unset] -bottom-10 ltr:-left-80 ltr:right-[unset] rtl:left-[unset] rtl:-right-80;
+  // Opens right above the emoji button, inside the conversation; it used to
+  // open 20rem to the left, over (and hidden behind) the conversation list.
+  @apply top-[unset] bottom-full mb-2 ltr:left-3 ltr:right-[unset] rtl:right-3 rtl:left-[unset];
 
   &::before {
-    filter: drop-shadow(0px 4px 4px rgba(0, 0, 0, 0.08));
-    @apply ltr:-right-4 bottom-2 rtl:-left-4 ltr:rotate-[270deg] rtl:rotate-[90deg];
+    @apply hidden;
   }
 }
 

@@ -12,6 +12,12 @@ const props = defineProps({
 const wordmark = { name: 'AlvoChat', company: 'Alvorada Distribuidora' };
 
 const sizes = {
+  small: {
+    box: 'size-7 rounded-lg',
+    icon: 'size-4',
+    text: 'text-base',
+    sub: 'text-[0.5rem]',
+  },
   default: {
     box: 'size-9',
     icon: 'size-5',
@@ -41,7 +47,7 @@ const subClass = computed(() =>
     :aria-label="wordmark.name"
   >
     <span
-      class="flex flex-shrink-0 items-center justify-center rounded-[10px] bg-gradient-to-br from-[#2A6BFF] to-[#0B3FB8] text-white shadow-[0_6px_18px_-6px_rgba(42,107,255,0.8)]"
+      class="flex flex-shrink-0 items-center justify-center rounded-[10px] bg-gradient-to-br from-[#2A6BFF] to-[#0B3FB8] text-white"
       :class="size.box"
     >
       <span class="i-lucide-messages-square" :class="size.icon" />

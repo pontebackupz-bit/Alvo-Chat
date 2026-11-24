@@ -11,14 +11,11 @@ import AnalyticsHelper from 'dashboard/helper/AnalyticsHelper';
 import { SESSION_EVENTS } from 'dashboard/helper/AnalyticsHelper/events';
 
 // components
-import SimpleDivider from '../../components/Divider/SimpleDivider.vue';
-import FormInput from '../../components/Form/Input.vue';
 import GoogleOAuthButton from '../../components/GoogleOauth/Button.vue';
 import Spinner from 'shared/components/Spinner.vue';
-import NextButton from 'dashboard/components-next/button/Button.vue';
 import MfaVerification from 'dashboard/components/auth/MfaVerification.vue';
 import SessionLimitOverlay from 'dashboard/components/auth/SessionLimitOverlay.vue';
-import AlvoradaWordmark from 'shared/components/AlvoradaWordmark.vue';
+import AuthLayout from '../../components/AuthLayout.vue';
 
 const ERROR_MESSAGES = {
   'no-account-found': 'LOGIN.OAUTH.NO_ACCOUNT_FOUND',
@@ -30,36 +27,20 @@ const ERROR_MESSAGES = {
 const IMPERSONATION_URL_SEARCH_KEY = 'impersonation';
 const USER_NOT_CONFIRMED_ERROR_CODE = 'user_not_confirmed';
 const BRAND = {
-  initial: 'A',
-  platform: 'AlvoChat',
-  company: 'Comercial Alvorada',
-  eyebrow: 'Central comercial · AlvoChat',
-  title: 'Toda conversa pode virar resultado.',
-  description:
-    'O AlvoChat reúne atendimento, oportunidades e sua equipe em uma única operação, com contexto do início ao fim.',
-  mockQuestion: 'Oi! Vocês têm esse produto em estoque?',
-  mockAnswer: 'Temos sim! Já separo o pedido para você.',
-  mockNote: 'Exemplo ilustrativo',
-  loginTitle: 'Acesse sua conta',
-  loginDescription: 'Entre com seu e-mail corporativo para continuar.',
-  security: 'Ambiente seguro para a equipe Comercial Alvorada.',
-  benefits: [
-    'Atenda clientes com histórico e contexto.',
-    'Acompanhe as oportunidades que movimentam o negócio.',
-    'Trabalhe em equipe com visibilidade e controle.',
-  ],
+  loginTitle: 'Entrar na sua conta',
+  loginDescription: 'Bem-vindo de volta! Acesse sua central de atendimento.',
+  divider: 'ou com e-mail',
+  showPassword: 'Mostrar senha',
+  hidePassword: 'Ocultar senha',
 };
 
 export default {
   components: {
-    FormInput,
     GoogleOAuthButton,
     Spinner,
-    NextButton,
-    SimpleDivider,
     MfaVerification,
     SessionLimitOverlay,
-    AlvoradaWordmark,
+    AuthLayout,
   },
   props: {
     ssoAuthToken: { type: String, default: '' },
@@ -88,6 +69,7 @@ export default {
         hasErrored: false,
       },
       error: '',
+      showPassword: false,
       mfaRequired: false,
       mfaToken: null,
       sessionsLimitReached: false,
@@ -304,186 +286,138 @@ export default {
 </script>
 
 <template>
-  <main
-    class="grid min-h-screen bg-[#F4F7FC] lg:grid-cols-[minmax(0,1.06fr)_minmax(480px,0.94fr)]"
-  >
-    <section
-      class="relative hidden overflow-hidden bg-[#05070d] px-14 py-12 text-white lg:flex lg:flex-col lg:justify-between"
-    >
-      <div
-        class="absolute -left-24 -top-24 size-[30rem] rounded-full bg-[#2a6bff]/30 blur-[120px]"
+  <AuthLayout>
+    <h2 class="auth-title">{{ brand.loginTitle }}</h2>
+    <p class="auth-description">{{ brand.loginDescription }}</p>
+    <p v-if="showSignupLink" class="mt-3 text-sm text-[#94a3b8]">
+      {{ $t('COMMON.OR') }}
+      <router-link to="auth/signup" class="auth-link">
+        {{ $t('LOGIN.CREATE_NEW_ACCOUNT') }}
+      </router-link>
+    </p>
+
+    <section v-if="sessionsLimitReached" class="mt-10">
+      <SessionLimitOverlay
+        :sessions="limitedSessions"
+        @revoke="handleSessionRevoke"
+        @revoke-all="handleSessionRevokeAll"
+        @cancel="handleSessionLimitCancel"
       />
-      <div
-        class="absolute -bottom-32 right-[-6rem] size-[28rem] rounded-full bg-[#087cff]/20 blur-[120px]"
+    </section>
+
+    <section v-else-if="mfaRequired" class="mt-10">
+      <MfaVerification
+        :mfa-token="mfaToken"
+        @verified="handleMfaVerified"
+        @cancel="handleMfaCancel"
       />
-      <div
-        class="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:56px_56px] [mask-image:radial-gradient(ellipse_at_top_left,black_25%,transparent_75%)]"
-      />
-      <div class="relative z-10">
-        <AlvoradaWordmark tone="light" size="large" />
-      </div>
-      <div class="relative z-10 max-w-xl motion-safe:animate-fade-in-up">
-        <span
-          class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-xs font-medium text-blue-100"
-        >
-          <span class="size-1.5 rounded-full bg-[#34d399]" />
-          {{ brand.eyebrow }}
-        </span>
-        <h1
-          class="mt-6 text-5xl font-semibold leading-[1.06] tracking-[-0.035em]"
-        >
-          {{ brand.title }}
-        </h1>
-        <p class="mt-5 max-w-lg text-lg leading-8 text-[#929cad]">
-          {{ brand.description }}
-        </p>
-        <div
-          class="mt-10 max-w-sm space-y-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4 shadow-2xl backdrop-blur"
-        >
-          <div class="flex items-end gap-2">
-            <span
-              class="rounded-2xl rounded-bl-sm bg-white/10 px-3.5 py-2 text-sm text-[#dce2eb]"
-            >
-              {{ brand.mockQuestion }}
-            </span>
-          </div>
-          <div class="flex justify-end">
-            <span
-              class="rounded-2xl rounded-br-sm bg-[#2a6bff] px-3.5 py-2 text-sm text-white"
-            >
-              {{ brand.mockAnswer }}
-            </span>
-          </div>
-          <p class="text-center text-[11px] text-[#566174]">
-            {{ brand.mockNote }}
-          </p>
-        </div>
-        <ul class="mt-8 space-y-3">
-          <li
-            v-for="benefit in brand.benefits"
-            :key="benefit"
-            class="flex items-start gap-3 text-[15px] leading-6 text-[#dce2eb]"
-          >
-            <span
-              class="i-lucide-check-circle-2 mt-0.5 size-5 shrink-0 text-[#60a5fa]"
-            />
-            <span>{{ benefit }}</span>
-          </li>
-        </ul>
-      </div>
-      <p class="relative z-10 text-sm text-[#566174]">{{ brand.company }}</p>
     </section>
 
     <section
-      class="flex items-center justify-center px-6 py-12 sm:px-10 lg:px-16"
+      v-else
+      class="mt-8"
+      :class="{ 'animate-wiggle': loginApi.hasErrored }"
     >
-      <div class="w-full max-w-md motion-safe:animate-fade-in-up">
-        <div class="flex items-center gap-3 lg:hidden">
-          <AlvoradaWordmark />
+      <div v-if="!email">
+        <div v-if="showGoogleOAuth" class="flex flex-col gap-6 mb-6">
+          <GoogleOAuthButton />
+          <div class="flex items-center gap-4">
+            <span class="flex-1 h-px bg-white/10" />
+            <span
+              class="text-[11px] font-medium tracking-[0.2em] uppercase text-[#64748b]"
+            >
+              {{ brand.divider }}
+            </span>
+            <span class="flex-1 h-px bg-white/10" />
+          </div>
         </div>
-        <h2
-          class="mt-8 text-4xl lg:mt-0 font-semibold tracking-tight text-[#132343]"
-        >
-          {{ brand.loginTitle }}
-        </h2>
-        <p class="mt-3 text-base leading-7 text-[#64748B]">
-          {{ brand.loginDescription }}
-        </p>
-        <p v-if="showSignupLink" class="mt-3 text-sm text-n-slate-11">
-          {{ $t('COMMON.OR') }}
-          <router-link to="auth/signup" class="text-link text-n-brand">
-            {{ $t('LOGIN.CREATE_NEW_ACCOUNT') }}
-          </router-link>
-        </p>
 
-        <section v-if="sessionsLimitReached" class="mt-10">
-          <SessionLimitOverlay
-            :sessions="limitedSessions"
-            @revoke="handleSessionRevoke"
-            @revoke-all="handleSessionRevokeAll"
-            @cancel="handleSessionLimitCancel"
-          />
-        </section>
-
-        <section v-else-if="mfaRequired" class="mt-10">
-          <MfaVerification
-            :mfa-token="mfaToken"
-            @verified="handleMfaVerified"
-            @cancel="handleMfaCancel"
-          />
-        </section>
-
-        <section
-          v-else
-          class="p-7 mt-9 bg-white border border-[#E2E8F0] rounded-2xl shadow-xl shadow-slate-900/[0.06] sm:p-9"
-          :class="{ 'animate-wiggle': loginApi.hasErrored }"
-        >
-          <div v-if="!email">
-            <div v-if="showGoogleOAuth" class="flex flex-col gap-4">
-              <GoogleOAuthButton />
-              <SimpleDivider :label="$t('COMMON.OR')" class="uppercase" />
-            </div>
-            <form class="mt-6 space-y-5" @submit.prevent="submitFormLogin">
-              <FormInput
-                v-model="credentials.email"
-                class="!rounded-xl !bg-[#F5F7FB] !px-4 !py-3.5 !text-[#132343] !outline-[#D7DFEC] placeholder:!text-[#93A1B8] focus:!outline-[#1E5ED8] dark:!bg-[#F5F7FB] dark:!text-[#132343]"
-                label-class="!font-semibold !text-[#1E293B]"
+        <form class="space-y-5" @submit.prevent="submitFormLogin">
+          <label class="block">
+            <span class="auth-label">{{ $t('LOGIN.EMAIL.LABEL') }}</span>
+            <span class="relative block">
+              <span class="auth-input-icon i-lucide-mail" />
+              <input
+                v-model.trim="credentials.email"
                 name="email_address"
-                type="text"
+                type="email"
+                autocomplete="username"
                 data-testid="email_input"
-                :tabindex="1"
+                tabindex="1"
                 required
-                :label="$t('LOGIN.EMAIL.LABEL')"
                 :placeholder="$t('LOGIN.EMAIL.PLACEHOLDER')"
-                :has-error="v$.credentials.email.$error"
+                class="auth-input"
+                :class="{ '!border-[#f87171]': v$.credentials.email.$error }"
                 @input="v$.credentials.email.$touch"
               />
-              <FormInput
+            </span>
+          </label>
+
+          <label class="block">
+            <span class="flex items-center justify-between mb-2">
+              <span class="text-sm font-medium text-[#e2e8f0]">
+                {{ $t('LOGIN.PASSWORD.LABEL') }}
+              </span>
+              <router-link
+                v-if="!globalConfig.disableUserProfileUpdate"
+                to="auth/reset/password"
+                class="text-xs auth-link"
+                tabindex="4"
+              >
+                {{ $t('LOGIN.FORGOT_PASSWORD') }}
+              </router-link>
+            </span>
+            <span class="relative block">
+              <span class="auth-input-icon i-lucide-lock" />
+              <input
                 v-model="credentials.password"
-                class="!rounded-xl !bg-[#F5F7FB] !px-4 !py-3.5 !text-[#132343] !outline-[#D7DFEC] placeholder:!text-[#93A1B8] focus:!outline-[#1E5ED8] dark:!bg-[#F5F7FB] dark:!text-[#132343]"
-                label-class="!font-semibold !text-[#1E293B]"
-                type="password"
                 name="password"
+                :type="showPassword ? 'text' : 'password'"
+                autocomplete="current-password"
                 data-testid="password_input"
+                tabindex="2"
                 required
-                :tabindex="2"
-                :label="$t('LOGIN.PASSWORD.LABEL')"
                 :placeholder="$t('LOGIN.PASSWORD.PLACEHOLDER')"
-                :has-error="v$.credentials.password.$error"
+                class="auth-input !pr-12"
+                :class="{
+                  '!border-[#f87171]': v$.credentials.password.$error,
+                }"
                 @input="v$.credentials.password.$touch"
               />
-              <p
-                v-if="!globalConfig.disableUserProfileUpdate"
-                class="!mt-3 text-right"
+              <button
+                type="button"
+                class="absolute flex items-center justify-center -translate-y-1/2 rounded-md right-2 top-1/2 size-8 text-[#64748b] hover:text-[#e2e8f0]"
+                :aria-label="
+                  showPassword ? brand.hidePassword : brand.showPassword
+                "
+                @click="showPassword = !showPassword"
               >
-                <router-link
-                  to="auth/reset/password"
-                  class="text-sm font-medium text-[#1E5ED8] hover:text-[#0C327F]"
-                  tabindex="4"
-                >
-                  {{ $t('LOGIN.FORGOT_PASSWORD') }}
-                </router-link>
-              </p>
-              <NextButton
-                lg
-                type="submit"
-                data-testid="submit_button"
-                class="!mt-7 !w-full !rounded-xl !bg-[#1557D6] !py-3.5 !text-base hover:!bg-[#0D46B3]"
-                :tabindex="3"
-                :label="$t('LOGIN.SUBMIT')"
-                :disabled="loginApi.showLoading"
-                :is-loading="loginApi.showLoading"
-              />
-            </form>
-            <p class="mt-6 text-center text-xs leading-5 text-[#94A3B8]">
-              {{ brand.security }}
-            </p>
-          </div>
-          <div v-else class="flex items-center justify-center py-8">
-            <Spinner color-scheme="primary" size="" />
-          </div>
-        </section>
+                <span
+                  class="size-4"
+                  :class="showPassword ? 'i-lucide-eye-off' : 'i-lucide-eye'"
+                />
+              </button>
+            </span>
+          </label>
+
+          <button
+            type="submit"
+            data-testid="submit_button"
+            tabindex="3"
+            class="auth-button !mt-7"
+            :disabled="loginApi.showLoading"
+          >
+            <Spinner v-if="loginApi.showLoading" size="small" />
+            <template v-else>
+              {{ $t('LOGIN.SUBMIT') }}
+              <span class="i-lucide-arrow-right size-4" />
+            </template>
+          </button>
+        </form>
+      </div>
+      <div v-else class="flex items-center justify-center py-8">
+        <Spinner color-scheme="primary" size="" />
       </div>
     </section>
-  </main>
+  </AuthLayout>
 </template>

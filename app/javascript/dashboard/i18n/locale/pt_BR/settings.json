@@ -253,7 +253,9 @@
     "SUPER_ADMIN_CONSOLE": "Console de Super Admin",
     "DOCS": "Ler documentação",
     "CHANGELOG": "Notas de versão",
-    "LOGOUT": "Encerrar sessão"
+    "LOGOUT": "Encerrar sessão",
+    "USE_LIGHT_THEME": "Usar tema claro",
+    "USE_DARK_THEME": "Usar tema escuro"
   },
   "APP_GLOBAL": {
     "TRIAL_MESSAGE": "dias de teste restantes.",

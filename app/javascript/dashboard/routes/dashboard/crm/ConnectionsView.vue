@@ -8,10 +8,12 @@ import { useMapGetter, useStore } from 'dashboard/composables/store';
 import Button from 'dashboard/components-next/button/Button.vue';
 import crmAPI from 'dashboard/api/crm';
 import CrmPageHeader from './CrmPageHeader.vue';
+import ConnectNumberWizard from './ConnectNumberWizard.vue';
 
 const { t, locale } = useI18n();
 const store = useStore();
 const teams = useMapGetter('teams/getTeams');
+const agents = useMapGetter('agents/getAgents');
 const { isAdmin } = useAdmin();
 const route = useRoute();
 const router = useRouter();
@@ -19,7 +21,6 @@ const accountId = computed(() => route.params.accountId);
 
 const connections = ref([]);
 const isLoading = ref(false);
-const reconnecting = ref(null);
 const search = ref('');
 const creator = ref('');
 const statusFilter = ref('');
@@ -48,11 +49,27 @@ const STATUS = {
 };
 const BRIDGES = ['wppconnect', 'baileys'];
 
+// While a history import runs, the list refreshes to show its progress.
+let importTimer = null;
+const importing = computed(() =>
+  connections.value.some(
+    item =>
+      ['queued', 'running'].includes(item.history_import?.status) ||
+      ['connecting', 'needs_qr'].includes(item.status)
+  )
+);
+const scheduleImportRefresh = () => {
+  clearTimeout(importTimer);
+  // eslint-disable-next-line no-use-before-define
+  if (importing.value) importTimer = setTimeout(fetchConnections, 5000);
+};
+
 const fetchConnections = async () => {
   isLoading.value = true;
   try {
     const { data } = await crmAPI.getConnections(accountId.value);
     connections.value = data.connections || [];
+    scheduleImportRefresh();
   } catch (_) {
     useAlert(t('CRM.CONNECTIONS.FETCH_ERROR'), { status: 'error' });
   } finally {
@@ -63,13 +80,43 @@ const fetchConnections = async () => {
 // While WhatsApp waits for a scan, the QR code stays open and the status is
 // checked every few seconds until the number connects.
 const qrSession = ref(null);
-const POLL_MS = 3000;
+const POLL_MS = 2000;
 const POLL_LIMIT = 60;
 let pollTimer = null;
 
 const stopPolling = () => {
   clearTimeout(pollTimer);
   pollTimer = null;
+};
+
+const importHistory = async connection => {
+  try {
+    await crmAPI.importConnectionHistory(accountId.value, connection.id);
+    useAlert(t('CRM.CONNECTIONS.HISTORY.STARTED', { name: connection.name }), {
+      status: 'success',
+    });
+    fetchConnections();
+  } catch (error) {
+    useAlert(
+      error.response?.data?.error || t('CRM.CONNECTIONS.HISTORY.ERROR'),
+      { status: 'error' }
+    );
+  }
+};
+
+const historyText = connection => {
+  const history = connection.history_import;
+  if (!history) return '';
+  const counts = { chats: history.chats || 0, messages: history.messages || 0 };
+  if (history.status === 'completed') {
+    return t('CRM.CONNECTIONS.HISTORY.DONE', {
+      ...counts,
+      // eslint-disable-next-line no-use-before-define
+      date: formatDate(history.finished_at),
+    });
+  }
+  if (history.status === 'failed') return t('CRM.CONNECTIONS.HISTORY.FAILED');
+  return t('CRM.CONNECTIONS.HISTORY.RUNNING', counts);
 };
 
 const closeQr = () => {
@@ -86,7 +133,10 @@ const pollSession = async (connection, attempt = 0) => {
       useAlert(t('CRM.CONNECTIONS.CONNECTED', { name: connection.name }), {
         status: 'success',
       });
+      // A number connected for the first time brings its chats along.
+      const importAfter = qrSession.value?.importAfter;
       closeQr();
+      if (importAfter) importHistory(connection);
       return;
     }
     if (data.qr) {
@@ -108,32 +158,31 @@ const pollSession = async (connection, attempt = 0) => {
   pollTimer = setTimeout(() => pollSession(connection, attempt + 1), POLL_MS);
 };
 
+// Opens the QR window at once and fills it as soon as WhatsApp has a code;
+// the polling restarts a closed session, so nobody waits on the card.
 const reconnect = async connection => {
-  reconnecting.value = connection.id;
+  stopPolling();
+  qrSession.value = { connection, qr: null };
   try {
-    // A number already waiting for a scan only needs its current code.
-    const request =
-      connection.status === 'needs_qr'
-        ? crmAPI.getConnection(accountId.value, connection.id)
-        : crmAPI.reconnectConnection(accountId.value, connection.id);
+    const request = ['needs_qr', 'connecting'].includes(connection.status)
+      ? crmAPI.getConnection(accountId.value, connection.id)
+      : crmAPI.reconnectConnection(accountId.value, connection.id);
     const { data } = await request;
-    if (data.qr) {
-      qrSession.value = { connection, qr: data.qr };
-      pollSession(connection);
-    } else {
-      useAlert(
-        t('CRM.CONNECTIONS.RECONNECT_SUCCESS', { name: connection.name }),
-        { status: 'success' }
-      );
-      setTimeout(fetchConnections, 4000);
+    if (data.status === 'connected') {
+      useAlert(t('CRM.CONNECTIONS.CONNECTED', { name: connection.name }), {
+        status: 'success',
+      });
+      closeQr();
+      return;
     }
+    if (data.qr) qrSession.value = { ...qrSession.value, qr: data.qr };
+    pollSession(connection);
   } catch (error) {
+    closeQr();
     useAlert(
       error.response?.data?.error || t('CRM.CONNECTIONS.RECONNECT_ERROR'),
       { status: 'error' }
     );
-  } finally {
-    reconnecting.value = null;
   }
 };
 
@@ -143,8 +192,23 @@ const form = ref(null);
 const isSaving = ref(false);
 const isDeleting = ref(false);
 
+const showWizard = ref(false);
+
 const addNumber = () => {
-  form.value = { name: '', team_id: '' };
+  showWizard.value = true;
+};
+
+// The new number is saved: show its QR code and import its chats once it
+// connects.
+const onNumberCreated = async data => {
+  showWizard.value = false;
+  await fetchConnections();
+  const connection = connections.value.find(item => item.id === data.id) || {
+    id: data.id,
+    name: data.name,
+  };
+  qrSession.value = { connection, qr: data.qr || null, importAfter: true };
+  pollSession(connection);
 };
 
 const openSettings = connection => {
@@ -152,6 +216,7 @@ const openSettings = connection => {
     id: connection.id,
     name: connection.name,
     team_id: connection.team?.id || '',
+    owner_id: connection.owner?.id || '',
     canManage: connection.can_manage,
     hasConversations: Boolean(connection.last_activity_at),
   };
@@ -168,7 +233,7 @@ const advancedSettings = () =>
   });
 
 const saveForm = async () => {
-  const { id, name, team_id: teamId } = form.value;
+  const { id, name, team_id: teamId, owner_id: ownerId } = form.value;
   if (!name.trim()) {
     useAlert(t('CRM.CONNECTIONS.NAME_REQUIRED'), { status: 'warning' });
     return;
@@ -179,6 +244,7 @@ const saveForm = async () => {
       await crmAPI.updateConnection(accountId.value, id, {
         name: name.trim(),
         team_id: teamId || null,
+        owner_id: ownerId || null,
       });
       useAlert(t('CRM.CONNECTIONS.SAVED'), { status: 'success' });
       closeForm();
@@ -196,7 +262,7 @@ const saveForm = async () => {
       name: name.trim(),
     };
     // The QR code may take a few seconds to exist; polling picks it up.
-    qrSession.value = { connection, qr: data.qr || null };
+    qrSession.value = { connection, qr: data.qr || null, importAfter: true };
     pollSession(connection);
   } catch (error) {
     useAlert(error.response?.data?.error || t('CRM.CONNECTIONS.SAVE_ERROR'), {
@@ -308,8 +374,12 @@ const canReconnect = connection =>
 onMounted(() => {
   fetchConnections();
   store.dispatch('teams/get');
+  store.dispatch('agents/get');
 });
-onBeforeUnmount(stopPolling);
+onBeforeUnmount(() => {
+  stopPolling();
+  clearTimeout(importTimer);
+});
 </script>
 
 <template>
@@ -336,9 +406,10 @@ onBeforeUnmount(stopPolling);
 
     <div class="grid gap-3 mt-6 sm:grid-cols-2 xl:grid-cols-4">
       <article
-        v-for="card in summary"
+        v-for="(card, index) in summary"
         :key="card.key"
-        class="p-4 border rounded-xl border-n-weak bg-n-solid-1"
+        class="p-4 border rounded-xl border-n-weak bg-n-solid-1 alvo-rise alvo-card"
+        :style="{ '--alvo-delay': `${index * 60}ms` }"
       >
         <div class="flex items-center gap-2 text-sm text-n-slate-11">
           <span class="size-4" :class="card.icon" />
@@ -404,9 +475,10 @@ onBeforeUnmount(stopPolling);
     </div>
     <div v-else class="grid gap-3 mt-6 lg:grid-cols-2">
       <article
-        v-for="connection in filtered"
+        v-for="(connection, index) in filtered"
         :key="connection.id"
-        class="flex flex-col gap-4 p-5 border rounded-xl border-n-weak bg-n-solid-1"
+        class="flex flex-col gap-4 p-5 border rounded-xl border-n-weak bg-n-solid-1 alvo-rise alvo-card"
+        :style="{ '--alvo-delay': `${240 + index * 60}ms` }"
       >
         <header class="flex items-start justify-between gap-3">
           <div class="flex items-start min-w-0 gap-3">
@@ -466,6 +538,14 @@ onBeforeUnmount(stopPolling);
           </div>
           <div>
             <dt class="text-xs text-n-slate-11">
+              {{ $t('CRM.CONNECTIONS.OWNER') }}
+            </dt>
+            <dd class="mt-0.5 text-n-slate-12 truncate">
+              {{ connection.owner?.name || $t('CRM.CONNECTIONS.NO_OWNER') }}
+            </dd>
+          </div>
+          <div>
+            <dt class="text-xs text-n-slate-11">
               {{ $t('CRM.CONNECTIONS.TEAM') }}
             </dt>
             <dd class="mt-0.5 text-n-slate-12 truncate">
@@ -498,20 +578,51 @@ onBeforeUnmount(stopPolling);
           </div>
         </dl>
 
+        <p
+          v-if="connection.history_import"
+          class="flex items-center gap-2 -mt-1 text-xs text-n-slate-11"
+        >
+          <span
+            class="size-4 shrink-0"
+            :class="
+              ['queued', 'running'].includes(connection.history_import.status)
+                ? 'i-lucide-loader-circle animate-spin'
+                : connection.history_import.status === 'failed'
+                  ? 'i-lucide-circle-alert text-n-ruby-11'
+                  : 'i-lucide-history text-n-teal-11'
+            "
+          />
+          {{ historyText(connection) }}
+        </p>
+
         <footer
           class="flex flex-wrap justify-end gap-2 pt-4 border-t border-n-weak"
         >
           <Button
+            v-if="
+              connection.provider === 'wppconnect' &&
+              connection.status === 'connected'
+            "
+            icon="i-lucide-history"
+            size="sm"
+            variant="faded"
+            color="slate"
+            :disabled="
+              ['queued', 'running'].includes(connection.history_import?.status)
+            "
+            :label="$t('CRM.CONNECTIONS.HISTORY.IMPORT')"
+            @click="importHistory(connection)"
+          />
+          <Button
             v-if="canReconnect(connection)"
             :icon="
-              connection.status === 'needs_qr'
+              ['needs_qr', 'connecting'].includes(connection.status)
                 ? 'i-lucide-qr-code'
                 : 'i-lucide-plug-zap'
             "
             size="sm"
-            :is-loading="reconnecting === connection.id"
             :label="
-              connection.status === 'needs_qr'
+              ['needs_qr', 'connecting'].includes(connection.status)
                 ? $t('CRM.CONNECTIONS.SHOW_QR')
                 : $t('CRM.CONNECTIONS.RECONNECT')
             "
@@ -528,6 +639,13 @@ onBeforeUnmount(stopPolling);
         </footer>
       </article>
     </div>
+
+    <ConnectNumberWizard
+      v-if="showWizard"
+      :account-id="accountId"
+      @close="showWizard = false"
+      @created="onNumberCreated"
+    />
 
     <woot-modal :show="!!form" :on-close="closeForm">
       <form v-if="form" class="crm-modal-form" @submit.prevent="saveForm">
@@ -563,6 +681,18 @@ onBeforeUnmount(stopPolling);
           </select>
         </label>
         <p class="crm-form-help">{{ $t('CRM.CONNECTIONS.TEAM_HELP') }}</p>
+        <label v-if="form.id">
+          {{ $t('CRM.CONNECTIONS.OWNER') }}
+          <select v-model="form.owner_id" :disabled="!form.canManage">
+            <option value="">{{ $t('CRM.CONNECTIONS.NO_OWNER') }}</option>
+            <option v-for="agent in agents" :key="agent.id" :value="agent.id">
+              {{ agent.name }}
+            </option>
+          </select>
+        </label>
+        <p v-if="form.id" class="crm-form-help">
+          {{ $t('CRM.CONNECTIONS.OWNER_HELP') }}
+        </p>
         <p
           v-if="form.id && !form.canManage"
           class="p-3 text-xs rounded-lg bg-n-amber-2 text-n-amber-11"

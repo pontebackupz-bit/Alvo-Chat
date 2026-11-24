@@ -245,6 +245,12 @@
       "DARK_MODE": "Dark",
       "SYSTEM_MODE": "System",
       "SNOOZE_NOTIFICATION": "Snooze Notification"
+    },
+    "FOOTER": {
+      "SELECT": "select",
+      "NAVIGATE": "navigate",
+      "CLOSE": "close",
+      "BACK": "back"
     }
   },
   "DASHBOARD_APPS": {

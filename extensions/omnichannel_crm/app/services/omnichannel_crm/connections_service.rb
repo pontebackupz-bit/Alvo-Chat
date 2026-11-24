@@ -92,8 +92,17 @@ class OmnichannelCrm::ConnectionsService
       created_by: creator && { id: creator.id, name: creator.name, email: creator.email },
       created_at: inbox.created_at, open_conversations: open_conversations,
       last_activity_at: @account.conversations.where(inbox_id: inbox.id).maximum(:last_activity_at),
-      can_manage: registration.can_manage?(inbox)
+      can_manage: registration.can_manage?(inbox),
+      history_import: attributes['history_import'],
+      owner: owner_for(attributes['owner_id'])
     }
+  end
+
+  def owner_for(owner_id)
+    return if owner_id.blank?
+
+    owner = (@owners ||= {})[owner_id] ||= @account.users.find_by(id: owner_id)
+    owner && { id: owner.id, name: owner.name }
   end
 
   def registration

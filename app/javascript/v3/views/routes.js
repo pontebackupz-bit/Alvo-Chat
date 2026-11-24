@@ -1,6 +1,5 @@
 import { frontendURL } from 'dashboard/helper/URLHelper';
 
-import Landing from './landing/Index.vue';
 import Login from './login/Index.vue';
 import SamlLogin from './login/Saml.vue';
 import Signup from './auth/signup/Index.vue';
@@ -10,10 +9,11 @@ import VerifyEmail from './auth/verify-email/Index.vue';
 import PasswordEdit from './auth/password/Edit.vue';
 
 export default [
+  // There is no public site: the root opens the login, which sends people
+  // already signed in straight to the dashboard.
   {
     path: '/',
-    name: 'landing',
-    component: Landing,
+    redirect: frontendURL('login'),
   },
   {
     path: frontendURL('login'),

@@ -6,7 +6,7 @@ import {
 describe('faviconHelper', () => {
   beforeEach(() => {
     document.head.innerHTML = `
-      <link class="favicon" data-default-href="/brand-assets/alvorada-icon-16x16.png?v=20260804" data-badge-href="/brand-assets/alvorada-icon-badge-16x16.png?v=20260804" href="/brand-assets/alvorada-icon-16x16.png?v=20260804" />
+      <link class="favicon" data-default-href="/brand-assets/alvorada-icon-16x16.png?v=20261124" data-badge-href="/brand-assets/alvorada-icon-badge-16x16.png?v=20261124" href="/brand-assets/alvorada-icon-16x16.png?v=20261124" />
     `;
   });
 
@@ -14,7 +14,7 @@ describe('faviconHelper', () => {
     showBadgeOnFavicon();
 
     expect(document.querySelector('.favicon').href).toContain(
-      '/brand-assets/alvorada-icon-badge-16x16.png?v=20260804'
+      '/brand-assets/alvorada-icon-badge-16x16.png?v=20261124'
     );
   });
 
@@ -28,7 +28,7 @@ describe('faviconHelper', () => {
     document.dispatchEvent(new Event('visibilitychange'));
 
     expect(document.querySelector('.favicon').href).toContain(
-      '/brand-assets/alvorada-icon-16x16.png?v=20260804'
+      '/brand-assets/alvorada-icon-16x16.png?v=20261124'
     );
   });
 });

@@ -1,5 +1,8 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
+import { LocalStorage } from 'shared/helpers/localStorage';
+import { LOCAL_STORAGE_KEYS } from 'dashboard/constants/localStorage';
+import { setColorTheme } from 'dashboard/helper/themeHelper';
 import Auth from 'dashboard/api/auth';
 import { useMapGetter } from 'dashboard/composables/store';
 import { useI18n } from 'vue-i18n';
@@ -50,6 +53,16 @@ const toggleChatSupport = () => {
   }
 };
 
+// One click between AlvoChat's dark theme and the light one; the choice is
+// kept on this browser.
+const isDarkTheme = ref(document.body.classList.contains('dark'));
+const toggleTheme = () => {
+  const next = isDarkTheme.value ? 'light' : 'dark';
+  LocalStorage.set(LOCAL_STORAGE_KEYS.COLOR_SCHEME, next);
+  setColorTheme(window.matchMedia('(prefers-color-scheme: dark)').matches);
+  isDarkTheme.value = document.body.classList.contains('dark');
+};
+
 const menuItems = computed(() => {
   return [
     {
@@ -78,12 +91,11 @@ const menuItems = computed(() => {
     {
       show: true,
       showOnCustomBrandedInstance: true,
-      label: t('SIDEBAR_ITEMS.APPEARANCE'),
-      icon: 'i-lucide-palette',
-      click: () => {
-        const ninja = document.querySelector('ninja-keys');
-        ninja.open({ parent: 'appearance_settings' });
-      },
+      label: isDarkTheme.value
+        ? t('SIDEBAR_ITEMS.USE_LIGHT_THEME')
+        : t('SIDEBAR_ITEMS.USE_DARK_THEME'),
+      icon: isDarkTheme.value ? 'i-lucide-sun' : 'i-lucide-moon',
+      click: toggleTheme,
     },
     {
       show: true,
