@@ -27,7 +27,7 @@ class OmnichannelCrm::BaileysMessageDeliveryService
     return [bridge.send_message(session_id, recipient, text, nil, **send_options)] if attachments.blank?
 
     attachments.map.with_index do |attachment, index|
-      bridge.send_message(session_id, recipient, index.zero? ? text : '', attachment, **send_options)
+      bridge.send_message(session_id, recipient, index.zero? ? caption(attachment) : '', attachment, **send_options)
     end
   end
 
@@ -35,8 +35,20 @@ class OmnichannelCrm::BaileysMessageDeliveryService
     {}
   end
 
-  # WhatsApp has no rating widget: the CSAT survey asks for a 1-5 reply.
+  # Replies from an agent start with the agent's name (see AgentSignature).
   def text
+    OmnichannelCrm::AgentSignature.apply(body, OmnichannelCrm::AgentSignature.name_for(message))
+  end
+
+  # Voice notes have no caption on WhatsApp, so they go without the name.
+  def caption(attachment)
+    return body.to_s if attachment.file_type == 'audio' && body.blank?
+
+    text
+  end
+
+  # WhatsApp has no rating widget: the CSAT survey asks for a 1-5 reply.
+  def body
     return message.content unless message.input_csat?
 
     [message.content, OmnichannelCrm::CsatReplyService::INSTRUCTIONS].compact_blank.join("\n\n")

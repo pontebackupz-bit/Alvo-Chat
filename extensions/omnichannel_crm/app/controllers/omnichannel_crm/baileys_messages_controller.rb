@@ -94,7 +94,9 @@ class OmnichannelCrm::BaileysMessagesController < ActionController::API
   def pending_outgoing_message?
     pending = Message.outgoing.where(conversation_id: contact_inbox.conversations.select(:id), source_id: nil, created_at: 2.minutes.ago..)
                      .where.not(status: :failed)
-    pending = pending.where(content: content) if content.present?
+    # The echo of an agent reply carries the agent's name above the text.
+    unsigned = OmnichannelCrm::AgentSignature.strip(content)
+    pending = pending.where(content: [content, unsigned].uniq) if unsigned.present?
     pending.exists?
   end
 
