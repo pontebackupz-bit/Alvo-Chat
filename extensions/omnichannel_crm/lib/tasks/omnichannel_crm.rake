@@ -6,11 +6,17 @@ namespace :omnichannel_crm do
     OmnichannelCrm::RoleDefaults.install(Account.find(account_id))
   end
 
-  desc 'Bring the WhatsApp profile pictures of contacts that have none'
+  desc 'Bring the WhatsApp profile pictures of contacts that have none (FORCE=1 asks again for every one)'
   task whatsapp_avatars: :environment do
+    force = ENV['FORCE'].present?
     queued = 0
     Inbox.where(channel_type: 'Channel::Api').find_each do |inbox|
       next unless OmnichannelCrm::ConnectionsService.provider(inbox) == 'wppconnect'
+
+      unless OmnichannelCrm::WhatsappHistoryImport.online?(inbox)
+        puts "#{inbox.name}: número desconectado ou ainda conectando. Rode de novo quando estiver conectado."
+        next
+      end
 
       inbox.contact_inboxes.includes(contact: { avatar_attachment: :blob }).find_each do |contact_inbox|
         contact = contact_inbox.contact
@@ -18,11 +24,7 @@ namespace :omnichannel_crm do
 
         source = contact_inbox.source_id.to_s
         jid = OmnichannelCrm::WhatsappGroup.jid?(source) ? source : contact.phone_number.to_s.gsub(/\D/, '').presence
-        next unless jid
-
-        before = contact.additional_attributes.to_h['whatsapp_avatar_checked_at']
-        OmnichannelCrm::WhatsappAvatarJob.enqueue(contact, inbox, jid)
-        queued += 1 if contact.additional_attributes.to_h['whatsapp_avatar_checked_at'] != before
+        queued += 1 if jid && OmnichannelCrm::WhatsappAvatarJob.enqueue(contact, inbox, jid, force: force)
       end
     end
     puts "#{queued} foto(s) de perfil solicitada(s) ao WhatsApp."
