@@ -2,7 +2,8 @@ class OmnichannelCrm::WppconnectMessageDeliveryService < OmnichannelCrm::Baileys
   private
 
   def deliverable?
-    channel.is_a?(Channel::Api) && channel.additional_attributes['provider'] == 'wppconnect' &&
+    # Private notes never leave AlvoChat.
+    !message.private? && channel.is_a?(Channel::Api) && channel.additional_attributes['provider'] == 'wppconnect' &&
       (message.content.present? || message.attachments.present?) && message.source_id.blank?
   end
 

@@ -18,7 +18,8 @@ class OmnichannelCrm::BaileysMessageDeliveryService
   attr_reader :message
 
   def deliverable?
-    channel.is_a?(Channel::Api) && channel.additional_attributes['provider'] == 'baileys' &&
+    # Private notes never leave AlvoChat.
+    !message.private? && channel.is_a?(Channel::Api) && channel.additional_attributes['provider'] == 'baileys' &&
       (message.content.present? || message.attachments.present?) && message.source_id.blank?
   end
 

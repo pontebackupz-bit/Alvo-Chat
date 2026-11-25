@@ -6,6 +6,7 @@ class OmnichannelCrm::BaileysMessageDeliveryJob < ApplicationJob
 
   def perform(message_id, file_attempt = 0, reconnect_attempt = 0)
     message = Message.find(message_id)
+    return if message.private?
     return unless message.outgoing? || OmnichannelCrm::CsatReplyService.bridge_survey?(message)
 
     delivery_service(message).perform

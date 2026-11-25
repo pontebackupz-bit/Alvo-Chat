@@ -22,7 +22,8 @@ class OmnichannelCrm::ChatwootEventListener < BaseListener
 
   def message_created(event)
     message, account = extract_message_and_account(event)
-    if message.outgoing? || OmnichannelCrm::CsatReplyService.bridge_survey?(message)
+    # Private notes are for the team only and never go to WhatsApp.
+    if !message.private? && (message.outgoing? || OmnichannelCrm::CsatReplyService.bridge_survey?(message))
       OmnichannelCrm::BaileysMessageDeliveryJob.perform_later(message.id)
     end
     route_to_workflow_run(message)

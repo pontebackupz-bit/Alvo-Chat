@@ -51,6 +51,16 @@ namespace :omnichannel_crm do
       puts "Conversa #{conversation.display_id}: #{e.message}"
     end
     puts "#{fixed} aviso(s) do WhatsApp corrigido(s)."
+
+    # The same file attached twice to one imported message.
+    removed = 0
+    imported = Message.where("content_attributes::text LIKE '%imported_from_whatsapp%'").select(:id)
+    Attachment.where(message_id: imported).where.not(file_type: %i[location contact])
+              .includes(file_attachment: :blob).group_by(&:message_id).each_value do |attachments|
+      attachments.select { |attachment| attachment.file.attached? }.group_by { |attachment| attachment.file.blob.checksum }
+                 .each_value { |same| same.sort_by(&:id).drop(1).each { |duplicate| duplicate.destroy! && removed += 1 } }
+    end
+    puts "#{removed} anexo(s) duplicado(s) removido(s)."
   end
 
   desc 'Turn WhatsApp contacts received as raw vCard text into contact cards'

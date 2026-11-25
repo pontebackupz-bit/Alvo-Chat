@@ -44,7 +44,18 @@ class OmnichannelCrm::WhatsappHistoryMediaJob < ApplicationJob
     message&.update_columns(content_attributes: message.content_attributes.to_h.merge('media_unavailable' => true))
   end
 
+  # Two imports of the same chat running together (e.g. the button pressed
+  # twice) both found the message without a file and attached it twice: the
+  # row lock makes the second one see the first file.
   def attach(message, bytes, mime_type, details)
+    message.with_lock do
+      next if message.attachments.exists?
+
+      attach_file(message, bytes, mime_type, details)
+    end
+  end
+
+  def attach_file(message, bytes, mime_type, details)
     type = details['type'].to_s
     attachment = message.attachments.new(account_id: message.account_id, file_type: file_type(mime_type, type))
     attachment.meta = { is_voice_message: true } if type == 'ptt'
