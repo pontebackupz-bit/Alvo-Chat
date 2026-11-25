@@ -1,12 +1,12 @@
 # Agent name shown above replies sent to WhatsApp, so the contact knows who
 # is answering:
 #
-#   ```Maria Souza```
+#   *```Maria Souza```*  (bold monospace)
 #   Bom dia!
 #
 # Only the WhatsApp copy carries the name; AlvoChat keeps the message as typed.
 module OmnichannelCrm::AgentSignature
-  PREFIX = /\A```[^`\n]{1,80}```\n/
+  PREFIX = /\A\*?```[^`\n]{1,80}```\*?\n/
 
   module_function
 
@@ -20,7 +20,7 @@ module OmnichannelCrm::AgentSignature
   def apply(text, name)
     return text if name.blank?
 
-    label = "```#{name.to_s.delete('`').squish.truncate(80)}```"
+    label = "*```#{name.to_s.delete('`*').squish.truncate(80)}```*"
     text.present? ? "#{label}\n#{text}" : label
   end
 
