@@ -569,6 +569,7 @@
       "CREDENTIALS_READY": "Credenciais prontas para entrega",
       "COPY_CREDENTIALS": "Copiar credenciais",
       "CREDENTIALS_COPIED": "Credenciais copiadas.",
+      "CREDENTIALS_COPY_FAILED": "Não foi possível copiar. Selecione o e-mail e a senha e copie manualmente.",
       "PROFILE_SELLER": "Vendedor",
       "PROFILE_ADMINISTRATOR_HELP": "Acesso total: configurações, usuários e todas as conversas.",
       "PROFILE_SUPERVISOR_HELP": "Vê todas as conversas e indicadores das equipes que supervisiona.",

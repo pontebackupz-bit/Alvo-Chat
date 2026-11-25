@@ -266,11 +266,35 @@ const accessProfiles = computed(() =>
 
 const accessProfileLabel = profile =>
   t(`CRM.ACCESS.PROFILE_${profile?.toUpperCase() || 'AGENT'}`);
-const copyCredentials = async () => {
-  await navigator.clipboard.writeText(
-    `${t('CRM.ACCESS.USER_EMAIL')}: ${credentials.value.login}\n${t('CRM.ACCESS.TEMPORARY_PASSWORD')}: ${credentials.value.temporary_password}`
+// navigator.clipboard only exists on HTTPS (or localhost). On a plain HTTP
+// address the text is copied through a hidden field placed inside the open
+// dialog, since the dialog keeps focus away from the rest of the page.
+const copyWithField = (text, anchor) => {
+  const field = document.createElement('textarea');
+  field.value = text;
+  field.setAttribute('readonly', '');
+  field.style.cssText = 'position:fixed;top:0;left:0;opacity:0;';
+  const host = anchor?.closest('dialog') || document.body;
+  host.appendChild(field);
+  field.select();
+  const copied = document.execCommand('copy');
+  host.removeChild(field);
+  return copied;
+};
+const copyCredentials = async event => {
+  const text = `${t('CRM.ACCESS.USER_EMAIL')}: ${credentials.value.login}\n${t('CRM.ACCESS.TEMPORARY_PASSWORD')}: ${credentials.value.temporary_password}`;
+  let copied = false;
+  try {
+    await navigator.clipboard.writeText(text);
+    copied = true;
+  } catch {
+    copied = copyWithField(text, event?.currentTarget);
+  }
+  useAlert(
+    copied
+      ? t('CRM.ACCESS.CREDENTIALS_COPIED')
+      : t('CRM.ACCESS.CREDENTIALS_COPY_FAILED')
   );
-  useAlert(t('CRM.ACCESS.CREDENTIALS_COPIED'));
 };
 const closePasswordModal = () => {
   showPasswordModal.value = false;
