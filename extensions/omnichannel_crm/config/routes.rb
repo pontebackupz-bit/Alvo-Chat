@@ -46,6 +46,11 @@ OmnichannelCrm::Engine.routes.draw do
     resources :scheduled_messages, only: [:index, :create, :destroy]
     resource :whatsapp_history, only: [:show, :create], path: 'conversations/:conversation_id/whatsapp_history',
                                 controller: 'conversation_histories'
+    post 'conversations/start', to: 'conversation_starts#create'
+    get 'contact_picture', to: 'conversation_starts#picture'
+    post 'attachments/:attachment_id/transcription', to: 'audio_transcriptions#create'
+    post 'conversations/:conversation_id/rich_messages', to: 'rich_messages#create'
+    resource :copilot, only: [:create], path: 'conversations/:conversation_id/copilot', controller: 'conversation_copilots'
     resources :connections, only: [:index, :show, :create, :update, :destroy] do
       post :reconnect, on: :member
       post :import_history, on: :member

@@ -799,6 +799,80 @@
       "BY": "by {name}",
       "EMPTY": "Nothing here.",
       "FETCH_ERROR": "Could not load the scheduled messages."
+    },
+    "COPILOT": {
+      "TOOLTIP": "Ask Copilot",
+      "TITLE": "Ask Copilot",
+      "DESCRIPTION": "Ask anything about this conversation. The AI reads the messages and answers.",
+      "PLACEHOLDER": "E.g. what is the customer asking for?",
+      "ASK": "Ask",
+      "USE": "Use in reply",
+      "THINKING": "Thinking...",
+      "ERROR": "Copilot could not answer right now. Try again.",
+      "SUGGESTIONS": {
+        "WANTS": "What does the customer want?",
+        "PENDING": "What is still pending in this conversation?",
+        "REPLY": "Write a reply to the customer"
+      }
+    }
+  },
+  "WHATSAPP_EXTRAS": {
+    "TOOLTIP": "Location, contact, poll or list",
+    "SENT": "Message sent.",
+    "ERROR": "Could not send. Try again.",
+    "CANCEL": "Cancel",
+    "SEND": "Send",
+    "LOCATION": {
+      "MENU": "Location",
+      "TITLE": "Send location",
+      "DESCRIPTION": "The customer receives a map with the pin.",
+      "MY_LOCATION": "Use my current location",
+      "LINK": "Google Maps link (optional)",
+      "LINK_PLACEHOLDER": "Paste the link or coordinates",
+      "LAT": "Latitude",
+      "LNG": "Longitude",
+      "NAME": "Place name",
+      "NAME_PLACEHOLDER": "E.g. Head office",
+      "ADDRESS": "Address",
+      "PREVIEW": "Check on the map",
+      "NO_GPS": "Could not get your location. Paste a Google Maps link.",
+      "LAT_PLACEHOLDER": "-15.793889",
+      "LNG_PLACEHOLDER": "-47.882778"
+    },
+    "CONTACT": {
+      "MENU": "Contact",
+      "TITLE": "Send contact",
+      "DESCRIPTION": "The customer receives a contact card.",
+      "SEARCH": "Search contacts",
+      "SEARCH_PLACEHOLDER": "Name or phone",
+      "NAME": "Name",
+      "PHONE": "Phone (with area code)",
+      "PHONE_PLACEHOLDER": "+55 61 99999-9999"
+    },
+    "POLL": {
+      "MENU": "Poll",
+      "TITLE": "Create poll",
+      "DESCRIPTION": "A WhatsApp poll: the customer taps an option.",
+      "QUESTION": "Question",
+      "OPTIONS": "Options",
+      "OPTION": "Option {number}",
+      "ADD_OPTION": "Add option",
+      "MULTIPLE": "Allow more than one option"
+    },
+    "LIST": {
+      "MENU": "Option list",
+      "TITLE": "Send option list",
+      "DESCRIPTION": "A message with a button that opens a list to choose from, like a form.",
+      "TEXT": "Message text",
+      "BUTTON": "Button text",
+      "BUTTON_PLACEHOLDER": "See options",
+      "SECTION": "List title",
+      "SECTION_PLACEHOLDER": "Options",
+      "ROWS": "Options",
+      "ROW_TITLE": "Option {number}",
+      "ROW_DESCRIPTION": "Description (optional)",
+      "ADD_ROW": "Add option",
+      "NOTE": "WhatsApp may not show lists on some phones for numbers that are not WhatsApp Business. For simple questions, prefer a poll."
     }
   }
 }

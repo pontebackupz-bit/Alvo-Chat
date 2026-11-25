@@ -804,6 +804,80 @@
       "BY": "por {name}",
       "EMPTY": "Nada por aqui.",
       "FETCH_ERROR": "Não foi possível carregar as mensagens agendadas."
+    },
+    "COPILOT": {
+      "TOOLTIP": "Perguntar ao Copiloto",
+      "TITLE": "Perguntar ao Copiloto",
+      "DESCRIPTION": "Pergunte qualquer coisa sobre esta conversa. A IA lê as mensagens e responde.",
+      "PLACEHOLDER": "Ex.: o que o cliente está pedindo?",
+      "ASK": "Perguntar",
+      "USE": "Usar na resposta",
+      "THINKING": "Pensando...",
+      "ERROR": "O Copiloto não conseguiu responder agora. Tente de novo.",
+      "SUGGESTIONS": {
+        "WANTS": "O que o cliente quer?",
+        "PENDING": "O que ficou pendente nesta conversa?",
+        "REPLY": "Escreva uma resposta para o cliente"
+      }
+    }
+  },
+  "WHATSAPP_EXTRAS": {
+    "TOOLTIP": "Localização, contato, enquete ou lista",
+    "SENT": "Mensagem enviada.",
+    "ERROR": "Não foi possível enviar. Tente de novo.",
+    "CANCEL": "Cancelar",
+    "SEND": "Enviar",
+    "LOCATION": {
+      "MENU": "Localização",
+      "TITLE": "Enviar localização",
+      "DESCRIPTION": "O cliente recebe um mapa com o ponto marcado.",
+      "MY_LOCATION": "Usar minha localização atual",
+      "LINK": "Link do Google Maps (opcional)",
+      "LINK_PLACEHOLDER": "Cole aqui o link ou as coordenadas",
+      "LAT": "Latitude",
+      "LNG": "Longitude",
+      "NAME": "Nome do local",
+      "NAME_PLACEHOLDER": "Ex.: Comercial Alvorada - Matriz",
+      "ADDRESS": "Endereço",
+      "PREVIEW": "Conferir no mapa",
+      "NO_GPS": "Não foi possível obter sua localização. Cole o link do Google Maps.",
+      "LAT_PLACEHOLDER": "-15.793889",
+      "LNG_PLACEHOLDER": "-47.882778"
+    },
+    "CONTACT": {
+      "MENU": "Contato",
+      "TITLE": "Enviar contato",
+      "DESCRIPTION": "O cliente recebe um cartão de contato que pode salvar ou abrir no WhatsApp.",
+      "SEARCH": "Buscar nos contatos",
+      "SEARCH_PLACEHOLDER": "Nome ou telefone",
+      "NAME": "Nome",
+      "PHONE": "Telefone (com DDD)",
+      "PHONE_PLACEHOLDER": "+55 61 99999-9999"
+    },
+    "POLL": {
+      "MENU": "Enquete",
+      "TITLE": "Criar enquete",
+      "DESCRIPTION": "Uma enquete do WhatsApp: o cliente toca na opção e você vê o voto.",
+      "QUESTION": "Pergunta",
+      "OPTIONS": "Opções",
+      "OPTION": "Opção {number}",
+      "ADD_OPTION": "Adicionar opção",
+      "MULTIPLE": "Permitir escolher mais de uma opção"
+    },
+    "LIST": {
+      "MENU": "Lista de opções",
+      "TITLE": "Enviar lista de opções",
+      "DESCRIPTION": "Uma mensagem com botão que abre a lista para o cliente escolher, como um formulário.",
+      "TEXT": "Texto da mensagem",
+      "BUTTON": "Texto do botão",
+      "BUTTON_PLACEHOLDER": "Ver opções",
+      "SECTION": "Título da lista",
+      "SECTION_PLACEHOLDER": "Opções",
+      "ROWS": "Opções",
+      "ROW_TITLE": "Opção {number}",
+      "ROW_DESCRIPTION": "Descrição (opcional)",
+      "ADD_ROW": "Adicionar opção",
+      "NOTE": "O WhatsApp pode não mostrar listas em alguns aparelhos para números que não são WhatsApp Business. Para perguntas simples, prefira a enquete."
     }
   }
 }

@@ -11,6 +11,9 @@ import { timeStampAppendedURL } from 'dashboard/helper/URLHelper';
 import { downloadFile } from '@chatwoot/utils';
 import { useEmitter } from 'dashboard/composables/emitter';
 import { emitter } from 'shared/helpers/mitt';
+import { useAlert } from 'dashboard/composables';
+import { useMapGetter } from 'dashboard/composables/store';
+import crmAPI from 'dashboard/api/crm';
 
 const { attachment } = defineProps({
   attachment: {
@@ -33,11 +36,18 @@ const timeStampURL = computed(() => {
 
 const TRANSCRIPT_PREVIEW_LENGTH = 200;
 const isTranscriptExpanded = ref(false);
+// Filled by "Transcrever" (Groq Whisper) before the message update arrives.
+const requestedTranscript = ref('');
+const isTranscribing = ref(false);
+const accountId = useMapGetter('getCurrentAccountId');
+const transcript = computed(
+  () => requestedTranscript.value || attachment.transcribedText || ''
+);
 const isTranscriptLong = computed(
-  () => (attachment.transcribedText?.length || 0) > TRANSCRIPT_PREVIEW_LENGTH
+  () => transcript.value.length > TRANSCRIPT_PREVIEW_LENGTH
 );
 const displayedTranscript = computed(() => {
-  const text = attachment.transcribedText || '';
+  const text = transcript.value;
   if (!isTranscriptLong.value || isTranscriptExpanded.value) return text;
   return `${text.slice(0, TRANSCRIPT_PREVIEW_LENGTH).trimEnd()}…`;
 });
@@ -135,8 +145,14 @@ const playOrPause = () => {
   } else {
     // Emit event to pause all other audio
     emitter.emit('pause_playing_audio', uid);
-    audioPlayer.value.play();
     isPlaying.value = true;
+    // A source that failed (e.g. an expired address) is loaded again once.
+    audioPlayer.value.play().catch(() => {
+      audioPlayer.value.load();
+      audioPlayer.value.play().catch(() => {
+        isPlaying.value = false;
+      });
+    });
   }
 };
 
@@ -153,6 +169,22 @@ const changePlaybackSpeed = () => {
   const nextIndex = (currentIndex + 1) % speeds.length;
   playbackSpeed.value = speeds[nextIndex];
   audioPlayer.value.playbackRate = playbackSpeed.value;
+};
+
+const transcribe = async () => {
+  if (isTranscribing.value || !attachment.id) return;
+  isTranscribing.value = true;
+  try {
+    const { data } = await crmAPI.transcribeAudio(
+      accountId.value,
+      attachment.id
+    );
+    requestedTranscript.value = data.text;
+  } catch (error) {
+    useAlert(error.response?.data?.error);
+  } finally {
+    isTranscribing.value = false;
+  }
 };
 
 const downloadAudio = async () => {
@@ -223,7 +255,7 @@ const downloadAudio = async () => {
     </div>
 
     <div
-      v-if="attachment.transcribedText && showTranscribedText"
+      v-if="transcript && showTranscribedText"
       class="text-n-slate-12 p-3 text-sm bg-n-alpha-1 rounded-lg w-full break-words"
     >
       {{ displayedTranscript }}
@@ -239,5 +271,22 @@ const downloadAudio = async () => {
         }}
       </button>
     </div>
+    <button
+      v-else-if="showTranscribedText && attachment.id"
+      class="flex items-center self-start gap-1.5 px-2 py-1 text-xs font-medium border-0 rounded-md bg-transparent text-n-slate-11 hover:text-n-slate-12 hover:bg-n-alpha-2 disabled:opacity-60"
+      :disabled="isTranscribing"
+      @click="transcribe"
+    >
+      <Icon
+        class="size-3.5"
+        :class="{ 'animate-spin': isTranscribing }"
+        :icon="isTranscribing ? 'i-lucide-loader-circle' : 'i-lucide-captions'"
+      />
+      {{
+        isTranscribing
+          ? $t('CONVERSATION.AUDIO_TRANSCRIPTION.LOADING')
+          : $t('CONVERSATION.AUDIO_TRANSCRIPTION.ACTION')
+      }}
+    </button>
   </div>
 </template>

@@ -11,6 +11,7 @@ import SLACardLabel from './components/SLACardLabel.vue';
 import ConversationCallButton from './ConversationCallButton.vue';
 import WhatsappHistoryButton from './WhatsappHistoryButton.vue';
 import ScheduleMessageButton from './ScheduleMessageButton.vue';
+import AskCopilotButton from './AskCopilotButton.vue';
 import wootConstants from 'dashboard/constants/globals';
 import { conversationListPageURL } from 'dashboard/helper/URLHelper';
 import { snoozedReopenTime } from 'dashboard/helper/snoozeHelpers';
@@ -191,6 +192,7 @@ const copyConversationId = async () => {
       />
       <WhatsappHistoryButton :inbox="inbox" :chat="currentChat" />
       <ScheduleMessageButton :chat="currentChat" />
+      <AskCopilotButton :chat="currentChat" :inbox="inbox" />
       <ConversationCallButton :inbox="inbox" :chat="currentChat" />
       <MoreActions :conversation-id="currentChat.id" />
     </div>

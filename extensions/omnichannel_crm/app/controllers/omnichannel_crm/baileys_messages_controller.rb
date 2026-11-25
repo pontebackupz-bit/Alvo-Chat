@@ -17,6 +17,7 @@ class OmnichannelCrm::BaileysMessagesController < ActionController::API
     message = conversation.messages.build(message_attributes)
     attach_media(message)
     message.save!
+    OmnichannelCrm::AudioTranscriptionJob.enqueue_for(message)
     render json: { id: message.id }, status: :created
   end
 
@@ -130,11 +131,9 @@ class OmnichannelCrm::BaileysMessagesController < ActionController::API
     raise ActionController::BadRequest, 'Arquivo de mídia excede o limite permitido' if media_params[:data].bytesize > MAX_BASE64_MEDIA_BYTES
 
     attachment = build_attachment(message)
-    attachment.file.attach(
-      io: StringIO.new(Base64.strict_decode64(media_params[:data])),
-      filename: media_params[:file_name].presence || 'arquivo',
-      content_type: media_params[:mime_type].presence || 'application/octet-stream'
-    )
+    OmnichannelCrm::WhatsappMedia.attach(attachment.file, Base64.strict_decode64(media_params[:data]),
+                                         filename: media_params[:file_name].presence || 'arquivo',
+                                         mime: media_params[:mime_type])
   end
 
   def build_attachment(message)

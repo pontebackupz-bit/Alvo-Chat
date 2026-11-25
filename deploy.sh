@@ -76,6 +76,8 @@ echo "Versão: $previous_commit -> $current_commit"
 git log --oneline "$previous_commit..$current_commit" | head -n 20
 
 step "Gerando as imagens"
+# WhatsApp Web changes often: an old WPPConnect (WA-JS) stops sending messages.
+compose pull wppconnect
 compose build
 
 step "Subindo os containers"

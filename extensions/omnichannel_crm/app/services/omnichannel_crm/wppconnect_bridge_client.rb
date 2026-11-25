@@ -21,6 +21,20 @@ class OmnichannelCrm::WppconnectBridgeClient
     request(session_id, :post, "/api/#{session_id}/start-session", { waitQrCode: false })
   end
 
+  # Address of the WhatsApp profile picture of a person or group, if public.
+  def profile_pic_url(session_id, jid)
+    query = OmnichannelCrm::WhatsappGroup.jid?(jid) ? '?isGroup=true' : ''
+    response = request(session_id, :get, "/api/#{session_id}/profile-pic/#{CGI.escape(jid)}#{query}")
+    picture = response.is_a?(Hash) ? response['response'] : nil
+    picture.is_a?(Hash) ? (picture['eurl'].presence || picture['imgFull'].presence) : nil
+  end
+
+  # The `@lid` chat id WhatsApp uses for a phone number, when it has one.
+  def lid_for(session_id, phone)
+    contact = request(session_id, :get, "/api/#{session_id}/contact/pn-lid/#{CGI.escape(phone)}")
+    contact.dig('lid', '_serialized').presence
+  end
+
   def phone_number_for(session_id, phone_or_lid)
     contact = request(
       session_id,
@@ -89,6 +103,25 @@ class OmnichannelCrm::WppconnectBridgeClient
     response.fetch('response').first
   end
 
+  # Location, contact card, poll and option list. Each returns { 'id' => ... }.
+  def send_location(session_id, recipient, lat:, lng:, title: nil, address: nil, group: false)
+    rich_request(session_id, 'send-location', recipient, group, lat: lat.to_s, lng: lng.to_s, title: title, address: address)
+  end
+
+  def send_contact(session_id, recipient, phone:, name: nil, group: false)
+    rich_request(session_id, 'contact-vcard', recipient, group, contactsId: [phone], name: name)
+  end
+
+  def send_poll(session_id, recipient, name:, choices:, selectable_count: 1, group: false)
+    rich_request(session_id, 'send-poll-message', recipient, group, name: name, choices: choices,
+                                                                      options: { selectableCount: selectable_count })
+  end
+
+  def send_list(session_id, recipient, description:, button_text:, sections:, group: false)
+    rich_request(session_id, 'send-list-message', recipient, group, description: description, buttonText: button_text,
+                                                                      sections: sections)
+  end
+
   # WPPConnect only auto-downloads media for received messages, so media sent
   # from the connected phone must be fetched explicitly. Returns base64 and mimetype.
   def download_media(session_id, message_id)
@@ -96,6 +129,15 @@ class OmnichannelCrm::WppconnectBridgeClient
   end
 
   private
+
+  def rich_request(session_id, route, recipient, group, body)
+    ensure_connected!(session_id)
+    response = request(session_id, :post, "/api/#{session_id}/#{route}", { phone: [recipient], isGroup: group, isLid: false }.merge(body))
+    result = response.is_a?(Hash) ? response['response'] : response
+    result = result.first if result.is_a?(Array)
+    id = result.is_a?(Hash) ? (result['id'].is_a?(Hash) ? result['id']['_serialized'] : result['id']) : result
+    { 'id' => id.presence || "alvochat-#{SecureRandom.hex(8)}" }
+  end
 
   def ensure_connected!(session_id)
     response = session(session_id)

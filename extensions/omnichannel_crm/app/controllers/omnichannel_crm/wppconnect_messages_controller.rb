@@ -3,15 +3,36 @@ class OmnichannelCrm::WppconnectMessagesController < OmnichannelCrm::BaileysMess
   before_action :authenticate_wppconnect!
 
   def create
+    return mark_revoked if params[:event] == 'onrevokedmessage'
+    return mark_edited if params[:event] == 'onmessageedit'
     return head :accepted unless %w[onmessage onselfmessage].include?(params[:event])
     return head :accepted if phone_number.blank? && !group?
     return ignore_unavailable_media if media? && media_data.blank?
-    return ignore_empty_event if !media? && content.blank?
+    return ignore_empty_event if !media? && !vcard? && !location? && content.blank?
 
     super
   end
 
   private
+
+  # Deleted on WhatsApp ("apagar para todos"): the message stays in AlvoChat,
+  # flagged so the panel shows that it was deleted.
+  def mark_revoked
+    ref = params[:refId]
+    ref = ref[:_serialized] if ref.is_a?(ActionController::Parameters)
+    message = ref.present? && inbox.messages.find_by(source_id: ref.to_s)
+    OmnichannelCrm::WhatsappRevoke.mark(message) if message
+    head :ok
+  end
+
+  # Edited on WhatsApp: the original text stays, the new one is shown below.
+  def mark_edited
+    edited = params[:msg].is_a?(ActionController::Parameters) ? params[:msg] : ActionController::Parameters.new
+    ids = [params[:id], edited[:id]].map { |id| id.is_a?(ActionController::Parameters) ? id[:_serialized] : id }.compact_blank
+    message = ids.lazy.filter_map { |id| inbox.messages.find_by(source_id: id.to_s) }.first
+    OmnichannelCrm::WhatsappEdit.mark(message, edited[:body].presence || edited[:caption]) if message
+    head :ok
+  end
 
   def authenticate_wppconnect!
     expected_token = ENV.fetch('WPPCONNECT_WEBHOOK_TOKEN')
@@ -89,7 +110,14 @@ class OmnichannelCrm::WppconnectMessagesController < OmnichannelCrm::BaileysMess
       created = record.previously_new_record?
       assign_default_team(record)
       assign_owner(record, created)
+      fetch_avatar(record.contact)
     end
+  end
+
+  def fetch_avatar(contact)
+    OmnichannelCrm::WhatsappAvatarJob.enqueue(contact, inbox, group? ? chat_jid : phone_number)
+  rescue StandardError => e
+    Rails.logger.info("WhatsApp picture not requested: #{e.message}")
   end
 
   # Numbers registered by a person in Conexões belong to them: their new
@@ -125,9 +153,45 @@ class OmnichannelCrm::WppconnectMessagesController < OmnichannelCrm::BaileysMess
   end
 
   def content
+    return '' if vcard? || location?
     return params[:caption].presence || '' if media?
+    return OmnichannelCrm::WhatsappRichText.poll(params) if params[:type].to_s == 'poll_creation'
+    return OmnichannelCrm::WhatsappRichText.list(params) if params[:type].to_s == 'list'
 
     params[:body].presence || super
+  end
+
+  # Locations become a map card instead of the map thumbnail sent as body.
+  def location?
+    params[:type].to_s == 'location' && params[:lat].present? && params[:lng].present?
+  end
+
+  RICH_TYPES = %w[location vcard multi_vcard poll_creation list].freeze
+
+  # The copy WhatsApp echoes of a location, contact, poll or list sent from
+  # AlvoChat: its text differs from the stored one, so the usual match by
+  # content does not see it.
+  def pending_outgoing_message?
+    return super unless from_me? && RICH_TYPES.include?(params[:type].to_s)
+
+    Message.outgoing.where(conversation_id: contact_inbox.conversations.select(:id), sender_type: 'User', created_at: 2.minutes.ago..)
+           .includes(:attachments).any? { |message| OmnichannelCrm::WhatsappRichText.rich?(message) }
+  end
+
+  # Shared contacts become contact cards instead of the raw vCard text.
+  def vcard?
+    OmnichannelCrm::WhatsappVcard.type?(params[:type]) && vcard_texts.any?
+  end
+
+  def vcard_texts
+    @vcard_texts ||= OmnichannelCrm::WhatsappVcard.texts_from(params)
+  end
+
+  def attach_media(message)
+    return OmnichannelCrm::WhatsappVcard.build_attachments(message, vcard_texts) if vcard?
+    return OmnichannelCrm::WhatsappRichText.build_location(message, params) if location?
+
+    super
   end
 
   def media_params
@@ -205,8 +269,7 @@ class OmnichannelCrm::WppconnectMessagesController < OmnichannelCrm::BaileysMess
   def media_file_name
     return params[:filename] if params[:filename].present?
 
-    extension = mime_type.split('/').last.presence || 'bin'
-    "whatsapp-#{params[:type].presence || 'arquivo'}.#{extension}"
+    "whatsapp-#{params[:type].presence || 'arquivo'}.#{OmnichannelCrm::WhatsappMedia.extension(mime_type)}"
   end
 
   def sticker_message?

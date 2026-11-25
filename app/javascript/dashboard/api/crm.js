@@ -355,6 +355,39 @@ class CrmAPI extends ApiClient {
     );
   }
 
+  sendRichMessage(accountId, conversationId, payload) {
+    return axios.post(
+      `${this.accountUrl(accountId)}/conversations/${conversationId}/rich_messages`,
+      payload
+    );
+  }
+
+  transcribeAudio(accountId, attachmentId) {
+    return axios.post(
+      `${this.accountUrl(accountId)}/attachments/${attachmentId}/transcription`
+    );
+  }
+
+  getContactPicture(accountId, params) {
+    return axios.get(`${this.accountUrl(accountId)}/contact_picture`, {
+      params,
+    });
+  }
+
+  startConversation(accountId, payload) {
+    return axios.post(
+      `${this.accountUrl(accountId)}/conversations/start`,
+      payload
+    );
+  }
+
+  askCopilot(accountId, conversationId, payload) {
+    return axios.post(
+      `${this.accountUrl(accountId)}/conversations/${conversationId}/copilot`,
+      payload
+    );
+  }
+
   importConnectionHistory(accountId, inboxId) {
     return axios.post(
       `${this.accountUrl(accountId)}/connections/${inboxId}/import_history`

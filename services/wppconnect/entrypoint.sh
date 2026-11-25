@@ -64,6 +64,23 @@ if (sessionUtil.includes(deferredWebhook)) {
   throw new Error(`Could not patch WPPConnect webhook ordering in ${sessionUtilPath}`);
 }
 
+// Edited messages: WPPConnect listens to them (`onMessageEdit`) but has no
+// webhook for it. Send them as `onmessageedit`, so AlvoChat can show that a
+// message was edited on WhatsApp. Only warns when the layout changed: edits
+// are not worth keeping every number offline.
+sessionUtil = fs.readFileSync(sessionUtilPath, 'utf8');
+const editWebhook = "      await client.onMessageEdit(async (response) => {\n        (0, _functions.callWebHook)(client, req, 'onmessageedit', response);\n      });\n";
+const revokedRegistration = /(\n[ \t]*if \(req\.serverOptions\.webhook\.onRevokedMessage\) \{\n[ \t]*await this\.onRevokedMessage\(client, req\);\n[ \t]*\}\n)/;
+
+if (!sessionUtil.includes(editWebhook)) {
+  if (revokedRegistration.test(sessionUtil)) {
+    sessionUtil = sessionUtil.replace(revokedRegistration, `$1${editWebhook}`);
+    fs.writeFileSync(sessionUtilPath, sessionUtil);
+  } else {
+    console.warn(`Could not add the message edit webhook in ${sessionUtilPath}`);
+  }
+}
+
 // Some stickers arrive from WhatsApp without `isMedia`, `isMMS` or a MIME
 // type. Upstream then skips autoDownload altogether even though decryptFile
 // supports the message. Treat all supported inbound attachment types as media
