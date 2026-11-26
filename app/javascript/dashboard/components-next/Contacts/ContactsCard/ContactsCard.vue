@@ -1,12 +1,14 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useStore } from 'dashboard/composables/store';
 
 import CardLayout from 'dashboard/components-next/CardLayout.vue';
 import ContactsForm from 'dashboard/components-next/Contacts/ContactsForm/ContactsForm.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
 import Avatar from 'dashboard/components-next/avatar/Avatar.vue';
 import Flag from 'dashboard/components-next/flag/Flag.vue';
+import ComposeConversation from 'dashboard/components-next/NewConversation/ComposeConversation.vue';
 import ContactDeleteSection from 'dashboard/components-next/Contacts/ContactsCard/ContactDeleteSection.vue';
 import Checkbox from 'dashboard/components-next/checkbox/Checkbox.vue';
 import countries from 'shared/constants/countries';
@@ -35,6 +37,12 @@ const emit = defineEmits([
 ]);
 
 const { t } = useI18n();
+const store = useStore();
+
+// The list does not carry the contact's channels; the composer needs them to
+// offer the WhatsApp numbers this contact can be reached on.
+const loadContactableInboxes = () =>
+  store.dispatch('contacts/fetchContactableInbox', props.id).catch(() => {});
 
 const contactsFormRef = ref(null);
 
@@ -193,6 +201,18 @@ const handleAvatarHover = isHovered => {
         </div>
       </div>
 
+      <!-- AlvoChat: start a conversation with the contact from the list. -->
+      <ComposeConversation :contact-id="String(id)">
+        <template #trigger>
+          <Button
+            :label="t('CONTACTS_LAYOUT.CARD.START_CONVERSATION')"
+            icon="i-lucide-message-circle"
+            variant="faded"
+            size="xs"
+            @click="loadContactableInboxes"
+          />
+        </template>
+      </ComposeConversation>
       <Button
         icon="i-lucide-chevron-down"
         variant="ghost"

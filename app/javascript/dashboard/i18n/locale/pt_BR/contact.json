@@ -414,6 +414,7 @@
     },
     "CARD": {
       "OF": "de",
+      "START_CONVERSATION": "Conversar",
       "VIEW_DETAILS": "Ver detalhes",
       "EDIT_DETAILS_FORM": {
         "TITLE": "Alterar detalhes do contato",

@@ -415,6 +415,7 @@
     },
     "CARD": {
       "OF": "of",
+      "START_CONVERSATION": "Message",
       "VIEW_DETAILS": "View details",
       "EDIT_DETAILS_FORM": {
         "TITLE": "Edit contact details",
