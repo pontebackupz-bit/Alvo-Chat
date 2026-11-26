@@ -129,7 +129,11 @@ class OmnichannelCrm::WppconnectMessagesController < OmnichannelCrm::BaileysMess
 
     owner_id = inbox.channel.additional_attributes&.fetch('owner_id', nil)
     owner = owner_id && inbox.account.users.find_by(id: owner_id)
-    conversation.update!(assignee: owner) if owner
+    # An administrator as owner does not take the conversations: they stay
+    # with the team and its automatic assignment.
+    return if owner.nil? || OmnichannelCrm::AdministratorsNotAutoAssigned.administrator?(owner, inbox.account_id)
+
+    conversation.update!(assignee: owner)
   end
 
   def phone_number
