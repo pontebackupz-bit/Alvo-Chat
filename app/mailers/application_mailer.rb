@@ -55,6 +55,7 @@ class ApplicationMailer < ActionMailer::Base
     # expose variables you want to be exposed in liquid
     locals = {
       global_config: GlobalConfig.get('BRAND_NAME', 'BRAND_URL'),
+      frontend_url: ENV.fetch('FRONTEND_URL', ''),
       action_url: @action_url
     }
 

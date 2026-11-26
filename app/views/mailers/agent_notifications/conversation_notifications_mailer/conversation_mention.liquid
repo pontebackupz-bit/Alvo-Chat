@@ -1,34 +1,69 @@
-<p>Hi {{user.available_name}}, </p>
-
-<p>You've been mentioned in a conversation. <b>{{message.sender_display_name}}</b> wrote:</p>
-<blockquote style="box-sizing:border-box; padding:8px 16px; margin:0 0 20px; font-size:14px; border-left:5px solid #eeeeee">
-  {{message.text_content}}
-</blockquote>
-
-<p><b>Previous messages:</b></p>
-{% for chat_message in conversation.recent_messages %}
-  <div>
-    <h4 style="margin: 0;">
-      {% if chat_message.sender == user.available_name %}
-        You
-      {% else %}
-        {{chat_message.sender}}
-      {% endif %}
-    </h4>
-  </div>
-
-  <div style="padding: 10px 20px; margin: 5px 0 20px 0; background: #F2F3F7; border-radius: 10px; display: inline-block; font-family: 'Helvetica Neue',Tahoma,Arial,sans-serif; text-align: start; unicode-bidi: plaintext;">
-    {% if chat_message.content %}
-      {{chat_message.content}}
-    {% endif %}
-
-    {% if chat_message.attachments %}
-      {% for attachment in chat_message.attachments %}
-        Attachment [<a href="{{ attachment }}" _target="blank">Click here to view</a>]
-      {% endfor %}
-    {% endif %}
-  </div>
-{% endfor %}
-<p>
-  <a href="{{ action_url }}">View Message</a>
-</p>
+{% assign agent_name = user.available_name | default: user.first_name %}
+<tr>
+  <td style="padding: 0 0 8px; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #2781F6;">Você foi mencionado</td>
+</tr>
+<tr>
+  <td style="padding: 0 0 12px; font-size: 24px; line-height: 32px; font-weight: 700; color: #0F172A;">Olá, {{ agent_name }}!</td>
+</tr>
+<tr>
+  <td style="padding: 0 0 24px; font-size: 15px; line-height: 24px; color: #334155;"><strong>{{ message.sender_display_name }}</strong> mencionou você em uma conversa:</td>
+</tr>
+<tr>
+  <td style="padding: 0 0 24px;">
+    <div style="padding: 12px 16px; border-left: 4px solid #2781F6; border-radius: 8px; background-color: #EAF2FE; font-size: 14px; line-height: 21px; color: #0F172A;">{{ message.text_content }}</div>
+  </td>
+</tr>
+<tr>
+  <td style="padding: 0 0 24px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width: 100%; border: 1px solid #E2E8F0; border-radius: 14px; background-color: #F8FAFC;" bgcolor="#F8FAFC">
+      <tr>
+        <td style="padding: 16px 18px;">
+          <div style="font-size: 12px; color: #64748B;">Contato</div>
+          <div style="font-size: 16px; line-height: 24px; font-weight: 700; color: #0F172A;">{{ conversation.contact_name }}</div>
+          <div style="padding-top: 6px; font-size: 13px; color: #64748B;">{{ inbox.name }} &nbsp;&middot;&nbsp; Conversa #{{ conversation.display_id }}</div>
+        </td>
+      </tr>
+    </table>
+  </td>
+</tr>
+<tr>
+  <td style="padding: 0 0 8px; font-size: 13px; font-weight: 700; color: #0F172A;">Mensagens anteriores</td>
+</tr>
+<tr>
+  <td style="padding: 0 0 16px;">
+    {% for chat_message in conversation.recent_messages %}
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width: 100%; margin: 0 0 12px;">
+        <tr>
+          <td style="padding: 0 0 4px; font-size: 12px; font-weight: 600; color: #64748B;">
+            {% if chat_message.sender == user.available_name %}Você{% else %}{{ chat_message.sender }}{% endif %}
+          </td>
+        </tr>
+        <tr>
+          <td class="msg-bubble" style="padding: 12px 16px; border-radius: 12px; font-size: 14px; line-height: 21px; color: #0F172A; text-align: start; unicode-bidi: plaintext; {% if chat_message.incoming %}background-color: #F1F5F9;{% else %}background-color: #EAF2FE;{% endif %}">
+            {% if chat_message.content %}{{ chat_message.content }}{% endif %}
+            {% for attachment in chat_message.attachments %}
+              <div style="padding-top: 6px;">&#128206; <a href="{{ attachment }}" target="_blank" style="color: #2781F6; font-weight: 600; text-decoration: none;">Ver anexo</a></div>
+            {% endfor %}
+          </td>
+        </tr>
+      </table>
+    {% endfor %}
+  </td>
+</tr>
+<tr>
+  <td style="padding: 8px 0 8px;">
+    <table role="presentation" cellpadding="0" cellspacing="0">
+      <tr>
+        <td style="border-radius: 10px; background-color: #2781F6;" bgcolor="#2781F6">
+          <a href="{{ action_url }}" target="_blank" style="display: inline-block; padding: 13px 26px; font-size: 15px; font-weight: 700; color: #FFFFFF; text-decoration: none; border-radius: 10px;">Ver mensagem</a>
+        </td>
+      </tr>
+    </table>
+  </td>
+</tr>
+<tr>
+  <td style="padding: 12px 0 8px; font-size: 12px; line-height: 18px; color: #94A3B8;">
+    Se o botão não funcionar, copie e cole este endereço no navegador:<br />
+    <a href="{{ action_url }}" target="_blank" style="color: #64748B; word-break: break-all;">{{ action_url }}</a>
+  </td>
+</tr>
