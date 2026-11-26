@@ -25,7 +25,8 @@ module OmnichannelCrm
         ConversationFinder => OmnichannelCrm::AttendanceFilters::Finder,
         DataImport::ContactManager => OmnichannelCrm::ContactImportDedup::Manager,
         DataImportJob => OmnichannelCrm::ContactImportDedup::Job,
-        Attachment => OmnichannelCrm::AttachmentAudioUrl }.each do |target, mod|
+        Attachment => OmnichannelCrm::AttachmentAudioUrl,
+        Api::V2::Accounts::ReportsHelper => OmnichannelCrm::AgentReportsWithoutAdministrators }.each do |target, mod|
         target.prepend(mod) unless target.ancestors.include?(mod)
       end
 

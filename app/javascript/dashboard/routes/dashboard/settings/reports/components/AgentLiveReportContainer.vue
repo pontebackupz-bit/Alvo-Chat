@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted } from 'vue';
+import { computed, onMounted } from 'vue';
 
 import AgentTable from './overview/AgentTable.vue';
 import MetricCard from './overview/MetricCard.vue';
@@ -10,7 +10,11 @@ const store = useStore();
 
 const uiFlags = useMapGetter('getOverviewUIFlags');
 const agentConversationMetric = useMapGetter('getAgentConversationMetric');
-const agents = useMapGetter('agents/getAgents');
+const allAgents = useMapGetter('agents/getAgents');
+// Administrators manage the account and are not listed as attending agents.
+const agents = computed(() =>
+  allAgents.value.filter(agent => agent.role !== 'administrator')
+);
 
 const fetchData = () => store.dispatch('fetchAgentConversationMetric');
 

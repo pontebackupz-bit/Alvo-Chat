@@ -90,8 +90,10 @@ class OmnichannelCrm::DashboardMetricsService
     leads.stage_won.where.not(owner_id: nil).group(:owner_id).count
   end
 
+  # Administrators manage the account and are not ranked as sellers, even
+  # when a conversation is assigned to them.
   def seller_names(ids)
-    @account.users.where(id: ids).pluck(:id, :name)
+    @account.users.where(id: ids).where.not(id: @account.account_users.administrator.select(:user_id)).pluck(:id, :name)
   end
 
   def seller_row(id, name, stats, counts)

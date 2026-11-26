@@ -108,8 +108,15 @@ const renderAvgTime = value => (value ? formatTime(value) : '--');
 
 const renderCount = value => (value ? value.toLocaleString() : '--');
 
+// Administrators manage the account and are not listed in agent reports.
+const visibleRows = computed(() =>
+  props.type === 'agent'
+    ? rowItems.value.filter(row => row.role !== 'administrator')
+    : rowItems.value
+);
+
 const tableData = computed(() =>
-  rowItems.value.map(row => {
+  visibleRows.value.map(row => {
     const rowMetrics = getMetrics(row.id);
     const {
       conversationsCount,
