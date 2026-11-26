@@ -38,6 +38,23 @@ class OmnichannelCrm::ConnectionsController < OmnichannelCrm::ApplicationControl
     head :accepted
   end
 
+  # Brings the contacts saved on the phone into Contatos, in the background.
+  def import_contacts
+    inbox = service.find(params[:id])
+    raise OmnichannelCrm::ConnectionRegistration::NotAllowed, 'Só números conectados por QR Code têm contatos para importar.' unless
+      OmnichannelCrm::ConnectionsService.provider(inbox) == 'wppconnect'
+
+    raise OmnichannelCrm::ConnectionRegistration::NotAllowed, 'O número está desconectado. Conecte-o antes de importar os contatos.' unless
+      OmnichannelCrm::WhatsappHistoryImport.online?(inbox)
+
+    attributes = inbox.channel.additional_attributes.to_h
+    inbox.channel.update!(additional_attributes: attributes.merge('contacts_import' => { 'status' => 'queued',
+                                                                                          'updated_at' => Time.current.iso8601 }))
+    OmnichannelCrm::WhatsappContactImportJob.perform_later(inbox.id)
+    audit!('connection_contacts_imported', subject: inbox)
+    head :accepted
+  end
+
   def show
     render json: OmnichannelCrm::ConnectionsService.session_state(service.find(params[:id]))
   rescue ActiveRecord::RecordNotFound

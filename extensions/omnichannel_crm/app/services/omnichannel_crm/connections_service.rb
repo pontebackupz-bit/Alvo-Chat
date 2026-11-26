@@ -94,6 +94,7 @@ class OmnichannelCrm::ConnectionsService
       last_activity_at: @account.conversations.where(inbox_id: inbox.id).maximum(:last_activity_at),
       can_manage: registration.can_manage?(inbox),
       history_import: attributes['history_import'],
+      contacts_import: attributes['contacts_import'],
       owner: owner_for(attributes['owner_id'])
     }
   end

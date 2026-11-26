@@ -709,6 +709,14 @@
         "DONE": "History imported on {date}: {chats} conversations, {messages} messages.",
         "FAILED": "The history import failed. Try again with the number online."
       },
+      "CONTACTS": {
+        "IMPORT": "Import contacts",
+        "STARTED": "Importing the contacts saved on {name}'s phone. They show up in Contacts shortly.",
+        "ERROR": "Could not start the contacts import.",
+        "RUNNING": "Importing phone contacts: {created} new, {updated} updated…",
+        "DONE": "Phone contacts imported on {date}: {created} new, {updated} updated.",
+        "FAILED": "The contacts import failed. Try again with the number online."
+      },
       "WIZARD": {
         "STEP_1": {
           "TITLE": "Choose the channel",

@@ -711,6 +711,14 @@
         "DONE": "Histórico importado em {date}: {chats} conversas, {messages} mensagens.",
         "FAILED": "A importação do histórico falhou. Tente de novo com o número online."
       },
+      "CONTACTS": {
+        "IMPORT": "Importar contatos",
+        "STARTED": "Importando os contatos salvos no celular de {name}. Eles aparecem em Contatos aos poucos.",
+        "ERROR": "Não foi possível iniciar a importação dos contatos.",
+        "RUNNING": "Importando contatos do celular: {created} novos, {updated} atualizados…",
+        "DONE": "Contatos do celular importados em {date}: {created} novos, {updated} atualizados.",
+        "FAILED": "A importação dos contatos falhou. Tente de novo com o número online."
+      },
       "WIZARD": {
         "STEP_1": {
           "TITLE": "Escolha o canal",

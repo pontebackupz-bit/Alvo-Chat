@@ -29,6 +29,14 @@ class OmnichannelCrm::WppconnectBridgeClient
     picture.is_a?(Hash) ? (picture['eurl'].presence || picture['imgFull'].presence) : nil
   end
 
+  # Every contact WhatsApp knows on the phone; saved ones have `isMyContact`.
+  def contacts(session_id)
+    ensure_connected!(session_id)
+    response = request(session_id, :get, "/api/#{session_id}/all-contacts")
+    list = response.is_a?(Hash) ? response['response'] : response
+    list.is_a?(Array) ? list : []
+  end
+
   # The `@lid` chat id WhatsApp uses for a phone number, when it has one.
   def lid_for(session_id, phone)
     contact = request(session_id, :get, "/api/#{session_id}/contact/pn-lid/#{CGI.escape(phone)}")

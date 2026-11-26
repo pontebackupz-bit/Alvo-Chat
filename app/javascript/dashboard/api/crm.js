@@ -317,8 +317,10 @@ class CrmAPI extends ApiClient {
     return axios.delete(`${this.accountUrl(accountId)}/connections/${inboxId}`);
   }
 
-  getAttendanceStats(accountId) {
-    return axios.get(`${this.accountUrl(accountId)}/attendance/stats`);
+  getAttendanceStats(accountId, params = {}) {
+    return axios.get(`${this.accountUrl(accountId)}/attendance/stats`, {
+      params,
+    });
   }
 
   getChatHistory(accountId, params = {}) {
@@ -385,6 +387,12 @@ class CrmAPI extends ApiClient {
     return axios.post(
       `${this.accountUrl(accountId)}/conversations/${conversationId}/copilot`,
       payload
+    );
+  }
+
+  importConnectionContacts(accountId, inboxId) {
+    return axios.post(
+      `${this.accountUrl(accountId)}/connections/${inboxId}/import_contacts`
     );
   }
 

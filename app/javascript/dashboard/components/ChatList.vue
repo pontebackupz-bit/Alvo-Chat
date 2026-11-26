@@ -964,6 +964,8 @@ watch(conversationFilters, (newVal, oldVal) => {
       v-if="!hasAppliedFiltersOrActiveFolders"
       :view="attendanceView"
       :search="attendanceSearch"
+      :inbox-id="conversationInbox || ''"
+      :team-id="teamId || ''"
       @update:view="onAttendanceViewChange"
       @update:search="onAttendanceSearch"
     />

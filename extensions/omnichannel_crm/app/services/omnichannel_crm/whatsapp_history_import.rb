@@ -210,6 +210,7 @@ class OmnichannelCrm::WhatsappHistoryImport
     conversation = contact_inbox.conversations.order(:created_at).last
     created = conversation.nil?
     conversation ||= new_conversation(contact_inbox)
+    assign_default_team(conversation)
     inserted = insert_messages(conversation, contact_inbox, messages, group: OmnichannelCrm::WhatsappGroup.jid?(jid))
     # A conversation made for the history is dated by its last message.
     conversation.update_columns(last_activity_at: conversation.messages.maximum(:created_at)) if created && inserted.positive?
@@ -258,6 +259,17 @@ class OmnichannelCrm::WhatsappHistoryImport
     ::Conversation.create!(account_id: @inbox.account_id, inbox: @inbox, contact: contact_inbox.contact,
                            contact_inbox: contact_inbox, status: :resolved,
                            additional_attributes: { 'imported_from_whatsapp' => true })
+  end
+
+  # Imported conversations belong to the number's default team, so the team
+  # (and its supervisors) find them under the team filter. Written without
+  # callbacks: setting a team must not hand old history to an agent.
+  def assign_default_team(conversation)
+    return if conversation.team_id.present? || !conversation.additional_attributes.to_h['imported_from_whatsapp']
+
+    team_id = @inbox.channel.additional_attributes.to_h['default_team_id']
+    team = team_id.present? && @inbox.account.teams.find_by(id: team_id)
+    conversation.update_columns(team_id: team.id) if team
   end
 
   def insert_messages(conversation, contact_inbox, messages, group:)

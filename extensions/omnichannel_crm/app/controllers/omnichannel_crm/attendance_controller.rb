@@ -4,15 +4,16 @@ class OmnichannelCrm::AttendanceController < OmnichannelCrm::ApplicationControll
   HISTORY_PAGE_SIZE = 25
   ONLINE_STATUSES = %w[online busy].freeze
 
-  # Counters above the conversation list.
+  # Counters above the conversation list, for the channel or team open in
+  # the list (or everything the user can see).
   def stats
-    open_conversations = visible.where(status: :open)
+    scope = stats_scope
     render json: {
-      resolved_today: resolved_today,
+      resolved_today: resolved_today(scope),
       agents_online: agents_online,
-      late: OmnichannelCrm::AttendanceFilters.waiting_over(visible, late_after).count,
-      active: open_conversations.count,
-      snoozed: visible.where(status: :snoozed).count,
+      late: OmnichannelCrm::AttendanceFilters.waiting_over(scope, late_after).count,
+      active: scope.where(status: :open).count,
+      snoozed: scope.where(status: :snoozed).count,
       late_after_minutes: late_after
     }
   end
@@ -40,9 +41,16 @@ class OmnichannelCrm::AttendanceController < OmnichannelCrm::ApplicationControll
     OmnichannelCrm::AttendanceFilters::LATE_AFTER_MINUTES
   end
 
-  def resolved_today
+  def stats_scope
+    scope = visible
+    scope = scope.where(inbox_id: params[:inbox_id]) if params[:inbox_id].present?
+    scope = scope.where(team_id: params[:team_id]) if params[:team_id].present?
+    scope
+  end
+
+  def resolved_today(scope)
     ReportingEvent.where(account_id: current_account.id, name: 'conversation_resolved', created_at: Time.zone.today.all_day,
-                         conversation_id: visible.select(:id))
+                         conversation_id: scope.select(:id))
                   .distinct.count(:conversation_id)
   end
 

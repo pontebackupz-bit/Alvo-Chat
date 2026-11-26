@@ -55,6 +55,7 @@ const importing = computed(() =>
   connections.value.some(
     item =>
       ['queued', 'running'].includes(item.history_import?.status) ||
+      ['queued', 'running'].includes(item.contacts_import?.status) ||
       ['connecting', 'needs_qr'].includes(item.status)
   )
 );
@@ -102,6 +103,39 @@ const importHistory = async connection => {
       { status: 'error' }
     );
   }
+};
+
+const importContacts = async connection => {
+  try {
+    await crmAPI.importConnectionContacts(accountId.value, connection.id);
+    useAlert(t('CRM.CONNECTIONS.CONTACTS.STARTED', { name: connection.name }), {
+      status: 'success',
+    });
+    fetchConnections();
+  } catch (error) {
+    useAlert(
+      error.response?.data?.error || t('CRM.CONNECTIONS.CONTACTS.ERROR'),
+      { status: 'error' }
+    );
+  }
+};
+
+const contactsText = connection => {
+  const result = connection.contacts_import;
+  if (!result) return '';
+  const counts = {
+    created: result.created || 0,
+    updated: result.updated || 0,
+  };
+  if (result.status === 'completed') {
+    return t('CRM.CONNECTIONS.CONTACTS.DONE', {
+      ...counts,
+      // eslint-disable-next-line no-use-before-define
+      date: formatDate(result.finished_at),
+    });
+  }
+  if (result.status === 'failed') return t('CRM.CONNECTIONS.CONTACTS.FAILED');
+  return t('CRM.CONNECTIONS.CONTACTS.RUNNING', counts);
 };
 
 const historyText = connection => {
@@ -595,6 +629,23 @@ onBeforeUnmount(() => {
           {{ historyText(connection) }}
         </p>
 
+        <p
+          v-if="connection.contacts_import"
+          class="flex items-center gap-2 -mt-1 text-xs text-n-slate-11"
+        >
+          <span
+            class="size-4 shrink-0"
+            :class="
+              ['queued', 'running'].includes(connection.contacts_import.status)
+                ? 'i-lucide-loader-circle animate-spin'
+                : connection.contacts_import.status === 'failed'
+                  ? 'i-lucide-circle-alert text-n-ruby-11'
+                  : 'i-lucide-contact-round text-n-teal-11'
+            "
+          />
+          {{ contactsText(connection) }}
+        </p>
+
         <footer
           class="flex flex-wrap justify-end gap-2 pt-4 border-t border-n-weak"
         >
@@ -612,6 +663,21 @@ onBeforeUnmount(() => {
             "
             :label="$t('CRM.CONNECTIONS.HISTORY.IMPORT')"
             @click="importHistory(connection)"
+          />
+          <Button
+            v-if="
+              connection.provider === 'wppconnect' &&
+              connection.status === 'connected'
+            "
+            icon="i-lucide-contact-round"
+            size="sm"
+            variant="faded"
+            color="slate"
+            :disabled="
+              ['queued', 'running'].includes(connection.contacts_import?.status)
+            "
+            :label="$t('CRM.CONNECTIONS.CONTACTS.IMPORT')"
+            @click="importContacts(connection)"
           />
           <Button
             v-if="canReconnect(connection)"

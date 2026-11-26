@@ -10,6 +10,9 @@ const props = defineProps({
   // 'active' | 'late' | 'paused' | '' (another status picked in the header)
   view: { type: String, default: 'active' },
   search: { type: String, default: '' },
+  // Channel or team open in the list: the counters follow it.
+  inboxId: { type: [String, Number], default: '' },
+  teamId: { type: [String, Number], default: '' },
 });
 
 const emit = defineEmits(['update:view', 'update:search']);
@@ -26,7 +29,10 @@ let searchTimer = null;
 
 const fetchStats = async () => {
   try {
-    const { data } = await crmAPI.getAttendanceStats(accountId.value);
+    const { data } = await crmAPI.getAttendanceStats(accountId.value, {
+      inbox_id: props.inboxId || undefined,
+      team_id: props.teamId || undefined,
+    });
     stats.value = data;
   } catch (_) {
     // Counters are informative; the list keeps working without them.
@@ -90,6 +96,14 @@ const clearSearch = () => {
   term.value = '';
   emit('update:search', '');
 };
+
+watch(
+  () => [props.inboxId, props.teamId],
+  () => {
+    stats.value = null;
+    fetchStats();
+  }
+);
 
 watch(
   () => props.search,
