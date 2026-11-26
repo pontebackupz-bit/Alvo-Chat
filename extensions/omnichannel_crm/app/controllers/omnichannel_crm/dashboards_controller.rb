@@ -1,6 +1,7 @@
 module OmnichannelCrm
   class DashboardsController < ApplicationController
-    before_action -> { authorize_crm!('dashboards.read') }
+    # Every member of the account can open the Painel comercial; what each one
+    # sees is limited by Authorization#dashboard_conversations.
 
     def show
       render json: DashboardMetricsService.new(account: current_account, authorization: authorization,

@@ -1,6 +1,6 @@
 # Commercial dashboard. Everything is limited to what the user can see:
-# administrators the whole account, supervisors their teams, sellers their
-# own work. `team_id` narrows it to one of the visible teams.
+# administrators the whole account, supervisors their teams, everyone else
+# the teams they belong to (and their own work). `team_id` narrows it to one of the visible teams.
 class OmnichannelCrm::DashboardMetricsService
   RESOLVED = ::Conversation.statuses.fetch('resolved')
   FIRST_RESPONSE_SQL = 'EXTRACT(EPOCH FROM conversations.first_reply_created_at - conversations.created_at)'.freeze
@@ -19,7 +19,7 @@ class OmnichannelCrm::DashboardMetricsService
       sellers: seller_ranking(conversations, leads),
       teams: team_ranking(conversations),
       channels: inbox_volume(conversations),
-      available_teams: @authorization.visible_teams.order(:name).map { |team| { id: team.id, name: team.name } },
+      available_teams: @authorization.dashboard_teams.order(:name).map { |team| { id: team.id, name: team.name } },
       team_id: selected_team&.id
     )
   end
@@ -29,16 +29,16 @@ class OmnichannelCrm::DashboardMetricsService
   def selected_team
     return @selected_team if defined?(@selected_team)
 
-    @selected_team = @team_id && @authorization.visible_teams.find_by(id: @team_id)
+    @selected_team = @team_id && @authorization.dashboard_teams.find_by(id: @team_id)
   end
 
   def visible_conversations
-    scope = @authorization.visible_conversations
+    scope = @authorization.dashboard_conversations
     selected_team ? scope.where(team_id: selected_team.id) : scope
   end
 
   def visible_leads
-    scope = @authorization.visible_leads
+    scope = @authorization.dashboard_leads
     return scope unless selected_team
 
     scope.where(conversation_id: visible_conversations.select(:id)).or(scope.where(owner_id: selected_team.members.select(:id)))
