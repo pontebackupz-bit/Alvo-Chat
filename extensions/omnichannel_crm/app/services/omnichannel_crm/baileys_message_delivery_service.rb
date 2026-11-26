@@ -49,9 +49,10 @@ class OmnichannelCrm::BaileysMessageDeliveryService
 
   # WhatsApp has no rating widget: the CSAT survey asks for a 1-5 reply.
   def body
-    return message.content unless message.input_csat?
+    content = OmnichannelCrm::WhatsappText.render(message.content)
+    return content unless message.input_csat?
 
-    [message.content, OmnichannelCrm::CsatReplyService::INSTRUCTIONS].compact_blank.join("\n\n")
+    [content, OmnichannelCrm::CsatReplyService::INSTRUCTIONS].compact_blank.join("\n\n")
   end
 
   def bridge

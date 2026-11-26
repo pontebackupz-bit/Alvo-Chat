@@ -96,8 +96,11 @@ class OmnichannelCrm::BaileysMessagesController < ActionController::API
                      .where.not(status: :failed)
     # The echo of an agent reply carries the agent's name above the text.
     unsigned = OmnichannelCrm::AgentSignature.strip(content)
-    pending = pending.where(content: [content, unsigned].uniq) if unsigned.present?
-    pending.exists?
+    return pending.exists? if unsigned.blank?
+
+    # What went to WhatsApp is the stored text converted to WhatsApp format.
+    texts = [content, unsigned].uniq
+    pending.pluck(:content).any? { |stored| texts.include?(stored) || texts.include?(OmnichannelCrm::WhatsappText.render(stored)) }
   end
 
   def phone_number
