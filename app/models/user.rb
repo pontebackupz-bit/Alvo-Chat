@@ -128,7 +128,9 @@ class User < ApplicationRecord
   end
 
   def send_devise_notification(notification, *)
-    devise_mailer.with(account: Current.account).send(notification, self, *).deliver_later
+    # Password reset, confirmation and unlock e-mails go first: the person is
+    # waiting for them, so they never sit behind imports or other jobs.
+    devise_mailer.with(account: Current.account).send(notification, self, *).deliver_later(queue: :critical)
   end
 
   def set_password_and_uid
