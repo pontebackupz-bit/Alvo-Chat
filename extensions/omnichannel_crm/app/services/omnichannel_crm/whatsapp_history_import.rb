@@ -210,6 +210,7 @@ class OmnichannelCrm::WhatsappHistoryImport
     conversation = contact_inbox.conversations.order(:created_at).last
     created = conversation.nil?
     conversation ||= new_conversation(contact_inbox)
+    reopen_imported(conversation) unless created
     assign_default_team(conversation)
     inserted = insert_messages(conversation, contact_inbox, messages, group: OmnichannelCrm::WhatsappGroup.jid?(jid))
     # A conversation made for the history is dated by its last message.
@@ -253,12 +254,26 @@ class OmnichannelCrm::WhatsappHistoryImport
     jid.split('@').first.gsub(/\D/, '').presence
   end
 
-  # Imported history sits in a resolved conversation until the person writes
-  # again; it never lands in the open queue by itself.
+  # Imported conversations are left open: the team goes through them and
+  # resolves each one. They are created resolved and then opened without
+  # callbacks, so importing never runs the chatbot, the distribution or the
+  # notifications for old chats. Nobody is waiting on old history, so they
+  # do not count as late either.
   def new_conversation(contact_inbox)
-    ::Conversation.create!(account_id: @inbox.account_id, inbox: @inbox, contact: contact_inbox.contact,
-                           contact_inbox: contact_inbox, status: :resolved,
-                           additional_attributes: { 'imported_from_whatsapp' => true })
+    conversation = ::Conversation.create!(account_id: @inbox.account_id, inbox: @inbox, contact: contact_inbox.contact,
+                                          contact_inbox: contact_inbox, status: :resolved,
+                                          additional_attributes: { 'imported_from_whatsapp' => true })
+    conversation.update_columns(status: ::Conversation.statuses[:open], waiting_since: nil)
+    conversation
+  end
+
+  # Earlier imports created the conversations resolved. Importing again opens
+  # those nobody has resolved yet; one a person resolved stays resolved.
+  def reopen_imported(conversation)
+    return unless conversation.resolved? && conversation.additional_attributes.to_h['imported_from_whatsapp']
+    return if ::ReportingEvent.exists?(conversation_id: conversation.id, name: 'conversation_resolved')
+
+    conversation.update_columns(status: ::Conversation.statuses[:open], waiting_since: nil)
   end
 
   # Imported conversations belong to the number's default team, so the team

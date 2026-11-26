@@ -13,8 +13,12 @@ class OmnichannelCrm::ChatwootEventListener < BaseListener
         lead.owner = conversation.assignee
         lead.stage = :new_lead
       end
-      OmnichannelCrm::DistributionService.new(conversation).perform
-      OmnichannelCrm::WorkflowRunner.start_for(conversation)
+      # Chats brought in by "Importar histórico" are old: they are neither
+      # handed to an agent nor greeted by the chatbot.
+      unless conversation.additional_attributes.to_h['imported_from_whatsapp']
+        OmnichannelCrm::DistributionService.new(conversation).perform
+        OmnichannelCrm::WorkflowRunner.start_for(conversation)
+      end
     end
     publish('conversation.created', account, conversation_id: conversation.id, contact_id: conversation.contact_id)
     publish('lead.created', account, conversation_id: conversation.id, contact_id: conversation.contact_id)
