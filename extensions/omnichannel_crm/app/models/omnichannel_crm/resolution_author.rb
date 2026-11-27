@@ -22,11 +22,15 @@ module OmnichannelCrm::ResolutionAuthor
 
   module_function
 
+  def sql
+    OmnichannelCrm::MessageAttributesSql
+  end
+
   # Resolution activity messages of the given conversations.
   def messages(conversations)
     ::Message.activity.where(conversation_id: conversations.select(:id))
-             .where("messages.content_attributes -> 'activity' ->> 'status' = 'resolved' OR " \
-                    "(messages.content_attributes -> 'activity' IS NULL AND (#{legacy_content_sql}))")
+             .where("#{sql.field('activity', 'status')} = 'resolved' OR " \
+                    "(#{sql.field('activity', 'type')} IS NULL AND (#{legacy_content_sql}))")
   end
 
   # { user_id => resolutions } for the messages, read from the stored id or,
@@ -35,7 +39,7 @@ module OmnichannelCrm::ResolutionAuthor
     by_text = users.each_with_object({}) do |(id, name), map|
       texts_for(name).each { |text| map[text] = id }
     end
-    messages.pluck(Arel.sql("messages.content_attributes -> 'activity' ->> 'user_id'"), :content)
+    messages.pluck(Arel.sql(sql.field('activity', 'user_id')), :content)
             .each_with_object(Hash.new(0)) do |(stored_id, content), counts|
       id = stored_id.presence&.to_i || by_text[content.to_s]
       counts[id] += 1 if id

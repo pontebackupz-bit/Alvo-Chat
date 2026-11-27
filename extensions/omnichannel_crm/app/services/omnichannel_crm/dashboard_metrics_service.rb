@@ -19,6 +19,7 @@ class OmnichannelCrm::DashboardMetricsService
       sellers: seller_ranking(conversations, leads),
       teams: team_ranking(conversations),
       channels: inbox_volume(conversations),
+      reply_sources: reply_sources,
       available_teams: @authorization.dashboard_teams.order(:name).map { |team| { id: team.id, name: team.name } },
       team_id: selected_team&.id
     )
@@ -133,6 +134,14 @@ class OmnichannelCrm::DashboardMetricsService
     names = @account.teams.where(id: rows.filter_map(&:first)).pluck(:id, :name).to_h
     rows.map { |id, total, resolved| { id: id, name: names[id], conversations: total, resolved: resolved } }
         .sort_by { |team| -team[:conversations] }
+  end
+
+  # Replies written in AlvoChat and on the phone, per number, in the period.
+  def reply_sources
+    messages = ::Message.where(account_id: @account.id, created_at: @range, conversation_id: visible_conversations.select(:id))
+    counts = OmnichannelCrm::ReplySources.by_inbox(messages)
+    names = @account.inboxes.where(id: counts.keys).pluck(:id, :name).to_h
+    counts.map { |id, count| { id: id, name: names[id], **count } }.sort_by { |row| -(row[:system] + row[:phone]) }
   end
 
   def inbox_volume(conversations)

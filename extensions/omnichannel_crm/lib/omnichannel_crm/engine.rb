@@ -27,6 +27,7 @@ module OmnichannelCrm
         DataImportJob => OmnichannelCrm::ContactImportDedup::Job,
         Attachment => OmnichannelCrm::AttachmentAudioUrl,
         Conversation => OmnichannelCrm::ResolutionAuthor::Activity,
+        V2::Reports::InboxSummaryBuilder => OmnichannelCrm::ReplySources::InboxSummary,
         Api::V2::Accounts::ReportsHelper => OmnichannelCrm::AgentReportsWithoutAdministrators,
         AutoAssignment::AgentAssignmentService => OmnichannelCrm::AdministratorsNotAutoAssigned::AgentAssignment,
         AutoAssignment::AssignmentService => OmnichannelCrm::AdministratorsNotAutoAssigned::AssignmentV2 }.each do |target, mod|

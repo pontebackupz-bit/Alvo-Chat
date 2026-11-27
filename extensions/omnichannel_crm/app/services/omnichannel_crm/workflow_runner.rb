@@ -132,7 +132,7 @@ class OmnichannelCrm::WorkflowRunner
 
   def human_already_replied?
     conversation.messages.outgoing.where(sender_type: 'User')
-                .or(conversation.messages.outgoing.where("content_attributes ->> 'external_echo' = 'true'"))
+                .or(conversation.messages.outgoing.where("#{OmnichannelCrm::MessageAttributesSql.field('external_echo')} = 'true'"))
                 .exists?
   end
 

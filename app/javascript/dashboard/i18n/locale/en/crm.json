@@ -324,7 +324,13 @@
       "OPEN_NOW": "Open now",
       "FIRST_RESPONSE": "First response",
       "NO_TEAM": "No team",
-      "TEAM_VALUE": "{total} conversations · {resolved} resolved"
+      "TEAM_VALUE": "{total} conversations · {resolved} resolved",
+      "REPLY_SOURCES": "Replies: AlvoChat vs phone",
+      "REPLY_SOURCES_HELP": "Messages sent to customers by each number. WhatsApp does not say who typed on the phone, so phone replies are counted per number, not per seller.",
+      "NUMBER": "Number",
+      "BY_SYSTEM": "In AlvoChat",
+      "BY_PHONE": "On the phone",
+      "PHONE_SHARE": "% on the phone"
     },
     "AUDIT": {
       "TITLE": "CRM audit log",

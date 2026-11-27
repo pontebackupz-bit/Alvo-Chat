@@ -25,6 +25,7 @@ const metrics = ref({
   sellers: [],
   teams: [],
   channels: {},
+  reply_sources: [],
   available_teams: [],
 });
 
@@ -83,6 +84,11 @@ const alerts = computed(() => [
   },
 ]);
 
+// Share of a number's replies typed on the phone instead of in AlvoChat.
+const phoneShare = row => {
+  const total = row.system + row.phone;
+  return total ? percentage((row.phone / total) * 100) : '—';
+};
 const channels = computed(() => Object.entries(metrics.value.channels || {}));
 const maxChannel = computed(() =>
   Math.max(1, ...channels.value.map(([, value]) => value))
@@ -319,6 +325,59 @@ onMounted(fetchMetrics);
           </ul>
         </article>
       </div>
+      <article class="mt-8">
+        <h2 class="text-heading-3 text-n-slate-12">
+          {{ $t('CRM.DASHBOARD.REPLY_SOURCES') }}
+        </h2>
+        <p class="mt-1 text-sm text-n-slate-11">
+          {{ $t('CRM.DASHBOARD.REPLY_SOURCES_HELP') }}
+        </p>
+        <div
+          class="mt-3 overflow-x-auto rounded-xl border border-n-weak bg-n-solid-2"
+        >
+          <table class="w-full min-w-[32rem] text-sm">
+            <thead class="text-n-slate-11">
+              <tr class="border-b border-n-weak">
+                <th class="px-4 py-3 font-medium text-left">
+                  {{ $t('CRM.DASHBOARD.NUMBER') }}
+                </th>
+                <th class="px-4 py-3 font-medium text-right">
+                  {{ $t('CRM.DASHBOARD.BY_SYSTEM') }}
+                </th>
+                <th class="px-4 py-3 font-medium text-right">
+                  {{ $t('CRM.DASHBOARD.BY_PHONE') }}
+                </th>
+                <th class="px-4 py-3 font-medium text-right">
+                  {{ $t('CRM.DASHBOARD.PHONE_SHARE') }}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="row in metrics.reply_sources"
+                :key="row.id"
+                class="border-b border-n-weak last:border-b-0"
+              >
+                <td class="px-4 py-3 text-n-slate-12">{{ row.name }}</td>
+                <td class="px-4 py-3 text-right text-n-slate-12">
+                  {{ row.system }}
+                </td>
+                <td class="px-4 py-3 text-right text-n-slate-12">
+                  {{ row.phone }}
+                </td>
+                <td class="px-4 py-3 text-right text-n-slate-11">
+                  {{ phoneShare(row) }}
+                </td>
+              </tr>
+              <tr v-if="!metrics.reply_sources?.length">
+                <td colspan="4" class="px-4 py-8 text-center text-n-slate-11">
+                  {{ $t('CRM.DASHBOARD.EMPTY') }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
     </template>
   </section>
 </template>

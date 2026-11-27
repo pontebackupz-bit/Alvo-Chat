@@ -102,6 +102,21 @@ const columns = computed(() => [
     width: 200,
     cell: defaulSpanRender,
   }),
+  // AlvoChat: replies typed in the system and on the connected phone.
+  ...(props.type === 'inbox'
+    ? [
+        columnHelper.accessor('systemRepliesCount', {
+          header: t('SUMMARY_REPORTS.SYSTEM_REPLIES'),
+          width: 200,
+          cell: defaulSpanRender,
+        }),
+        columnHelper.accessor('phoneRepliesCount', {
+          header: t('SUMMARY_REPORTS.PHONE_REPLIES'),
+          width: 200,
+          cell: defaulSpanRender,
+        }),
+      ]
+    : []),
 ]);
 
 const renderAvgTime = value => (value ? formatTime(value) : '--');
@@ -124,6 +139,8 @@ const tableData = computed(() =>
       avgResolutionTime,
       avgReplyTime,
       resolvedConversationsCount,
+      systemRepliesCount,
+      phoneRepliesCount,
     } = rowMetrics;
     return {
       id: row.id,
@@ -135,6 +152,8 @@ const tableData = computed(() =>
       avgReplyTime: renderAvgTime(avgReplyTime),
       avgResolutionTime: renderAvgTime(avgResolutionTime),
       resolutionsCount: renderCount(resolvedConversationsCount),
+      systemRepliesCount: renderCount(systemRepliesCount),
+      phoneRepliesCount: renderCount(phoneRepliesCount),
     };
   })
 );

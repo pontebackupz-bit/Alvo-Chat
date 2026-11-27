@@ -658,6 +658,8 @@
   },
   "SUMMARY_REPORTS": {
     "INBOX": "Caixa de Entrada",
+    "SYSTEM_REPLIES": "Respostas pelo sistema",
+    "PHONE_REPLIES": "Respostas pelo celular",
     "AGENT": "Agente",
     "TEAM": "Time",
     "LABEL": "Nome do campo",

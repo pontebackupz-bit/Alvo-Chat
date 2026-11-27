@@ -615,7 +615,13 @@
       "OPEN_NOW": "Abertas agora",
       "FIRST_RESPONSE": "1ª resposta",
       "NO_TEAM": "Sem equipe",
-      "TEAM_VALUE": "{total} conversas · {resolved} resolvidas"
+      "TEAM_VALUE": "{total} conversas · {resolved} resolvidas",
+      "REPLY_SOURCES": "Respostas: sistema x celular",
+      "REPLY_SOURCES_HELP": "Mensagens enviadas aos clientes por cada número. O WhatsApp não informa quem digitou no celular, por isso o celular é contado por número, não por vendedor.",
+      "NUMBER": "Número",
+      "BY_SYSTEM": "Pelo sistema",
+      "BY_PHONE": "Pelo celular",
+      "PHONE_SHARE": "% pelo celular"
     },
     "AUDIT": {
       "TITLE": "Auditoria do CRM",
