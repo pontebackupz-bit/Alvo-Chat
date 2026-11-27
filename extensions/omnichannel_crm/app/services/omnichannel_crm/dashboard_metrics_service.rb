@@ -72,14 +72,45 @@ class OmnichannelCrm::DashboardMetricsService
     (leads.stage_won.count.to_f / total * 100).round(2)
   end
 
+  # Each seller is credited with the work they did in the period, whoever the
+  # conversation is assigned to: conversations they answered, resolutions
+  # they made and first replies they sent. Only "Abertas agora" is about the
+  # assignment.
   def seller_ranking(conversations, leads)
-    stats = seller_stats(conversations)
+    attended = attended_by_seller
+    resolved = resolved_by_seller
+    first_reply = first_reply_by_seller(conversations)
     open_now = open_by_seller
     won = conversions_by_seller(leads)
-    sellers = seller_names(stats.keys | won.keys).map do |id, name|
-      seller_row(id, name, stats[id], open: open_now.fetch(id, 0), conversions: won.fetch(id, 0))
+    ids = attended.keys | resolved.keys | open_now.keys | won.keys
+    sellers = seller_names(ids).map do |id, name|
+      { id: id, name: name, conversations: attended.fetch(id, 0), resolved: resolved.fetch(id, 0),
+        average_first_response_seconds: first_reply[id], open: open_now.fetch(id, 0), conversions: won.fetch(id, 0) }
     end
-    sellers.sort_by { |seller| [-seller[:conversations], -seller[:conversions], seller[:name].to_s] }
+    sellers.sort_by { |seller| [-seller[:resolved], -seller[:conversations], -seller[:conversions], seller[:name].to_s] }
+  end
+
+  # Conversations in which the seller sent at least one reply in the period.
+  def attended_by_seller
+    ::Message.outgoing.where(private: false, sender_type: 'User', created_at: @range,
+                             conversation_id: visible_conversations.select(:id))
+             .reorder(nil).group(:sender_id).distinct.count(:conversation_id)
+  end
+
+  def resolved_by_seller
+    messages = OmnichannelCrm::ResolutionAuthor.messages(visible_conversations).where(created_at: @range)
+    OmnichannelCrm::ResolutionAuthor.counts(messages, @account.users.pluck(:id, :name))
+  end
+
+  # First reply time of the conversations started in the period, credited to
+  # whoever sent that first reply.
+  def first_reply_by_seller(conversations)
+    conversations.where.not(first_reply_created_at: nil)
+                 .joins('INNER JOIN messages first_replies ON first_replies.conversation_id = conversations.id ' \
+                        'AND first_replies.created_at = conversations.first_reply_created_at')
+                 .where(first_replies: { sender_type: 'User', message_type: ::Message.message_types[:outgoing] })
+                 .group('first_replies.sender_id').average(FIRST_RESPONSE_SQL)
+                 .transform_values { |average| average&.to_f&.round(2) }
   end
 
   def open_by_seller
@@ -94,19 +125,6 @@ class OmnichannelCrm::DashboardMetricsService
   # when a conversation is assigned to them.
   def seller_names(ids)
     @account.users.where(id: ids).where.not(id: @account.account_users.administrator.select(:user_id)).pluck(:id, :name)
-  end
-
-  def seller_row(id, name, stats, counts)
-    { id: id, name: name, conversations: 0, resolved: 0, average_first_response_seconds: nil }.merge(stats || {}, counts)
-  end
-
-  def seller_stats(conversations)
-    conversations.where.not(assignee_id: nil).group(:assignee_id).pluck(
-      :assignee_id, Arel.sql('COUNT(*)'), Arel.sql("COUNT(*) FILTER (WHERE conversations.status = #{RESOLVED})"),
-      Arel.sql("AVG(#{FIRST_RESPONSE_SQL})")
-    ).to_h do |id, total, resolved, average|
-      [id, { conversations: total, resolved: resolved, average_first_response_seconds: average&.round(2) }]
-    end
   end
 
   def team_ranking(conversations)
