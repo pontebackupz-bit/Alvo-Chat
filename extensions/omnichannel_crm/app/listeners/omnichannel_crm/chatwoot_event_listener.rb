@@ -31,6 +31,7 @@ class OmnichannelCrm::ChatwootEventListener < BaseListener
       OmnichannelCrm::BaileysMessageDeliveryJob.perform_later(message.id)
     end
     route_to_workflow_run(message)
+    OmnichannelCrm::FirstReplyAssignment.perform(message)
     event_name = message.outgoing? ? 'message.sent' : 'message.received'
     publish(event_name, account, message_id: message.id, conversation_id: message.conversation_id, contact_id: message.sender_id)
   end
