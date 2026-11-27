@@ -7,8 +7,14 @@ import { BaseTable } from 'dashboard/components-next/table';
 import Button from 'dashboard/components-next/button/Button.vue';
 import crmAPI from 'dashboard/api/crm';
 import CrmPageHeader from './CrmPageHeader.vue';
+import N8nFlowEditor from './n8n/N8nFlowEditor.vue';
 
 const { t } = useI18n();
+const placeholders = {
+  url: 'http://n8n:5678',
+  header: 'Authorization',
+  path: 'webhook-test/webhook',
+};
 const route = useRoute();
 const accountId = computed(() => route.params.accountId);
 const connections = ref([]);
@@ -30,6 +36,8 @@ const form = ref({
   active: true,
 });
 const executionForm = ref({ workflow_id: '', webhook_path: '', payload: '{}' });
+// `{ workflow: null }` opens the editor for a new flow.
+const flowEditor = ref(null);
 const headers = computed(() => [
   t('CRM.N8N.NAME'),
   t('CRM.N8N.URL'),
@@ -94,6 +102,7 @@ const closeModal = () => {
 };
 const saveConnection = async () => {
   isSaving.value = true;
+  let createdConnection = null;
   const payload = { ...form.value };
   if (selectedConnection.value && !payload.api_key) delete payload.api_key;
   if (selectedConnection.value && !payload.webhook_auth_value) {
@@ -108,11 +117,17 @@ const saveConnection = async () => {
       );
       useAlert(t('CRM.N8N.UPDATE_SUCCESS'));
     } else {
-      await crmAPI.createN8nConnection(accountId.value, payload);
+      const { data } = await crmAPI.createN8nConnection(
+        accountId.value,
+        payload
+      );
       useAlert(t('CRM.N8N.CREATE_SUCCESS'));
+      createdConnection = data;
     }
     closeModal();
     await fetchConnections();
+    // eslint-disable-next-line no-use-before-define
+    if (createdConnection?.active) fetchConnectionDetails(createdConnection);
   } catch (error) {
     useAlert(t('CRM.N8N.SAVE_ERROR'));
   } finally {
@@ -159,6 +174,28 @@ const fetchConnectionDetails = async connection => {
   }
 };
 
+const openFlowEditor = async workflow => {
+  if (!workflow) {
+    flowEditor.value = { workflow: null };
+    return;
+  }
+  try {
+    const { data } = await crmAPI.getN8nWorkflow(
+      accountId.value,
+      selectedConnection.value.id,
+      workflow.id
+    );
+    flowEditor.value = { workflow: data };
+  } catch (error) {
+    useAlert(error.response?.data?.error || t('CRM.N8N.FLOW.LOAD_ERROR'));
+  }
+};
+
+const closeFlowEditor = () => {
+  flowEditor.value = null;
+  fetchConnectionDetails(selectedConnection.value);
+};
+
 const openExecution = workflow => {
   selectedWorkflow.value = workflow || null;
   executionForm.value = {
@@ -200,7 +237,13 @@ const executeWorkflow = async () => {
     isSaving.value = false;
   }
 };
-onMounted(fetchConnections);
+// Show the workflows (and the flow editor buttons) of the first active
+// connection right away instead of waiting for "Open workflows".
+onMounted(async () => {
+  await fetchConnections();
+  const firstActive = connections.value.find(connection => connection.active);
+  if (firstActive) fetchConnectionDetails(firstActive);
+});
 </script>
 
 <template>
@@ -219,8 +262,8 @@ onMounted(fetchConnections);
         :items="connections"
         :no-data-message="$t('CRM.N8N.EMPTY')"
       >
-        <template #row="{ items }"
-          ><tr v-for="connection in items" :key="connection.id">
+        <template #row="{ items }">
+          <tr v-for="connection in items" :key="connection.id">
             <td class="py-4 ltr:pr-4 rtl:pl-4 text-body-main text-n-slate-12">
               {{ connection.name }}
             </td>
@@ -256,13 +299,11 @@ onMounted(fetchConnections);
                   @click="deleteConnection(connection)"
                 />
               </div>
-            </td></tr
-        ></template>
+            </td>
+          </tr>
+        </template>
       </BaseTable>
-      <div
-        v-if="selectedConnection"
-        class="mt-8 border-t border-n-weak pt-6"
-      >
+      <div v-if="selectedConnection" class="mt-8 border-t border-n-weak pt-6">
         <h2 class="text-heading-3 text-n-slate-12">
           {{ $t('CRM.N8N.DETAILS', { name: selectedConnection.name }) }}
         </h2>
@@ -275,13 +316,21 @@ onMounted(fetchConnections);
             <h3 class="text-body-main font-medium text-n-slate-12">
               {{ $t('CRM.N8N.WORKFLOWS') }}
             </h3>
-            <Button
-              size="sm"
-              variant="faded"
-              color="slate"
-              :label="$t('CRM.N8N.RUN_MANUAL')"
-              @click="openExecution()"
-            />
+            <div class="flex gap-2">
+              <Button
+                size="sm"
+                variant="faded"
+                color="slate"
+                :label="$t('CRM.N8N.RUN_MANUAL')"
+                @click="openExecution()"
+              />
+              <Button
+                size="sm"
+                icon="i-lucide-workflow"
+                :label="$t('CRM.N8N.NEW_FLOW')"
+                @click="openFlowEditor()"
+              />
+            </div>
           </div>
           <BaseTable
             :headers="[
@@ -295,17 +344,33 @@ onMounted(fetchConnections);
           >
             <template #row="{ items }">
               <tr v-for="workflow in items" :key="workflow.id">
-                <td class="py-4 ltr:pr-4 rtl:pl-4 text-body-main text-n-slate-12">
+                <td
+                  class="py-4 ltr:pr-4 rtl:pl-4 text-body-main text-n-slate-12"
+                >
                   {{ workflow.name || workflow.id }}
                 </td>
-                <td class="py-4 ltr:pr-4 rtl:pl-4 text-body-main text-n-slate-11">
+                <td
+                  class="py-4 ltr:pr-4 rtl:pl-4 text-body-main text-n-slate-11"
+                >
                   {{ workflow.id }}
                 </td>
-                <td class="py-4 ltr:pr-4 rtl:pl-4 text-body-main text-n-slate-11">
-                  {{ workflow.active ? $t('CRM.COMMON.ACTIVE') : $t('CRM.COMMON.INACTIVE') }}
+                <td
+                  class="py-4 ltr:pr-4 rtl:pl-4 text-body-main text-n-slate-11"
+                >
+                  {{
+                    workflow.active
+                      ? $t('CRM.COMMON.ACTIVE')
+                      : $t('CRM.COMMON.INACTIVE')
+                  }}
                 </td>
                 <td class="py-4 text-right">
                   <div class="crm-table-actions">
+                    <Button
+                      variant="link"
+                      size="sm"
+                      :label="$t('CRM.N8N.EDIT_FLOW')"
+                      @click="openFlowEditor(workflow)"
+                    />
                     <Button
                       variant="link"
                       size="sm"
@@ -333,16 +398,24 @@ onMounted(fetchConnections);
           >
             <template #row="{ items }">
               <tr v-for="execution in items" :key="execution.id">
-                <td class="py-4 ltr:pr-4 rtl:pl-4 text-body-main text-n-slate-12">
+                <td
+                  class="py-4 ltr:pr-4 rtl:pl-4 text-body-main text-n-slate-12"
+                >
                   {{ execution.workflow_id }}
                 </td>
-                <td class="py-4 ltr:pr-4 rtl:pl-4 text-body-main text-n-slate-11">
+                <td
+                  class="py-4 ltr:pr-4 rtl:pl-4 text-body-main text-n-slate-11"
+                >
                   {{ execution.status }}
                 </td>
-                <td class="py-4 ltr:pr-4 rtl:pl-4 text-body-main text-n-slate-11">
+                <td
+                  class="py-4 ltr:pr-4 rtl:pl-4 text-body-main text-n-slate-11"
+                >
                   {{ execution.trigger }}
                 </td>
-                <td class="py-4 ltr:pr-4 rtl:pl-4 text-body-main text-n-slate-11">
+                <td
+                  class="py-4 ltr:pr-4 rtl:pl-4 text-body-main text-n-slate-11"
+                >
                   {{ execution.created_at }}
                 </td>
                 <td class="py-4 text-body-main text-n-slate-11">
@@ -367,8 +440,8 @@ onMounted(fetchConnections);
         </div>
       </div>
     </template>
-    <woot-modal v-model:show="showModal" :on-close="closeModal"
-      ><form class="crm-modal-form" @submit.prevent="saveConnection">
+    <woot-modal v-model:show="showModal" :on-close="closeModal">
+      <form class="crm-modal-form" @submit.prevent="saveConnection">
         <woot-modal-header
           :header-title="
             selectedConnection
@@ -384,8 +457,9 @@ onMounted(fetchConnections);
             v-model.trim="form.base_url"
             required
             type="url"
-            placeholder="http://host.docker.internal:5678" /></label
-        ><p class="crm-form-help">
+            :placeholder="placeholders.url"
+        /></label>
+        <p class="crm-form-help">
           {{ $t('CRM.N8N.BASE_URL_HELP') }}
         </p>
         ><label
@@ -394,8 +468,9 @@ onMounted(fetchConnections);
             v-model="form.api_key"
             :required="!selectedConnection"
             type="password"
-            autocomplete="new-password" /></label
-        ><p class="crm-form-help">
+            autocomplete="new-password"
+        /></label>
+        <p class="crm-form-help">
           {{ $t('CRM.N8N.API_KEY_HELP') }}
         </p>
         <label>
@@ -403,7 +478,7 @@ onMounted(fetchConnections);
           <input
             v-model.trim="form.webhook_auth_header"
             autocomplete="off"
-            placeholder="Authorization"
+            :placeholder="placeholders.header"
           />
         </label>
         <label>
@@ -431,12 +506,23 @@ onMounted(fetchConnections);
             :is-loading="isSaving"
             type="submit"
           />
-        </div></form
-    ></woot-modal>
-    <woot-modal v-model:show="showExecutionModal" :on-close="closeExecutionModal">
+        </div>
+      </form>
+    </woot-modal>
+    <woot-modal
+      v-model:show="showExecutionModal"
+      :on-close="closeExecutionModal"
+    >
       <form class="crm-modal-form" @submit.prevent="executeWorkflow">
         <woot-modal-header
-          :header-title="$t('CRM.N8N.RUN_TITLE', { name: selectedWorkflow?.name || selectedWorkflow?.id || $t('CRM.N8N.MANUAL') })"
+          :header-title="
+            $t('CRM.N8N.RUN_TITLE', {
+              name:
+                selectedWorkflow?.name ||
+                selectedWorkflow?.id ||
+                $t('CRM.N8N.MANUAL'),
+            })
+          "
         />
         <label>
           {{ $t('CRM.N8N.WORKFLOW') }}
@@ -447,7 +533,7 @@ onMounted(fetchConnections);
           <input
             v-model.trim="executionForm.webhook_path"
             required
-            placeholder="webhook-test/webhook"
+            :placeholder="placeholders.path"
           />
         </label>
         <p class="crm-form-help">
@@ -473,5 +559,12 @@ onMounted(fetchConnections);
         </div>
       </form>
     </woot-modal>
+    <N8nFlowEditor
+      v-if="flowEditor"
+      :account-id="accountId"
+      :connection="selectedConnection"
+      :workflow="flowEditor.workflow"
+      @close="closeFlowEditor"
+    />
   </section>
 </template>

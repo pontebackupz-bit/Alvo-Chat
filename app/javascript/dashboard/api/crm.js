@@ -66,6 +66,22 @@ class CrmAPI extends ApiClient {
     });
   }
 
+  getWppconnectSession(accountId, params = {}) {
+    return axios.get(`${this.accountUrl(accountId)}/wppconnect_session`, {
+      params,
+    });
+  }
+
+  createWppconnectSession(accountId, data = {}) {
+    return axios.post(`${this.accountUrl(accountId)}/wppconnect_session`, data);
+  }
+
+  deleteWppconnectSession(accountId, params = {}) {
+    return axios.delete(`${this.accountUrl(accountId)}/wppconnect_session`, {
+      params,
+    });
+  }
+
   getN8nWorkflows(accountId, connectionId) {
     return axios.get(
       `${this.accountUrl(accountId)}/n8n_connections/${connectionId}/workflows`
@@ -75,6 +91,33 @@ class CrmAPI extends ApiClient {
   getN8nExecutions(accountId, connectionId) {
     return axios.get(
       `${this.accountUrl(accountId)}/n8n_connections/${connectionId}/executions`
+    );
+  }
+
+  getN8nWorkflow(accountId, connectionId, workflowId) {
+    return axios.get(
+      `${this.accountUrl(accountId)}/n8n_connections/${connectionId}/workflows/${workflowId}`
+    );
+  }
+
+  createN8nWorkflow(accountId, connectionId, workflow) {
+    return axios.post(
+      `${this.accountUrl(accountId)}/n8n_connections/${connectionId}/workflows`,
+      { workflow }
+    );
+  }
+
+  updateN8nWorkflow(accountId, connectionId, workflowId, workflow) {
+    return axios.put(
+      `${this.accountUrl(accountId)}/n8n_connections/${connectionId}/workflows/${workflowId}`,
+      { workflow }
+    );
+  }
+
+  setN8nWorkflowActive(accountId, connectionId, workflowId, active) {
+    return axios.post(
+      `${this.accountUrl(accountId)}/n8n_connections/${connectionId}/workflows/${workflowId}/activate`,
+      { active }
     );
   }
 
@@ -112,6 +155,29 @@ class CrmAPI extends ApiClient {
 
   getRoles(accountId) {
     return axios.get(`${this.accountUrl(accountId)}/roles`);
+  }
+
+  getUsers(accountId) {
+    return axios.get(`${this.accountUrl(accountId)}/users`);
+  }
+
+  createUser(accountId, data) {
+    return axios.post(`${this.accountUrl(accountId)}/users`, { user: data });
+  }
+
+  updateUser(accountId, userId, data) {
+    return axios.patch(`${this.accountUrl(accountId)}/users/${userId}`, {
+      user: data,
+    });
+  }
+
+  resetUserPassword(accountId, userId, data = {}) {
+    return axios.post(
+      `${this.accountUrl(accountId)}/users/${userId}/reset_password`,
+      {
+        user: data,
+      }
+    );
   }
 
   getRoleAssignments(accountId) {
@@ -171,8 +237,183 @@ class CrmAPI extends ApiClient {
     );
   }
 
-  getDashboardMetrics(accountId) {
-    return axios.get(`${this.accountUrl(accountId)}/dashboard`);
+  getWorkflows(accountId) {
+    return axios.get(`${this.accountUrl(accountId)}/workflows`);
+  }
+
+  getWorkflow(accountId, workflowId) {
+    return axios.get(`${this.accountUrl(accountId)}/workflows/${workflowId}`);
+  }
+
+  createWorkflow(accountId, data) {
+    return axios.post(`${this.accountUrl(accountId)}/workflows`, {
+      workflow: data,
+    });
+  }
+
+  deleteWorkflow(accountId, workflowId) {
+    return axios.delete(
+      `${this.accountUrl(accountId)}/workflows/${workflowId}`
+    );
+  }
+
+  previewWorkflowImport(accountId, file) {
+    const data = new FormData();
+    data.append('file', file);
+    return axios.post(`${this.accountUrl(accountId)}/workflows/preview`, data);
+  }
+
+  importWorkflow(accountId, file) {
+    const data = new FormData();
+    data.append('file', file);
+    return axios.post(`${this.accountUrl(accountId)}/workflows/import`, data);
+  }
+
+  updateWorkflow(accountId, workflowId, data) {
+    return axios.patch(
+      `${this.accountUrl(accountId)}/workflows/${workflowId}`,
+      {
+        workflow: data,
+      }
+    );
+  }
+
+  exportWorkflow(accountId, workflowId) {
+    return axios.get(
+      `${this.accountUrl(accountId)}/workflows/${workflowId}/export`,
+      { responseType: 'blob' }
+    );
+  }
+
+  getWorkflowReadiness(accountId, workflowId) {
+    return axios.get(
+      `${this.accountUrl(accountId)}/workflows/${workflowId}/readiness`
+    );
+  }
+
+  getWorkflowMetrics(accountId, workflowId, params = {}) {
+    return axios.get(
+      `${this.accountUrl(accountId)}/workflows/${workflowId}/metrics`,
+      { params }
+    );
+  }
+
+  getConnections(accountId) {
+    return axios.get(`${this.accountUrl(accountId)}/connections`);
+  }
+
+  createConnection(accountId, data) {
+    return axios.post(`${this.accountUrl(accountId)}/connections`, data);
+  }
+
+  updateConnection(accountId, inboxId, data) {
+    return axios.patch(
+      `${this.accountUrl(accountId)}/connections/${inboxId}`,
+      data
+    );
+  }
+
+  deleteConnection(accountId, inboxId) {
+    return axios.delete(`${this.accountUrl(accountId)}/connections/${inboxId}`);
+  }
+
+  getAttendanceStats(accountId, params = {}) {
+    return axios.get(`${this.accountUrl(accountId)}/attendance/stats`, {
+      params,
+    });
+  }
+
+  getChatHistory(accountId, params = {}) {
+    return axios.get(`${this.accountUrl(accountId)}/attendance/history`, {
+      params,
+    });
+  }
+
+  getScheduledMessages(accountId, params = {}) {
+    return axios.get(`${this.accountUrl(accountId)}/scheduled_messages`, {
+      params,
+    });
+  }
+
+  createScheduledMessage(accountId, data) {
+    return axios.post(`${this.accountUrl(accountId)}/scheduled_messages`, data);
+  }
+
+  cancelScheduledMessage(accountId, id) {
+    return axios.delete(
+      `${this.accountUrl(accountId)}/scheduled_messages/${id}`
+    );
+  }
+
+  getConversationHistory(accountId, conversationId) {
+    return axios.get(
+      `${this.accountUrl(accountId)}/conversations/${conversationId}/whatsapp_history`
+    );
+  }
+
+  importConversationHistory(accountId, conversationId) {
+    return axios.post(
+      `${this.accountUrl(accountId)}/conversations/${conversationId}/whatsapp_history`
+    );
+  }
+
+  sendRichMessage(accountId, conversationId, payload) {
+    return axios.post(
+      `${this.accountUrl(accountId)}/conversations/${conversationId}/rich_messages`,
+      payload
+    );
+  }
+
+  transcribeAudio(accountId, attachmentId) {
+    return axios.post(
+      `${this.accountUrl(accountId)}/attachments/${attachmentId}/transcription`
+    );
+  }
+
+  getContactPicture(accountId, params) {
+    return axios.get(`${this.accountUrl(accountId)}/contact_picture`, {
+      params,
+    });
+  }
+
+  startConversation(accountId, payload) {
+    return axios.post(
+      `${this.accountUrl(accountId)}/conversations/start`,
+      payload
+    );
+  }
+
+  askCopilot(accountId, conversationId, payload) {
+    return axios.post(
+      `${this.accountUrl(accountId)}/conversations/${conversationId}/copilot`,
+      payload
+    );
+  }
+
+  importConnectionContacts(accountId, inboxId) {
+    return axios.post(
+      `${this.accountUrl(accountId)}/connections/${inboxId}/import_contacts`
+    );
+  }
+
+  importConnectionHistory(accountId, inboxId) {
+    return axios.post(
+      `${this.accountUrl(accountId)}/connections/${inboxId}/import_history`
+    );
+  }
+
+  getConnection(accountId, inboxId) {
+    return axios.get(`${this.accountUrl(accountId)}/connections/${inboxId}`);
+  }
+
+  reconnectConnection(accountId, inboxId) {
+    return axios.post(
+      `${this.accountUrl(accountId)}/connections/${inboxId}/reconnect`
+    );
+  }
+
+  getDashboardMetrics(accountId, params = {}) {
+    return axios.get(`${this.accountUrl(accountId)}/dashboard`, { params });
   }
 
   getAuditLogs(accountId) {

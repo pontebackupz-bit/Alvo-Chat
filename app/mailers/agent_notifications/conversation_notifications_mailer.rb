@@ -5,7 +5,7 @@ class AgentNotifications::ConversationNotificationsMailer < ApplicationMailer
     @agent = agent
     @conversation = conversation
     inbox_name = @conversation.inbox&.sanitized_name
-    subject = "#{@agent.available_name}, A new conversation [ID - #{@conversation.display_id}] has been created in #{inbox_name}."
+    subject = "Nova conversa #{conversation_label} em #{inbox_name}"
     @action_url = app_account_conversation_url(account_id: @conversation.account_id, id: @conversation.display_id)
     send_mail_with_liquid(to: @agent.email, subject: subject) and return
   end
@@ -15,7 +15,7 @@ class AgentNotifications::ConversationNotificationsMailer < ApplicationMailer
 
     @agent = agent
     @conversation = conversation
-    subject = "#{@agent.available_name}, A new conversation [ID - #{@conversation.display_id}] has been assigned to you."
+    subject = "#{@agent.available_name}, uma nova conversa foi atribuída a você: #{conversation_label}"
     @action_url = app_account_conversation_url(account_id: @conversation.account_id, id: @conversation.display_id)
     send_mail_with_liquid(to: @agent.email, subject: subject) and return
   end
@@ -26,7 +26,7 @@ class AgentNotifications::ConversationNotificationsMailer < ApplicationMailer
     @agent = agent
     @conversation = conversation
     @message = message
-    subject = "#{@agent.available_name}, You have been mentioned in conversation [ID - #{@conversation.display_id}]"
+    subject = "#{@agent.available_name}, você foi mencionado na conversa #{conversation_label}"
     @action_url = app_account_conversation_url(account_id: @conversation.account_id, id: @conversation.display_id)
     send_mail_with_liquid(to: @agent.email, subject: subject) and return
   end
@@ -38,7 +38,7 @@ class AgentNotifications::ConversationNotificationsMailer < ApplicationMailer
 
     @agent = agent
     @conversation = conversation
-    subject = "#{@agent.available_name}, New message in your assigned conversation [ID - #{@conversation.display_id}]."
+    subject = "#{@agent.available_name}, nova mensagem na sua conversa #{conversation_label}"
     @action_url = app_account_conversation_url(account_id: @conversation.account_id, id: @conversation.display_id)
     send_mail_with_liquid(to: @agent.email, subject: subject) and return
   end
@@ -50,12 +50,18 @@ class AgentNotifications::ConversationNotificationsMailer < ApplicationMailer
 
     @agent = agent
     @conversation = conversation
-    subject = "#{@agent.available_name}, New message in your participating conversation [ID - #{@conversation.display_id}]."
+    subject = "#{@agent.available_name}, nova mensagem na conversa #{conversation_label}"
     @action_url = app_account_conversation_url(account_id: @conversation.account_id, id: @conversation.display_id)
     send_mail_with_liquid(to: @agent.email, subject: subject) and return
   end
 
   private
+
+  # "Maria Souza (#205)", or "#205" when the contact has no name.
+  def conversation_label
+    name = @conversation.contact&.name.presence
+    name ? "#{name} (##{@conversation.display_id})" : "##{@conversation.display_id}"
+  end
 
   def liquid_droppables
     super.merge({

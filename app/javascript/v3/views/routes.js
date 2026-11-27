@@ -9,6 +9,12 @@ import VerifyEmail from './auth/verify-email/Index.vue';
 import PasswordEdit from './auth/password/Edit.vue';
 
 export default [
+  // There is no public site: the root opens the login, which sends people
+  // already signed in straight to the dashboard.
+  {
+    path: '/',
+    redirect: frontendURL('login'),
+  },
   {
     path: frontendURL('login'),
     name: 'login',

@@ -16,6 +16,7 @@ import Suspended from './suspended/Index.vue';
 import NoAccounts from './noAccounts/Index.vue';
 import OnboardingAccountDetails from './onboarding/Index.vue';
 import OnboardingInboxSetup from './onboarding/InboxSetup.vue';
+import ForcedPasswordChange from './ForcedPasswordChange.vue';
 
 export default {
   routes: [
@@ -36,6 +37,11 @@ export default {
         ...helpcenterRoutes.routes,
         ...campaignsRoutes.routes,
       ],
+    },
+    {
+      path: frontendURL('accounts/:accountId/change-password'),
+      name: 'force_password_change',
+      component: ForcedPasswordChange,
     },
     {
       path: frontendURL('accounts/:accountId/onboarding'),

@@ -3,7 +3,6 @@ import { h, ref, computed, onMounted, watch } from 'vue';
 import { provideSidebarContext, useSidebarResize } from './provider';
 import { useAccount } from 'dashboard/composables/useAccount';
 import { useAdmin } from 'dashboard/composables/useAdmin';
-import { useConfig } from 'dashboard/composables/useConfig';
 import { useKbd } from 'dashboard/composables/utils/useKbd';
 import { useMapGetter } from 'dashboard/composables/store';
 import { useStore } from 'vuex';
@@ -21,7 +20,7 @@ import SidebarChangelogButton from './SidebarChangelogButton.vue';
 import ChannelLeaf from './ChannelLeaf.vue';
 import ChannelIcon from 'next/icon/ChannelIcon.vue';
 import SidebarAccountSwitcher from './SidebarAccountSwitcher.vue';
-import Logo from 'next/icon/Logo.vue';
+import AlvoradaWordmark from 'shared/components/AlvoradaWordmark.vue';
 import ComposeConversation from 'dashboard/components-next/NewConversation/ComposeConversation.vue';
 import {
   SIDEBAR_SORT_SECTIONS,
@@ -46,14 +45,8 @@ const emit = defineEmits([
 
 const { accountScopedRoute, isOnChatwootCloud } = useAccount();
 const { isAdmin } = useAdmin();
-const { isEnterprise } = useConfig();
 const store = useStore();
 
-// Calls run on the enterprise-only API (cloud runs enterprise); hide the entry
-// on community so it doesn't lead to a dashboard/CTA the backend can't serve.
-const isCallsAvailable = computed(
-  () => isOnChatwootCloud.value || isEnterprise
-);
 const searchShortcut = useKbd([`$mod`, 'k']);
 const { t } = useI18n();
 
@@ -504,94 +497,83 @@ const menuItems = computed(() => {
     ...(hasCaptain.value
       ? [
           {
-      name: 'Captain',
-      icon: 'i-woot-captain',
-      label: t('SIDEBAR.CAPTAIN'),
-      activeOn: ['captain_assistants_create_index'],
-      children: [
-        {
-          name: 'Overview',
-          label: t('SIDEBAR.CAPTAIN_OVERVIEW'),
-          activeOn: ['captain_assistants_overview_index'],
-          to: accountScopedRoute('captain_assistants_index', {
-            navigationPath: 'captain_assistants_overview_index',
-          }),
-        },
-        {
-          name: 'FAQs',
-          label: t('SIDEBAR.CAPTAIN_RESPONSES'),
-          activeOn: [
-            'captain_assistants_responses_index',
-            'captain_assistants_faq_suggestions',
-          ],
-          to: accountScopedRoute('captain_assistants_index', {
-            navigationPath: 'captain_assistants_responses_index',
-          }),
-        },
-        {
-          name: 'Documents',
-          label: t('SIDEBAR.CAPTAIN_DOCUMENTS'),
-          activeOn: ['captain_assistants_documents_index'],
-          to: accountScopedRoute('captain_assistants_index', {
-            navigationPath: 'captain_assistants_documents_index',
-          }),
-        },
-        {
-          name: 'Scenarios',
-          label: t('SIDEBAR.CAPTAIN_SCENARIOS'),
-          activeOn: ['captain_assistants_scenarios_index'],
-          to: accountScopedRoute('captain_assistants_index', {
-            navigationPath: 'captain_assistants_scenarios_index',
-          }),
-        },
-        {
-          name: 'Playground',
-          label: t('SIDEBAR.CAPTAIN_PLAYGROUND'),
-          activeOn: ['captain_assistants_playground_index'],
-          to: accountScopedRoute('captain_assistants_index', {
-            navigationPath: 'captain_assistants_playground_index',
-          }),
-        },
-        {
-          name: 'Inboxes',
-          label: t('SIDEBAR.CAPTAIN_INBOXES'),
-          activeOn: ['captain_assistants_inboxes_index'],
-          to: accountScopedRoute('captain_assistants_index', {
-            navigationPath: 'captain_assistants_inboxes_index',
-          }),
-        },
-        {
-          name: 'Tools',
-          label: t('SIDEBAR.CAPTAIN_TOOLS'),
-          activeOn: ['captain_tools_index'],
-          to: accountScopedRoute('captain_assistants_index', {
-            navigationPath: 'captain_tools_index',
-          }),
-        },
-        {
-          name: 'Settings',
-          label: t('SIDEBAR.CAPTAIN_SETTINGS'),
-          activeOn: [
-            'captain_assistants_settings_index',
-            'captain_assistants_guidelines_index',
-            'captain_assistants_guardrails_index',
-          ],
-          to: accountScopedRoute('captain_assistants_index', {
-            navigationPath: 'captain_assistants_settings_index',
-          }),
-        },
-      ],
-          },
-        ]
-      : []),
-    ...(isCallsAvailable.value
-      ? [
-          {
-            name: 'Calls',
-            label: t('SIDEBAR.CALLS'),
-            icon: 'i-lucide-phone',
-            to: accountScopedRoute('calls_dashboard_index'),
-            activeOn: ['calls_dashboard_index'],
+            name: 'Captain',
+            icon: 'i-woot-captain',
+            label: t('SIDEBAR.CAPTAIN'),
+            activeOn: ['captain_assistants_create_index'],
+            children: [
+              {
+                name: 'Overview',
+                label: t('SIDEBAR.CAPTAIN_OVERVIEW'),
+                activeOn: ['captain_assistants_overview_index'],
+                to: accountScopedRoute('captain_assistants_index', {
+                  navigationPath: 'captain_assistants_overview_index',
+                }),
+              },
+              {
+                name: 'FAQs',
+                label: t('SIDEBAR.CAPTAIN_RESPONSES'),
+                activeOn: [
+                  'captain_assistants_responses_index',
+                  'captain_assistants_faq_suggestions',
+                ],
+                to: accountScopedRoute('captain_assistants_index', {
+                  navigationPath: 'captain_assistants_responses_index',
+                }),
+              },
+              {
+                name: 'Documents',
+                label: t('SIDEBAR.CAPTAIN_DOCUMENTS'),
+                activeOn: ['captain_assistants_documents_index'],
+                to: accountScopedRoute('captain_assistants_index', {
+                  navigationPath: 'captain_assistants_documents_index',
+                }),
+              },
+              {
+                name: 'Scenarios',
+                label: t('SIDEBAR.CAPTAIN_SCENARIOS'),
+                activeOn: ['captain_assistants_scenarios_index'],
+                to: accountScopedRoute('captain_assistants_index', {
+                  navigationPath: 'captain_assistants_scenarios_index',
+                }),
+              },
+              {
+                name: 'Playground',
+                label: t('SIDEBAR.CAPTAIN_PLAYGROUND'),
+                activeOn: ['captain_assistants_playground_index'],
+                to: accountScopedRoute('captain_assistants_index', {
+                  navigationPath: 'captain_assistants_playground_index',
+                }),
+              },
+              {
+                name: 'Inboxes',
+                label: t('SIDEBAR.CAPTAIN_INBOXES'),
+                activeOn: ['captain_assistants_inboxes_index'],
+                to: accountScopedRoute('captain_assistants_index', {
+                  navigationPath: 'captain_assistants_inboxes_index',
+                }),
+              },
+              {
+                name: 'Tools',
+                label: t('SIDEBAR.CAPTAIN_TOOLS'),
+                activeOn: ['captain_tools_index'],
+                to: accountScopedRoute('captain_assistants_index', {
+                  navigationPath: 'captain_tools_index',
+                }),
+              },
+              {
+                name: 'Settings',
+                label: t('SIDEBAR.CAPTAIN_SETTINGS'),
+                activeOn: [
+                  'captain_assistants_settings_index',
+                  'captain_assistants_guidelines_index',
+                  'captain_assistants_guardrails_index',
+                ],
+                to: accountScopedRoute('captain_assistants_index', {
+                  navigationPath: 'captain_assistants_settings_index',
+                }),
+              },
+            ],
           },
         ]
       : []),
@@ -663,6 +645,20 @@ const menuItems = computed(() => {
       ],
     },
     {
+      name: 'CRM History',
+      label: t('ATTENDANCE.NAV.HISTORY'),
+      icon: 'i-lucide-history',
+      to: accountScopedRoute('crm_history'),
+      activeOn: ['crm_history'],
+    },
+    {
+      name: 'CRM Scheduled Messages',
+      label: t('ATTENDANCE.NAV.SCHEDULED'),
+      icon: 'i-lucide-calendar-clock',
+      to: accountScopedRoute('crm_scheduled_messages'),
+      activeOn: ['crm_scheduled_messages'],
+    },
+    {
       name: 'Companies',
       label: t('SIDEBAR.COMPANIES'),
       icon: 'i-lucide-building-2',
@@ -721,23 +717,18 @@ const menuItems = computed(() => {
         ]
       : []),
     {
-      name: 'CRM Automation',
-      label: t('SIDEBAR.AUTOMATION'),
+      name: 'CRM Workflows',
+      label: t('CRM.NAV.WORKFLOWS'),
       icon: 'i-lucide-workflow',
-      children: [
-        {
-          name: 'CRM n8n',
-          label: t('CRM.NAV.AUTOMATION'),
-          to: accountScopedRoute('crm_n8n'),
-          activeOn: ['crm_n8n'],
-        },
-        {
-          name: 'CRM Automation',
-          label: t('CRM.NAV.RULES'),
-          to: accountScopedRoute('crm_automation'),
-          activeOn: ['crm_automation'],
-        },
-      ],
+      to: accountScopedRoute('crm_workflows'),
+      activeOn: ['crm_workflows'],
+    },
+    {
+      name: 'CRM Connections',
+      label: t('CRM.NAV.CONNECTIONS'),
+      icon: 'i-lucide-smartphone',
+      to: accountScopedRoute('crm_connections'),
+      activeOn: ['crm_connections'],
     },
     {
       name: 'CRM Distribution',
@@ -787,75 +778,6 @@ const menuItems = computed(() => {
       ],
     },
     {
-      name: 'Campaigns',
-      label: t('SIDEBAR.CAMPAIGNS'),
-      icon: 'i-lucide-megaphone',
-      children: [
-        {
-          name: 'Live chat',
-          label: t('SIDEBAR.LIVE_CHAT'),
-          to: accountScopedRoute('campaigns_livechat_index'),
-        },
-        {
-          name: 'SMS',
-          label: t('SIDEBAR.SMS'),
-          to: accountScopedRoute('campaigns_sms_index'),
-        },
-        {
-          name: 'WhatsApp',
-          label: t('SIDEBAR.WHATSAPP'),
-          to: accountScopedRoute('campaigns_whatsapp_index'),
-        },
-      ],
-    },
-    {
-      name: 'Portals',
-      label: t('SIDEBAR.HELP_CENTER.TITLE'),
-      icon: 'i-lucide-library-big',
-      children: [
-        {
-          name: 'Articles',
-          label: t('SIDEBAR.HELP_CENTER.ARTICLES'),
-          activeOn: [
-            'portals_articles_index',
-            'portals_articles_new',
-            'portals_articles_edit',
-          ],
-          to: accountScopedRoute('portals_index', {
-            navigationPath: 'portals_articles_index',
-          }),
-        },
-        {
-          name: 'Categories',
-          label: t('SIDEBAR.HELP_CENTER.CATEGORIES'),
-          activeOn: [
-            'portals_categories_index',
-            'portals_categories_articles_index',
-            'portals_categories_articles_edit',
-          ],
-          to: accountScopedRoute('portals_index', {
-            navigationPath: 'portals_categories_index',
-          }),
-        },
-        {
-          name: 'Locales',
-          label: t('SIDEBAR.HELP_CENTER.LOCALES'),
-          activeOn: ['portals_locales_index'],
-          to: accountScopedRoute('portals_index', {
-            navigationPath: 'portals_locales_index',
-          }),
-        },
-        {
-          name: 'Settings',
-          label: t('SIDEBAR.HELP_CENTER.SETTINGS'),
-          activeOn: ['portals_settings_index'],
-          to: accountScopedRoute('portals_index', {
-            navigationPath: 'portals_settings_index',
-          }),
-        },
-      ],
-    },
-    {
       name: 'Settings',
       label: t('SIDEBAR.SETTINGS'),
       icon: 'i-lucide-bolt',
@@ -872,28 +794,6 @@ const menuItems = computed(() => {
         //   icon: 'i-woot-captain',
         //   to: accountScopedRoute('captain_settings_index'),
         // },
-        {
-          name: 'Settings Agents',
-          label: t('SIDEBAR.AGENTS'),
-          icon: 'i-lucide-square-user',
-          to: accountScopedRoute('agent_list'),
-        },
-        {
-          name: 'Settings Teams',
-          label: t('SIDEBAR.TEAMS'),
-          icon: 'i-lucide-users',
-          activeOn: [
-            'settings_teams_list',
-            'settings_teams_new',
-            'settings_teams_finish',
-            'settings_teams_add_agents',
-            'settings_teams_show',
-            'settings_teams_edit',
-            'settings_teams_edit_members',
-            'settings_teams_edit_finish',
-          ],
-          to: accountScopedRoute('settings_teams_list'),
-        },
         {
           name: 'Settings CRM Access',
           label: t('CRM.NAV.ACCESS'),
@@ -1000,12 +900,6 @@ const menuItems = computed(() => {
           to: accountScopedRoute('auditlogs_list'),
         },
         {
-          name: 'Settings Custom Roles',
-          label: t('SIDEBAR.CUSTOM_ROLES'),
-          icon: 'i-lucide-shield-plus',
-          to: accountScopedRoute('custom_roles_list'),
-        },
-        {
           name: 'Settings Sla',
           label: t('SIDEBAR.SLA'),
           icon: 'i-lucide-clock-alert',
@@ -1016,12 +910,6 @@ const menuItems = computed(() => {
           label: t('SIDEBAR.CONVERSATION_WORKFLOW'),
           icon: 'i-lucide-workflow',
           to: accountScopedRoute('conversation_workflow_index'),
-        },
-        {
-          name: 'Settings Security',
-          label: t('SIDEBAR.SECURITY'),
-          icon: 'i-lucide-shield',
-          to: accountScopedRoute('security_settings_index'),
         },
         ...(isOnChatwootCloud.value
           ? [
@@ -1035,7 +923,70 @@ const menuItems = computed(() => {
           : []),
       ],
     },
+    ...(isAdmin.value
+      ? [
+          {
+            name: 'Development',
+            label: t('SIDEBAR.DEVELOPMENT'),
+            icon: 'i-lucide-terminal',
+            children: [
+              {
+                name: 'Settings Security',
+                label: t('SIDEBAR.SECURITY'),
+                icon: 'i-lucide-shield',
+                to: accountScopedRoute('security_settings_index'),
+                activeOn: ['security_settings_index'],
+              },
+            ],
+          },
+        ]
+      : []),
   ];
+});
+
+// Menu sections, in display order; items not listed fall into "Atendimento".
+const MENU_SECTIONS = [
+  { key: 'OVERVIEW', items: ['CRM Dashboard', 'Reports'] },
+  {
+    key: 'ATTENDANCE',
+    items: [
+      'Inbox',
+      'Conversation',
+      'CRM History',
+      'Contacts',
+      'Companies',
+      'CRM Scheduled Messages',
+    ],
+  },
+  {
+    key: 'COMMERCIAL',
+    items: [
+      'CRM Leads',
+      'CRM Team Access',
+      'CRM Workflows',
+      'CRM Connections',
+      'CRM Distribution',
+    ],
+  },
+  { key: 'SYSTEM', items: ['Settings', 'Development'] },
+];
+
+const sectionedMenuItems = computed(() => {
+  const sectionOf = name =>
+    Math.max(
+      MENU_SECTIONS.findIndex(section => section.items.includes(name)),
+      MENU_SECTIONS.findIndex(section => section.key === 'ATTENDANCE')
+    );
+  const ordered = menuItems.value
+    .map((item, index) => ({ item, index, section: sectionOf(item.name) }))
+    .sort((a, b) => a.section - b.section || a.index - b.index);
+  return ordered.map(({ item, section }, position) => ({
+    ...item,
+    sectionTitle:
+      position === 0 || ordered[position - 1].section !== section
+        ? t(`ATTENDANCE.SECTIONS.${MENU_SECTIONS[section].key}`)
+        : '',
+  }));
 });
 </script>
 
@@ -1080,10 +1031,7 @@ const menuItems = computed(() => {
           />
         </template>
         <template v-else>
-          <div class="grid flex-shrink-0 place-content-center size-6">
-            <Logo class="size-4" />
-          </div>
-          <div class="flex-shrink-0 w-px h-3 bg-n-strong" />
+          <AlvoradaWordmark variant="icon" size="small" />
           <SidebarAccountSwitcher
             class="flex-grow -mx-1 min-w-0"
             @show-create-account-modal="emit('showCreateAccountModal')"
@@ -1143,11 +1091,15 @@ const menuItems = computed(() => {
         class="flex flex-col gap-1 m-0 list-none min-w-0"
         :class="{ 'items-center': isEffectivelyCollapsed }"
       >
-        <SidebarGroup
-          v-for="item in menuItems"
-          :key="item.name"
-          v-bind="item"
-        />
+        <template v-for="item in sectionedMenuItems" :key="item.name">
+          <li
+            v-if="item.sectionTitle && !isEffectivelyCollapsed"
+            class="px-2 pt-4 pb-1 text-[11px] font-semibold tracking-wider uppercase text-n-slate-10 first:pt-1 list-none"
+          >
+            {{ item.sectionTitle }}
+          </li>
+          <SidebarGroup v-bind="item" />
+        </template>
       </ul>
     </nav>
     <section

@@ -6,12 +6,14 @@
       "LEADS": "Leads",
       "AUTOMATION": "Integração n8n",
       "RULES": "Regras de automação",
+      "WORKFLOWS": "Fluxos",
       "DISTRIBUTION": "Distribuição",
       "ACCESS": "Controle de acesso",
       "DASHBOARD": "Painel comercial",
       "TEAM_ACCESS": "Equipe e acessos",
       "USERS": "Usuários e papéis",
-      "MANAGE_TEAMS": "Gerenciar times"
+      "MANAGE_TEAMS": "Gerenciar times",
+      "CONNECTIONS": "Conexões"
     },
     "COMMON": {
       "CREATE": "Criar",
@@ -60,7 +62,7 @@
       "NAME": "Nome da conexão",
       "URL": "URL do n8n",
       "BASE_URL": "URL base do n8n",
-      "BASE_URL_HELP": "Use somente a URL do servidor, por exemplo http://host.docker.internal:5678. Não informe a URL do webhook neste campo.",
+      "BASE_URL_HELP": "Use somente o endereço do servidor. Com o n8n do Docker Compose, use http://n8n:5678. Não informe a URL do webhook neste campo.",
       "API_KEY": "Chave de API",
       "API_KEY_HELP": "Use uma API Key criada no n8n para listar workflows. A credencial de Header Auth do webhook é configurada separadamente abaixo.",
       "WEBHOOK_AUTH_HEADER": "Nome do cabeçalho de autenticação do webhook (opcional)",
@@ -95,7 +97,86 @@
       "RUN_ERROR": "Não foi possível executar o workflow.",
       "DETAILS_ERROR": "Não foi possível carregar os workflows e execuções da conexão.",
       "WORKFLOWS_ERROR": "Não foi possível listar os workflows. Verifique a URL base e a API Key do n8n.",
-      "EXECUTIONS_ERROR": "Não foi possível carregar o histórico de execuções."
+      "EXECUTIONS_ERROR": "Não foi possível carregar o histórico de execuções.",
+      "EDIT_FLOW": "Editar fluxo",
+      "NEW_FLOW": "Novo fluxo",
+      "FLOW": {
+        "NEW_NAME": "Novo fluxo",
+        "SAVE_BEFORE_ACTIVATE": "Salve o fluxo antes de alterar o status",
+        "OPEN_IN_N8N": "Abrir no n8n",
+        "PALETTE_HINT": "Arraste um bloco para o quadro ou clique para adicionar. Puxe o ponto de saída até outro bloco para ligar.",
+        "LOAD_ERROR": "Não foi possível carregar o fluxo do n8n.",
+        "NAME_REQUIRED": "Dê um nome ao fluxo antes de salvar.",
+        "SAVE_SUCCESS": "Fluxo salvo no n8n.",
+        "SAVE_ERROR": "Não foi possível salvar o fluxo no n8n.",
+        "ACTIVATE_ERROR": "Não foi possível alterar o status do fluxo. Fluxos ativos precisam de um bloco de gatilho.",
+        "NODE_NAME": "Nome do bloco",
+        "NODE_DISABLED": "Desativar este bloco",
+        "NODE_PARAMETERS": "Parâmetros (JSON)",
+        "PARAMETERS_ERROR": "JSON inválido. Os parâmetros não foram aplicados.",
+        "PARAMETERS_HELP": "Aplicado ao sair do campo. Credenciais e opções avançadas são configuradas no n8n.",
+        "DELETE_NODE": "Remover bloco",
+        "EDGE_TITLE": "Ligação",
+        "EDGE_DESCRIPTION": "De {source} para {target}",
+        "DELETE_EDGE": "Remover ligação",
+        "HELP_STEPS": {
+          "1": "Comece com um gatilho: Webhook recebe eventos do CRM, Agendamento roda em intervalos.",
+          "2": "Arraste os próximos passos do painel Blocos para o quadro.",
+          "3": "Puxe o ponto de saída à direita de um bloco até o próximo bloco. Condições têm as saídas Verdadeiro e Falso.",
+          "4": "Clique em um bloco para renomear, desativar ou editar os parâmetros.",
+          "5": "Salve para enviar o fluxo ao n8n e depois mude para Ativo."
+        },
+        "HELP_NOTE": "O fluxo fica salvo no n8n. Blocos de Webhook recebem os eventos do CRM listados na página do n8n; use o caminho do webhook nas regras de automação do CRM.",
+        "OUTPUTS": {
+          "TRUE": "Verdadeiro",
+          "FALSE": "Falso"
+        },
+        "CATEGORIES": {
+          "trigger": "Gatilho",
+          "logic": "Lógica",
+          "data": "Dados",
+          "action": "Ação",
+          "other": "n8n"
+        },
+        "BLOCKS": {
+          "webhook": {
+            "LABEL": "Webhook",
+            "DESCRIPTION": "Recebe eventos do CRM"
+          },
+          "manualTrigger": {
+            "LABEL": "Início manual",
+            "DESCRIPTION": "Roda ao testar no n8n"
+          },
+          "scheduleTrigger": {
+            "LABEL": "Agendamento",
+            "DESCRIPTION": "Roda em intervalos"
+          },
+          "if": {
+            "LABEL": "Condição",
+            "DESCRIPTION": "Divide em verdadeiro ou falso"
+          },
+          "wait": {
+            "LABEL": "Aguardar",
+            "DESCRIPTION": "Pausa antes de seguir"
+          },
+          "set": {
+            "LABEL": "Definir campos",
+            "DESCRIPTION": "Cria ou altera dados"
+          },
+          "code": {
+            "LABEL": "Código",
+            "DESCRIPTION": "Executa JavaScript"
+          },
+          "httpRequest": {
+            "LABEL": "Requisição HTTP",
+            "DESCRIPTION": "Chama uma API"
+          },
+          "respondToWebhook": {
+            "LABEL": "Responder",
+            "DESCRIPTION": "Responde ao webhook"
+          }
+        }
+      }
     },
     "AUTOMATION": {
       "TITLE": "Regras de automação",
@@ -114,6 +195,295 @@
       "DELETE_SUCCESS": "Regra de automação removida.",
       "SAVE_ERROR": "Não foi possível salvar a regra de automação.",
       "FETCH_ERROR": "Não foi possível carregar as regras de automação."
+    },
+    "WORKFLOWS": {
+      "TITLE": "Fluxos",
+      "DESCRIPTION": "Fluxos de chatbot que atendem sozinhos as novas conversas. Monte no quadro ou importe do EZ.Chat.",
+      "IMPORT": "Importar fluxo",
+      "EXPORT": "Exportar .alvo",
+      "IMPORT_TITLE": "Importar fluxo",
+      "IMPORT_HELP": "Arquivos .flow do EZ.Chat ou .alvo do AlvoChat. Nada é executado durante a importação: o fluxo chega desativado para você revisar.",
+      "IMPORT_SUCCESS": "Fluxo importado com sucesso.",
+      "IMPORT_ERROR": "Não foi possível importar o fluxo.",
+      "EXPORT_ERROR": "Não foi possível exportar o fluxo.",
+      "PREVIEW_ERROR": "Não foi possível analisar o arquivo selecionado.",
+      "FETCH_ERROR": "Não foi possível carregar os fluxos.",
+      "EMPTY": "Ainda não há fluxos. Crie um em Novo fluxo.",
+      "NAME": "Nome",
+      "NODES": "Blocos",
+      "CONNECTIONS": "conexões",
+      "OPEN": "Editar",
+      "ORIGIN_VALUE": "Origem: {source}",
+      "CONVERTED": "convertidos",
+      "NEEDS_REVIEW": "precisam de revisão",
+      "CREDENTIALS": "credenciais necessárias",
+      "SUBFLOWS": "subfluxos pendentes",
+      "NEW": "Novo fluxo",
+      "TRIGGER": "Começa quando",
+      "TRIGGER_NEW_CONVERSATION": "Nova conversa · {inboxes}",
+      "DELETE_SUCCESS": "Fluxo excluído.",
+      "DELETE_ERROR": "Não foi possível excluir o fluxo.",
+      "EDITOR": {
+        "NEW_NAME": "Novo fluxo",
+        "SAVE": "Salvar fluxo",
+        "SAVE_SUCCESS": "Fluxo salvo.",
+        "SAVE_ERROR": "Não foi possível salvar o fluxo.",
+        "NAME_REQUIRED": "Dê um nome ao fluxo antes de salvar.",
+        "SUBTITLE": "Começa quando chega uma nova conversa em {inboxes}",
+        "ALL_INBOXES": "todas as caixas de entrada",
+        "START_TITLE": "Nova conversa",
+        "START_HELP": "O fluxo começa quando um cliente abre uma nova conversa nas caixas escolhidas. Ele para assim que uma pessoa responde a conversa.",
+        "INBOXES": "Caixas de entrada",
+        "INBOXES_HELP": "Deixe todas desmarcadas para rodar em todas as caixas.",
+        "STARTER_GREETING": "Olá, {'{{'}contato.nome{'}}'}! Obrigado pelo contato. Em instantes alguém da nossa equipe vai te atender.",
+        "PALETTE_HINT_START": "Puxe uma saída como",
+        "PALETTE_HINT_OR": "ou",
+        "PALETTE_HINT_END": "até outro bloco para ligar.",
+        "VARIABLES_HELP": "Você pode usar:",
+        "MENU_HELP": "O cliente responde com o número ou o texto da opção. Qualquer outra resposta segue \"Outra resposta\" ou repete o menu, se essa saída não estiver ligada.",
+        "NO_LABELS": "Ainda não há etiquetas. Crie em Configurações → Etiquetas.",
+        "DELETE_NODE": "Remover bloco",
+        "EDGE_TITLE": "Ligação",
+        "EDGE_DESCRIPTION": "De {source} para {target}",
+        "DELETE_EDGE": "Remover ligação",
+        "HELP_STEPS": {
+          "1": "Arraste um bloco do painel Blocos para o quadro.",
+          "2": "Puxe a saída de \"Nova conversa\" até o primeiro bloco.",
+          "3": "Ligue cada saída ao próximo passo. Perguntas e menus aguardam a resposta do cliente; saída sem ligação encerra o fluxo.",
+          "4": "Clique em um bloco para escrever a mensagem, as opções ou escolher a equipe.",
+          "5": "Ligue o fluxo na chave Ativo e salve."
+        },
+        "HELP_NOTE": "O fluxo roda uma vez por conversa e para quando um atendente responde, aqui ou pelo celular, ou quando a conversa é resolvida.",
+        "OUTPUTS": {
+          "NEW_CONVERSATION": "Nova conversa",
+          "ANSWERED": "Respondeu",
+          "TRUE": "Verdadeiro",
+          "FALSE": "Falso",
+          "OTHER": "Outra resposta",
+          "MAX_RETRIES": "Tentativas esgotadas",
+          "ELSE": "Senão",
+          "INACTIVITY": "Inativo",
+          "SUCCESS": "Sucesso",
+          "ERROR": "Erro"
+        },
+        "OPERATORS": {
+          "contains": "contém",
+          "equals": "é igual a",
+          "not_empty": "está preenchido",
+          "empty": "está vazio"
+        },
+        "SUMMARY": {
+          "OPTIONS": "{count} opções",
+          "MINUTES": "{count} min",
+          "RESOLVES": "Resolve a conversa",
+          "ENDS": "Fim do fluxo",
+          "EMPTY": "Clique para configurar",
+          "UNSUPPORTED": "Bloco importado sem suporte",
+          "ROUND_ROBIN": "rodízio",
+          "RULES": "{count} regras",
+          "CODE": "Código importado",
+          "WAITS_AGENT": "aguarda o atendimento",
+          "IF_ONLINE": "se estiver online"
+        },
+        "FIELDS": {
+          "TITLE": "Nome do bloco",
+          "MESSAGE": "Mensagem",
+          "QUESTION": "Pergunta",
+          "SAVE_AS": "Salvar a resposta como",
+          "OPTIONS": "Opções",
+          "ADD_OPTION": "Adicionar opção",
+          "VARIABLE": "Verificar",
+          "OPERATOR": "Condição",
+          "VALUE": "Valor",
+          "MINUTES": "Aguardar (minutos)",
+          "LABELS": "Etiquetas a adicionar",
+          "TEAM": "Equipe",
+          "AGENT": "Atendente",
+          "CHOOSE": "Escolha…",
+          "RESOLVE": "Resolver a conversa",
+          "DISTRIBUTE": "Distribuir entre os vendedores (rodízio)",
+          "DISTRIBUTE_HELP": "Atribui ao próximo vendedor da equipe, dando preferência a quem está online. Supervisores não recebem conversas.",
+          "VALIDATOR": "Validar resposta",
+          "RETRIES": "Tentativas antes de desistir",
+          "RETRY_MESSAGE": "Mensagem quando a resposta for inválida",
+          "RULES": "Regras",
+          "RULE": "Regra {number}",
+          "ADD_RULE": "Adicionar regra",
+          "SCOPE": "Onde guardar",
+          "VALUES": "Variáveis",
+          "ADD_VARIABLE": "Adicionar variável",
+          "SPLITS": "Caminhos",
+          "ADD_SPLIT": "Adicionar caminho",
+          "INACTIVITY_MINUTES": "Minutos sem resposta",
+          "SUBFLOW": "Fluxo a executar",
+          "SUBFLOW_DATA": "Dados enviados (JSON)",
+          "RETURNS": "Voltar para este fluxo ao terminar",
+          "WAIT_FOR_AGENT": "Aguardar o fim do atendimento",
+          "AGENT_EMAIL": "E-mail da pessoa",
+          "ONLY_IF_ONLINE": "Somente se a pessoa estiver online",
+          "NOTE": "Anotação",
+          "ATTACHMENTS": "Arquivos enviados"
+        },
+        "PROBLEMS": {
+          "UNSUPPORTED": "Este bloco importado não pode ser executado. Substitua ou remova antes de ativar o fluxo.",
+          "MISSING_CONTENT": "Escreva o texto do bloco selecionado antes de ativar o fluxo.",
+          "MISSING_OPTIONS": "Adicione pelo menos uma opção ao menu selecionado.",
+          "MISSING_LABELS": "Escolha pelo menos uma etiqueta no bloco selecionado.",
+          "MISSING_TEAM": "Escolha a equipe no bloco selecionado.",
+          "MISSING_AGENT": "Escolha o atendente no bloco selecionado.",
+          "MISSING_RULES": "Adicione pelo menos uma regra ao bloco de condições.",
+          "MISSING_SUBFLOW": "Informe qual fluxo o bloco deve executar."
+        },
+        "BLOCKS": {
+          "start": {
+            "LABEL": "Gatilho"
+          },
+          "send_message": {
+            "LABEL": "Enviar mensagem",
+            "DESCRIPTION": "Texto para o cliente"
+          },
+          "ask_question": {
+            "LABEL": "Fazer pergunta",
+            "DESCRIPTION": "Aguarda a resposta"
+          },
+          "menu": {
+            "LABEL": "Menu de opções",
+            "DESCRIPTION": "Um caminho por escolha"
+          },
+          "condition": {
+            "LABEL": "Condição",
+            "DESCRIPTION": "Divide em verdadeiro ou falso"
+          },
+          "wait": {
+            "LABEL": "Aguardar",
+            "DESCRIPTION": "Pausa antes de seguir"
+          },
+          "add_label": {
+            "LABEL": "Adicionar etiqueta",
+            "DESCRIPTION": "Marca a conversa"
+          },
+          "transfer_team": {
+            "LABEL": "Transferir para equipe",
+            "DESCRIPTION": "Passa para uma equipe"
+          },
+          "assign_agent": {
+            "LABEL": "Atribuir atendente",
+            "DESCRIPTION": "Passa para uma pessoa"
+          },
+          "end": {
+            "LABEL": "Encerrar",
+            "DESCRIPTION": "Finaliza o fluxo"
+          },
+          "branch": {
+            "LABEL": "Condições",
+            "DESCRIPTION": "Uma saída por regra"
+          },
+          "set_variables": {
+            "LABEL": "Definir variáveis",
+            "DESCRIPTION": "Guarda valores no fluxo"
+          },
+          "split": {
+            "LABEL": "Teste A/B",
+            "DESCRIPTION": "Divide por porcentagem"
+          },
+          "inactivity": {
+            "LABEL": "Inatividade",
+            "DESCRIPTION": "Caminho se o cliente sumir"
+          },
+          "subflow": {
+            "LABEL": "Executar fluxo",
+            "DESCRIPTION": "Chama outro fluxo"
+          },
+          "code": {
+            "LABEL": "Código",
+            "DESCRIPTION": "Importado do EZ.Chat"
+          },
+          "integration": {
+            "LABEL": "Integração",
+            "DESCRIPTION": "Sistema externo"
+          },
+          "note": {
+            "LABEL": "Anotação",
+            "DESCRIPTION": "Comentário no fluxo"
+          }
+        },
+        "INTEGRATIONS": {
+          "ORACLE": "Oracle (WinThor)",
+          "GOOGLE_SHEETS": "Google Sheets"
+        },
+        "VALIDATORS": {
+          "any": "Qualquer texto",
+          "cpf_cnpj": "CPF ou CNPJ",
+          "number": "Número",
+          "email": "E-mail"
+        },
+        "RULE_OPERATORS": {
+          "eq": "é igual a",
+          "neq": "é diferente de",
+          "contains": "contém",
+          "notContains": "não contém",
+          "startsWith": "começa com",
+          "gt": "é maior que",
+          "gte": "é maior ou igual a",
+          "lt": "é menor que",
+          "lte": "é menor ou igual a",
+          "exists": "está preenchido",
+          "empty": "está vazio"
+        },
+        "SCOPES": {
+          "flow": "Variáveis do fluxo",
+          "contact": "Cadastro do contato"
+        },
+        "RULES_HELP": "As regras são testadas em ordem; a primeira verdadeira escolhe a saída. Se nenhuma for, o fluxo segue por Senão.",
+        "EXPRESSIONS_HELP": "Use expressões entre chaves duplas, como flow.setor, user.cpfCnpj, input.text ou flow.contador + 1.",
+        "SPLIT_TOTAL": "Total: {total}% (o ideal é 100%)",
+        "INACTIVITY_HELP": "A partir deste bloco, se o cliente ficar esse tempo sem responder enquanto o fluxo espera, ele segue pela saída Inativo.",
+        "SUBFLOW_MISSING": "Nenhum fluxo com esse nome foi importado ainda. Enquanto ele não existir, o bloco segue pela saída de erro.",
+        "RETURNS_HELP": "Quando o outro fluxo terminar, este continua pela saída Sucesso.",
+        "IMPORTED_TEAM": "Departamento do EZ.Chat: {name}. O AlvoChat usa a equipe com esse nome; escolha outra acima se preferir.",
+        "WAIT_FOR_AGENT_HELP": "O fluxo pausa durante o atendimento humano e continua quando a conversa for resolvida (por exemplo, para a pesquisa de satisfação).",
+        "ONLY_IF_ONLINE_HELP": "Se a pessoa estiver offline, a conversa não é atribuída; o próximo bloco pode testar input.online.",
+        "CODE_HELP": "Blocos de código JavaScript não rodam no AlvoChat. O código que só extrai os números da resposta é reconhecido e funciona; outros seguem pela saída de erro.",
+        "INTEGRATION_HELP": "A integração {name} ainda não está conectada ao AlvoChat. Por enquanto, o fluxo segue pela saída de erro deste bloco.",
+        "ISSUES": {
+          "TITLE": "Pendências do fluxo",
+          "DESCRIPTION": "O fluxo funciona, mas estes pontos usam um caminho alternativo até serem resolvidos. Clique para ver o bloco.",
+          "BLOCKS": "{count} blocos"
+        }
+      },
+      "METRICS": {
+        "OPEN": "Métricas",
+        "TITLE": "Métricas do fluxo",
+        "SUBTITLE": "{name} · últimos 30 dias",
+        "FETCH_ERROR": "Não foi possível carregar as métricas do fluxo.",
+        "STARTED": "Iniciadas",
+        "COMPLETED": "Concluídas",
+        "ABANDONED": "Abandonadas",
+        "HANDED_OVER": "Assumidas por atendente",
+        "IN_PROGRESS": "Em andamento",
+        "FAILED": "Com erro",
+        "COMPLETION_RATE": "Taxa de conclusão",
+        "DROP_OFF": "Onde os clientes desistem",
+        "DROP_OFF_HELP": "Blocos em que o cliente parou de responder por mais de 24 horas.",
+        "NO_DROP_OFF": "Nenhum abandono no período.",
+        "CUSTOMERS": "{count} clientes",
+        "REMOVED_BLOCK": "Bloco removido do fluxo"
+      },
+      "IMPORT_DROP": "Arraste o arquivo aqui ou clique para escolher",
+      "IMPORT_CHANGE": "Clique ou arraste outro arquivo para trocar",
+      "IMPORT_FORMATS": "Formatos aceitos: .flow, .alvo e .json (até 5 MB)",
+      "IMPORT_ANALYSING": "Analisando o fluxo…",
+      "IMPORT_NEEDS_REVIEW": "Precisa de revisão",
+      "IMPORT_READY": "Pronto para importar",
+      "IMPORT_NEXT_STEP": "Depois de importar, o editor mostra a lista de pendências: subfluxos, equipes e integrações que ainda faltam no AlvoChat.",
+      "IMPORT_STATS": {
+        "NODES": "Blocos",
+        "CONVERTED": "Convertidos",
+        "REVIEW": "Para revisar",
+        "CONNECTIONS": "Conexões",
+        "SUBFLOWS": "Subfluxos",
+        "CREDENTIALS": "Integrações"
+      }
     },
     "DISTRIBUTION": {
       "TITLE": "Distribuição automática",
@@ -149,12 +519,17 @@
       "TEAM": "Equipe",
       "CREATE_TITLE": "Atribuir supervisor de equipe",
       "USER_CREATE_TITLE": "Adicionar usuário e definir acesso",
-      "USER_CREATE_DESCRIPTION": "Convide o usuário e defina, no mesmo fluxo, os acessos do Chatwoot e do CRM.",
+      "USER_CREATE_DESCRIPTION": "Crie a conta manualmente e escolha se a senha será definida por você ou gerada temporariamente.",
       "USER_NAME": "Nome completo",
       "USER_EMAIL": "E-mail",
       "NATIVE_ROLE": "Acesso à plataforma",
       "NATIVE_AGENT": "Agente",
       "NATIVE_ADMINISTRATOR": "Administrador",
+      "ACCESS_PROFILE": "Perfil de acesso",
+      "PROFILE_ADMINISTRATOR": "Administrador",
+      "PROFILE_SUPERVISOR": "Supervisor",
+      "PROFILE_AGENT": "Agente",
+      "CODUSUR": "CODUSUR do WinThor",
       "TEAM_OPTIONAL": "Equipe (opcional)",
       "NO_TEAM": "Não atribuir equipe agora",
       "TEAM_HELP": "Quando uma equipe é selecionada, o usuário passa a integrá-la. Para um Supervisor, ela também será vinculada como equipe supervisionada.",
@@ -173,11 +548,48 @@
       "ASSIGNMENT_DELETE_SUCCESS": "Atribuição de papel removida.",
       "SAVE_ERROR": "Não foi possível atribuir o supervisor.",
       "FETCH_ERROR": "Não foi possível carregar o controle de acesso do CRM.",
-      "PERMISSIONS": "Permissões"
+      "PERMISSIONS": "Permissões",
+      "PASSWORD_RESET": "Redefinir senha",
+      "PASSWORD_RESET_SUCCESS": "Nova senha temporária gerada. As sessões anteriores foram encerradas.",
+      "PASSWORD_SET_SUCCESS": "Senha definida pelo administrador. As sessões anteriores foram encerradas.",
+      "PASSWORD_RESET_ERROR": "Não foi possível gerar a nova senha temporária.",
+      "PASSWORD_RESET_TITLE": "Redefinir senha do usuário",
+      "PASSWORD_RESET_DESCRIPTION": "Escolha como a nova senha será definida. As sessões atuais do usuário serão encerradas.",
+      "PASSWORD_RESET_SUBMIT": "Salvar nova senha",
+      "PASSWORD_MODE": "Como definir a senha",
+      "PASSWORD_MODE_TEMPORARY": "Gerar senha temporária aleatória",
+      "PASSWORD_MODE_TEMPORARY_HELP": "A senha será exibida uma única vez e o usuário deverá trocá-la ao entrar.",
+      "PASSWORD_MODE_ADMINISTRATOR": "Definir senha manualmente",
+      "PASSWORD_MODE_ADMINISTRATOR_HELP": "Você informa a senha e o usuário poderá entrar diretamente com ela.",
+      "PASSWORD": "Senha",
+      "PASSWORD_CONFIRMATION": "Confirmar senha",
+      "PASSWORD_HELP": "Use ao menos 6 caracteres, com letra maiúscula, minúscula, número e símbolo. Exemplo: SenhaNova2026!",
+      "TEMPORARY_PASSWORD": "Senha temporária",
+      "TEMPORARY_PASSWORD_HELP": "Entregue estas credenciais ao usuário agora. A senha não poderá ser consultada novamente e deverá ser alterada no primeiro acesso.",
+      "CREDENTIALS_READY": "Credenciais prontas para entrega",
+      "COPY_CREDENTIALS": "Copiar credenciais",
+      "CREDENTIALS_COPIED": "Credenciais copiadas.",
+      "CREDENTIALS_COPY_FAILED": "Não foi possível copiar. Selecione o e-mail e a senha e copie manualmente.",
+      "PROFILE_SELLER": "Vendedor",
+      "PROFILE_ADMINISTRATOR_HELP": "Acesso total: configurações, usuários e todas as conversas.",
+      "PROFILE_SUPERVISOR_HELP": "Vê todas as conversas e indicadores das equipes que supervisiona.",
+      "PROFILE_SELLER_HELP": "Atende conversas e gerencia os próprios leads e vendas.",
+      "PROFILE_AGENT_HELP": "Atende as conversas atribuídas a ele, sem gestão comercial."
+    },
+    "FORCED_PASSWORD": {
+      "TITLE": "Defina sua nova senha",
+      "DESCRIPTION": "Por segurança, troque a senha temporária antes de acessar a plataforma.",
+      "NEW_PASSWORD": "Nova senha",
+      "PASSWORD_HELP": "Use ao menos 6 caracteres, com letra maiúscula, minúscula, número e símbolo. Exemplo: SenhaNova2026!",
+      "CONFIRM_PASSWORD": "Confirme a nova senha",
+      "SUBMIT": "Salvar nova senha",
+      "VALIDATION_ERROR": "Use pelo menos 6 caracteres, incluindo letra maiúscula, minúscula, número e símbolo especial. As senhas devem ser iguais.",
+      "SAVE_ERROR": "Não foi possível alterar a senha. Tente novamente.",
+      "SUCCESS": "Senha alterada com sucesso."
     },
     "DASHBOARD": {
       "TITLE": "Painel comercial",
-      "DESCRIPTION": "Indicadores comerciais do período selecionado.",
+      "DESCRIPTION": "Indicadores comerciais da sua equipe no período selecionado.",
       "LEADS": "Leads",
       "OPEN": "Conversas abertas",
       "RESOLVED": "Conversas resolvidas",
@@ -186,9 +598,30 @@
       "AVG_RESPONSE": "Primeira resposta média",
       "SELLERS": "Ranking de vendedores",
       "TEAMS": "Ranking de equipes",
-      "CHANNELS": "Volume por canal",
+      "CHANNELS": "Volume por caixa de entrada",
       "EMPTY": "Não há dados disponíveis para este período.",
-      "FETCH_ERROR": "Não foi possível carregar os indicadores."
+      "FETCH_ERROR": "Não foi possível carregar os indicadores.",
+      "LAST_DAYS": "Últimos {count} dias",
+      "ALL_TEAMS": "Todas as equipes",
+      "MINUTES": "{count} min",
+      "HOURS": "{count} h",
+      "UNANSWERED": "Conversas sem resposta",
+      "UNANSWERED_HELP": "Abertas agora e ainda sem nenhuma resposta da equipe.",
+      "AWAITING_REPLY": "Aguardando retorno",
+      "AWAITING_REPLY_HELP": "Abertas agora em que o cliente foi o último a falar.",
+      "SELLER": "Vendedor",
+      "CONVERSATIONS": "Conversas",
+      "RESOLVED_SHORT": "Resolvidas",
+      "OPEN_NOW": "Abertas agora",
+      "FIRST_RESPONSE": "1ª resposta",
+      "NO_TEAM": "Sem equipe",
+      "TEAM_VALUE": "{total} conversas · {resolved} resolvidas",
+      "REPLY_SOURCES": "Respostas: sistema x celular",
+      "REPLY_SOURCES_HELP": "Mensagens enviadas aos clientes por cada número. O WhatsApp não informa quem digitou no celular, por isso o celular é contado por número, não por vendedor.",
+      "NUMBER": "Número",
+      "BY_SYSTEM": "Pelo sistema",
+      "BY_PHONE": "Pelo celular",
+      "PHONE_SHARE": "% pelo celular"
     },
     "AUDIT": {
       "TITLE": "Auditoria do CRM",
@@ -198,6 +631,268 @@
       "DATE": "Data",
       "EMPTY": "Nenhum registro de auditoria do CRM foi encontrado.",
       "FETCH_ERROR": "Não foi possível carregar a auditoria do CRM."
+    },
+    "FLOW_CANVAS": {
+      "BLOCKS_TITLE": "Blocos",
+      "HINT": "{zoom} · arraste o fundo para mover · Ctrl + roda para zoom · Delete remove a seleção",
+      "BACK": "Voltar",
+      "NAME": "Nome do fluxo",
+      "UNSAVED": "Alterações não salvas",
+      "DISCARD_CONFIRM": "Há alterações não salvas. Sair e descartar?",
+      "KEEP_EDITING": "Continuar editando",
+      "DISCARD": "Descartar",
+      "HELP_TITLE": "Como montar"
+    },
+    "CONNECTIONS": {
+      "TITLE": "Conexões de WhatsApp",
+      "DESCRIPTION": "Todos os números conectados à conta, quem cadastrou cada um e se está online agora.",
+      "ADD": "Conectar número",
+      "REFRESH": "Atualizar",
+      "SEARCH": "Buscar por nome, número ou equipe",
+      "ANY_CREATOR": "Cadastrado por qualquer pessoa",
+      "UNKNOWN_CREATOR": "Não registrado",
+      "ANY_STATUS": "Qualquer status",
+      "CREATED_BY": "Cadastrado por",
+      "CREATED_AT": "Cadastrado em",
+      "TEAM": "Equipe padrão",
+      "NO_TEAM": "Sem equipe",
+      "PROVIDER": "Conexão",
+      "OPEN_CONVERSATIONS": "Conversas abertas",
+      "LAST_ACTIVITY": "Última atividade",
+      "NO_PHONE": "Número ainda não identificado",
+      "RECONNECT": "Reconectar",
+      "SETTINGS": "Configurar",
+      "RECONNECT_SUCCESS": "Reconexão de {name} solicitada. O status atualiza em alguns segundos.",
+      "RECONNECT_ERROR": "Não foi possível reconectar o número.",
+      "FETCH_ERROR": "Não foi possível carregar as conexões.",
+      "EMPTY": "Nenhum número de WhatsApp conectado ainda.",
+      "NO_MATCH": "Nenhuma conexão corresponde aos filtros.",
+      "SUMMARY": {
+        "total": "Números",
+        "connected": "Online",
+        "disconnected": "Desconectados",
+        "open": "Conversas abertas"
+      },
+      "STATUS": {
+        "connected": "Online",
+        "connecting": "Conectando",
+        "disconnected": "Desconectado",
+        "unreachable": "Sem resposta",
+        "needs_qr": "Aguardando QR Code"
+      },
+      "PROVIDERS": {
+        "wppconnect": "WhatsApp (QR Code)",
+        "baileys": "WhatsApp (Baileys)",
+        "whatsapp_cloud": "WhatsApp Cloud API"
+      },
+      "CONNECTED": "{name} está online.",
+      "QR_TITLE": "Escaneie o QR Code",
+      "QR_DESCRIPTION": "O WhatsApp desconectou {name}. Escaneie o código com o celular desse número para conectá-lo de novo. Se o código expirar, um novo aparece sozinho.",
+      "QR_STEP_1": "Abra o WhatsApp no celular do número.",
+      "QR_STEP_2": "Toque em Mais opções ou Configurações e depois em Aparelhos conectados.",
+      "QR_STEP_3": "Toque em Conectar um aparelho e aponte a câmera para o código.",
+      "QR_WAITING": "Aguardando a leitura do código…",
+      "SHOW_QR": "Mostrar QR Code",
+      "CREATE_TITLE": "Conectar número de WhatsApp",
+      "CREATE_DESCRIPTION": "Dê um nome ao número e escolha a equipe. Em seguida aparece o QR Code para escanear com o celular.",
+      "CREATE_SUBMIT": "Gerar QR Code",
+      "SETTINGS_TITLE": "Configurar número",
+      "SETTINGS_DESCRIPTION": "Altere o nome que aparece no AlvoChat e a equipe que recebe as conversas.",
+      "NAME": "Nome do número",
+      "NAME_PLACEHOLDER": "Ex.: Compras - Jamile",
+      "NAME_REQUIRED": "Informe um nome para o número.",
+      "TEAM_HELP": "As conversas novas deste número vão para essa equipe, e o supervisor dela passa a acompanhá-las.",
+      "READ_ONLY": "Só quem cadastrou o número, supervisores e administradores podem alterá-lo.",
+      "DELETE": "Excluir número",
+      "ADVANCED": "Configurações avançadas",
+      "SAVED": "Número atualizado.",
+      "DELETED": "Número excluído.",
+      "SAVE_ERROR": "Não foi possível salvar o número.",
+      "QR_GENERATING": "Gerando o QR Code…",
+      "HISTORY": {
+        "IMPORT": "Importar histórico",
+        "STARTED": "Importando o histórico de {name}. As conversas aparecem aos poucos.",
+        "ERROR": "Não foi possível iniciar a importação do histórico.",
+        "RUNNING": "Importando histórico: {chats} conversas, {messages} mensagens…",
+        "DONE": "Histórico importado em {date}: {chats} conversas, {messages} mensagens.",
+        "FAILED": "A importação do histórico falhou. Tente de novo com o número online."
+      },
+      "CONTACTS": {
+        "IMPORT": "Importar contatos",
+        "STARTED": "Importando os contatos salvos no celular de {name}. Eles aparecem em Contatos aos poucos.",
+        "ERROR": "Não foi possível iniciar a importação dos contatos.",
+        "RUNNING": "Importando contatos do celular: {created} novos, {updated} atualizados…",
+        "DONE": "Contatos do celular importados em {date}: {created} novos, {updated} atualizados.",
+        "FAILED": "A importação dos contatos falhou. Tente de novo com o número online."
+      },
+      "WIZARD": {
+        "STEP_1": {
+          "TITLE": "Escolha o canal",
+          "DESCRIPTION": "Por onde os clientes vão falar com a equipe."
+        },
+        "STEP_2": {
+          "TITLE": "Dados da conexão",
+          "DESCRIPTION": "Nome do número e equipe que recebe as conversas."
+        },
+        "STEP_3": {
+          "TITLE": "Conectar",
+          "DESCRIPTION": "Escaneie o QR Code com o celular do número."
+        },
+        "CHOOSE_TITLE": "Escolha o canal",
+        "CHOOSE_DESCRIPTION": "WhatsApp conecta por QR Code em poucos segundos. Os demais canais são configurados por um administrador.",
+        "ADMIN_ONLY": "Só administradores configuram este canal. Para WhatsApp, use a opção WhatsApp.",
+        "BACK": "Voltar"
+      },
+      "OWNER": "Responsável",
+      "NO_OWNER": "Ninguém (só a equipe)",
+      "OWNER_HELP": "As conversas novas deste número são atribuídas ao responsável. Sem responsável, ficam com a equipe."
+    }
+  },
+  "ATTENDANCE": {
+    "NAV": {
+      "HISTORY": "Histórico de chats",
+      "SCHEDULED": "Mensagens agendadas"
+    },
+    "SECTIONS": {
+      "OVERVIEW": "Visão geral",
+      "ATTENDANCE": "Atendimento",
+      "COMMERCIAL": "Comercial",
+      "SYSTEM": "Sistema"
+    },
+    "COUNTERS": {
+      "RESOLVED": "Finalizados hoje",
+      "AGENTS": "Agentes online ou ocupados",
+      "LATE": "Aguardando resposta há mais de {minutes} min",
+      "ACTIVE": "Em atendimento"
+    },
+    "VIEWS": {
+      "ACTIVE": "Ativos",
+      "LATE": "Atrasados",
+      "PAUSED": "Pausados"
+    },
+    "SEARCH_PLACEHOLDER": "Protocolo, nome ou telefone",
+    "CLEAR_SEARCH": "Limpar busca",
+    "HISTORY": {
+      "TITLE": "Histórico de chats",
+      "DESCRIPTION": "Atendimentos finalizados, do mais recente para o mais antigo. Clique para abrir a conversa.",
+      "ANY_AGENT": "Qualquer agente",
+      "FROM": "De",
+      "TO": "Até",
+      "PROTOCOL": "Protocolo",
+      "CONTACT": "Contato",
+      "AGENT": "Agente",
+      "TEAM": "Equipe",
+      "INBOX": "Número",
+      "FINISHED_AT": "Última atividade",
+      "GROUP": "Grupo do WhatsApp",
+      "EMPTY": "Nenhum atendimento finalizado com esses filtros.",
+      "PAGE": "Página {page} de {pages} · {total} atendimentos",
+      "FETCH_ERROR": "Não foi possível carregar o histórico."
+    },
+    "SCHEDULE": {
+      "TOOLTIP": "Agendar mensagem",
+      "TITLE": "Agendar mensagem",
+      "DESCRIPTION": "A mensagem é enviada automaticamente no horário escolhido, em seu nome.",
+      "MESSAGE": "Mensagem",
+      "WHEN": "Quando enviar",
+      "SHORTCUTS": {
+        "HOUR": "Em 1 hora",
+        "TOMORROW": "Amanhã às 9h",
+        "MONDAY": "Segunda às 9h"
+      },
+      "PENDING": "Já agendadas nesta conversa",
+      "SUBMIT": "Agendar",
+      "CANCEL": "Cancelar",
+      "SAVED": "Mensagem agendada para {date}.",
+      "CANCELLED": "Agendamento cancelado.",
+      "ERROR": "Não foi possível salvar o agendamento."
+    },
+    "SCHEDULED": {
+      "TITLE": "Mensagens agendadas",
+      "DESCRIPTION": "Mensagens que a equipe programou para enviar depois. Para agendar, abra a conversa e use o botão de calendário.",
+      "STATUS": {
+        "pending": "Pendentes",
+        "sent": "Enviadas",
+        "failed": "Falharam",
+        "cancelled": "Canceladas"
+      },
+      "BY": "por {name}",
+      "EMPTY": "Nada por aqui.",
+      "FETCH_ERROR": "Não foi possível carregar as mensagens agendadas."
+    },
+    "COPILOT": {
+      "TOOLTIP": "Perguntar ao Copiloto",
+      "TITLE": "Perguntar ao Copiloto",
+      "DESCRIPTION": "Pergunte qualquer coisa sobre esta conversa. A IA lê as mensagens e responde.",
+      "PLACEHOLDER": "Ex.: o que o cliente está pedindo?",
+      "ASK": "Perguntar",
+      "USE": "Usar na resposta",
+      "THINKING": "Pensando...",
+      "ERROR": "O Copiloto não conseguiu responder agora. Tente de novo.",
+      "SUGGESTIONS": {
+        "WANTS": "O que o cliente quer?",
+        "PENDING": "O que ficou pendente nesta conversa?",
+        "REPLY": "Escreva uma resposta para o cliente"
+      }
+    }
+  },
+  "WHATSAPP_EXTRAS": {
+    "TOOLTIP": "Localização, contato, enquete ou lista",
+    "SENT": "Mensagem enviada.",
+    "ERROR": "Não foi possível enviar. Tente de novo.",
+    "CANCEL": "Cancelar",
+    "SEND": "Enviar",
+    "LOCATION": {
+      "MENU": "Localização",
+      "TITLE": "Enviar localização",
+      "DESCRIPTION": "O cliente recebe um mapa com o ponto marcado.",
+      "MY_LOCATION": "Usar minha localização atual",
+      "LINK": "Link do Google Maps (opcional)",
+      "LINK_PLACEHOLDER": "Cole aqui o link ou as coordenadas",
+      "LAT": "Latitude",
+      "LNG": "Longitude",
+      "NAME": "Nome do local",
+      "NAME_PLACEHOLDER": "Ex.: Comercial Alvorada - Matriz",
+      "ADDRESS": "Endereço",
+      "PREVIEW": "Conferir no mapa",
+      "NO_GPS": "Não foi possível obter sua localização. Cole o link do Google Maps.",
+      "LAT_PLACEHOLDER": "-15.793889",
+      "LNG_PLACEHOLDER": "-47.882778"
+    },
+    "CONTACT": {
+      "MENU": "Contato",
+      "TITLE": "Enviar contato",
+      "DESCRIPTION": "O cliente recebe um cartão de contato que pode salvar ou abrir no WhatsApp.",
+      "SEARCH": "Buscar nos contatos",
+      "SEARCH_PLACEHOLDER": "Nome ou telefone",
+      "NAME": "Nome",
+      "PHONE": "Telefone (com DDD)",
+      "PHONE_PLACEHOLDER": "+55 61 99999-9999"
+    },
+    "POLL": {
+      "MENU": "Enquete",
+      "TITLE": "Criar enquete",
+      "DESCRIPTION": "Uma enquete do WhatsApp: o cliente toca na opção e você vê o voto.",
+      "QUESTION": "Pergunta",
+      "OPTIONS": "Opções",
+      "OPTION": "Opção {number}",
+      "ADD_OPTION": "Adicionar opção",
+      "MULTIPLE": "Permitir escolher mais de uma opção"
+    },
+    "LIST": {
+      "MENU": "Lista de opções",
+      "TITLE": "Enviar lista de opções",
+      "DESCRIPTION": "Uma mensagem com botão que abre a lista para o cliente escolher, como um formulário.",
+      "TEXT": "Texto da mensagem",
+      "BUTTON": "Texto do botão",
+      "BUTTON_PLACEHOLDER": "Ver opções",
+      "SECTION": "Título da lista",
+      "SECTION_PLACEHOLDER": "Opções",
+      "ROWS": "Opções",
+      "ROW_TITLE": "Opção {number}",
+      "ROW_DESCRIPTION": "Descrição (opcional)",
+      "ADD_ROW": "Adicionar opção",
+      "NOTE": "O WhatsApp pode não mostrar listas em alguns aparelhos para números que não são WhatsApp Business. Para perguntas simples, prefira a enquete."
     }
   }
 }

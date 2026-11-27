@@ -35,7 +35,7 @@ services:
       - sidekiq
       - baileys
     ports:
-      - 3000:3000
+      - 8069:3000
     env_file: .env
     environment:
       - VITE_DEV_SERVER_HOST=vite
@@ -48,6 +48,15 @@ services:
       - BAILEYS_API_TOKEN=${BAILEYS_API_TOKEN:-local-development-token-change-before-production}
     entrypoint: docker/entrypoints/rails.sh
     command: ["bundle", "exec", "rails", "s", "-p", "3000", "-b", "0.0.0.0"]
+
+  # Deliberately has no host port. It is the only container exposed through the
+  # temporary Meta tunnel and forwards only WhatsApp webhook requests to Rails.
+  meta-webhook-proxy:
+    image: nginx:1.27-alpine
+    depends_on:
+      - rails
+    volumes:
+      - ./docker/nginx/meta-webhook-proxy.conf:/etc/nginx/nginx.conf:ro
 
   sidekiq:
     <<: *base
@@ -128,6 +137,7 @@ services:
       - BAILEYS_API_TOKEN=${BAILEYS_API_TOKEN:-local-development-token-change-before-production}
     volumes:
       - baileys_data:/data
+      - ./services/whatsapp-baileys/server.js:/service/server.js:ro
     ports:
       - '3001:3001'
 

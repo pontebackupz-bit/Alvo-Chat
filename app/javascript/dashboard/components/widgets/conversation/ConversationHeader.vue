@@ -9,6 +9,9 @@ import MoreActions from './MoreActions.vue';
 import Avatar from 'next/avatar/Avatar.vue';
 import SLACardLabel from './components/SLACardLabel.vue';
 import ConversationCallButton from './ConversationCallButton.vue';
+import WhatsappHistoryButton from './WhatsappHistoryButton.vue';
+import ScheduleMessageButton from './ScheduleMessageButton.vue';
+import AskCopilotButton from './AskCopilotButton.vue';
 import wootConstants from 'dashboard/constants/globals';
 import { conversationListPageURL } from 'dashboard/helper/URLHelper';
 import { snoozedReopenTime } from 'dashboard/helper/snoozeHelpers';
@@ -70,6 +73,13 @@ const isHMACVerified = computed(() => {
 
 const currentContact = computed(() =>
   store.getters['contacts/getContact'](props.chat.meta.sender.id)
+);
+const contactPhoneNumber = computed(() => currentContact.value?.phone_number);
+const showContactPhoneNumber = computed(
+  () =>
+    contactPhoneNumber.value &&
+    contactPhoneNumber.value.replace(/\D/g, '') !==
+      currentContact.value?.name?.replace(/\D/g, '')
 );
 
 const isSnoozed = computed(
@@ -136,6 +146,12 @@ const copyConversationId = async () => {
           >
             {{ currentContact.name }}
           </span>
+          <span
+            v-if="showContactPhoneNumber"
+            class="text-xs text-n-slate-11 truncate leading-tight"
+          >
+            {{ contactPhoneNumber }}
+          </span>
           <fluent-icon
             v-if="!isHMACVerified"
             v-tooltip="$t('CONVERSATION.UNVERIFIED_SESSION')"
@@ -174,6 +190,9 @@ const copyConversationId = async () => {
         :parent-width="width"
         class="hidden md:flex"
       />
+      <WhatsappHistoryButton :inbox="inbox" :chat="currentChat" />
+      <ScheduleMessageButton :chat="currentChat" />
+      <AskCopilotButton :chat="currentChat" :inbox="inbox" />
       <ConversationCallButton :inbox="inbox" :chat="currentChat" />
       <MoreActions :conversation-id="currentChat.id" />
     </div>

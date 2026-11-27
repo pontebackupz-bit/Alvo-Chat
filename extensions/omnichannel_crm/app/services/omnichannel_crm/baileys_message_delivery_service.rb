@@ -18,16 +18,41 @@ class OmnichannelCrm::BaileysMessageDeliveryService
   attr_reader :message
 
   def deliverable?
-    channel.is_a?(Channel::Api) && channel.additional_attributes['provider'] == 'baileys' &&
+    # Private notes never leave AlvoChat.
+    !message.private? && channel.is_a?(Channel::Api) && channel.additional_attributes['provider'] == 'baileys' &&
       (message.content.present? || message.attachments.present?) && message.source_id.blank?
   end
 
   def send_messages
-    return [bridge.send_message(session_id, recipient, message.content)] if attachments.blank?
+    return [bridge.send_message(session_id, recipient, text, nil, **send_options)] if attachments.blank?
 
     attachments.map.with_index do |attachment, index|
-      bridge.send_message(session_id, recipient, index.zero? ? message.content : '', attachment)
+      bridge.send_message(session_id, recipient, index.zero? ? caption(attachment) : '', attachment, **send_options)
     end
+  end
+
+  def send_options
+    {}
+  end
+
+  # Replies from an agent start with the agent's name (see AgentSignature).
+  def text
+    OmnichannelCrm::AgentSignature.apply(body, OmnichannelCrm::AgentSignature.name_for(message))
+  end
+
+  # Voice notes have no caption on WhatsApp, so they go without the name.
+  def caption(attachment)
+    return body.to_s if attachment.file_type == 'audio' && body.blank?
+
+    text
+  end
+
+  # WhatsApp has no rating widget: the CSAT survey asks for a 1-5 reply.
+  def body
+    content = OmnichannelCrm::WhatsappText.render(message.content)
+    return content unless message.input_csat?
+
+    [content, OmnichannelCrm::CsatReplyService::INSTRUCTIONS].compact_blank.join("\n\n")
   end
 
   def bridge
@@ -47,12 +72,7 @@ class OmnichannelCrm::BaileysMessageDeliveryService
   end
 
   def recipient
-    return contact.custom_attributes['baileys_jid'] if contact.custom_attributes['baileys_jid'].present?
-
-    source_id = ContactInbox.find_by!(contact: contact, inbox: message.inbox).source_id
-    return "#{source_id}@lid" if contact.phone_number == "+#{source_id}" && source_id.length > 14
-
-    contact.phone_number.gsub(/\D/, '')
+    contact.phone_number.to_s.gsub(/\D/, '')
   end
 
   def contact

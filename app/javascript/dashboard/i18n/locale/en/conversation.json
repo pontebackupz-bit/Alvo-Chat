@@ -360,6 +360,28 @@
       "UNMUTE": "Unmute mic",
       "VIEW_CHAT_HISTORY": "View chat history",
       "GO_TO_CONVERSATION": "Go to conversation thread"
+    },
+    "WHATSAPP_HISTORY": {
+      "BUTTON": "WhatsApp history",
+      "LOADING": "Loading history…",
+      "TOOLTIP": "Brings every message of this contact that is on WhatsApp",
+      "DONE": "{count} older WhatsApp messages were added. Scroll up to see them.",
+      "UP_TO_DATE": "The WhatsApp history is already complete in this conversation.",
+      "ERROR": "Could not load the WhatsApp history."
+    },
+    "START_CHAT": "Chat",
+    "START_CHAT_ERROR": "Could not open a conversation with this contact.",
+    "WHATSAPP_REVOKED": {
+      "MINE": "Deleted on WhatsApp",
+      "CONTACT": "The contact deleted this message on WhatsApp"
+    },
+    "WHATSAPP_EDITED": {
+      "LABEL": "Edited on WhatsApp",
+      "NEW_TEXT": "Edited on WhatsApp to:"
+    },
+    "AUDIO_TRANSCRIPTION": {
+      "ACTION": "Transcribe",
+      "LOADING": "Transcribing..."
     }
   },
   "EMAIL_TRANSCRIPT": {

@@ -16,9 +16,13 @@ class ConversationApi extends ApiClient {
     conversationType,
     sortBy,
     updatedWithin,
+    search,
+    waitingOver,
   }) {
     return axios.get(this.url, {
       params: {
+        search: search || undefined,
+        waiting_over: waitingOver || undefined,
         inbox_id: inboxId,
         team_id: teamId,
         status,
@@ -97,9 +101,20 @@ class ConversationApi extends ApiClient {
     return axios.post(`${this.url}/${conversationId}/unmute`);
   }
 
-  meta({ inboxId, status, assigneeType, labels, teamId, conversationType }) {
+  meta({
+    inboxId,
+    status,
+    assigneeType,
+    labels,
+    teamId,
+    conversationType,
+    search,
+    waitingOver,
+  }) {
     return axios.get(`${this.url}/meta`, {
       params: {
+        search: search || undefined,
+        waiting_over: waitingOver || undefined,
         inbox_id: inboxId,
         status,
         assignee_type: assigneeType,

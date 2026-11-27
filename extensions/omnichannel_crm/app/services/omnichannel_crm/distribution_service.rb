@@ -54,7 +54,9 @@ module OmnichannelCrm
 
     def candidates(rule)
       user_ids = rule.team ? rule.team.members.ids : @conversation.account.users.ids
-      @conversation.account.account_users.where(user_id: user_ids, availability: :online).includes(:user).map(&:user).sort_by(&:id)
+      # Administrators are never picked automatically.
+      @conversation.account.account_users.agent.where(user_id: user_ids, availability: :online)
+                   .includes(:user).map(&:user).sort_by(&:id)
     end
 
     def least_open_conversations(agents)

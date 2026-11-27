@@ -658,6 +658,8 @@
   },
   "SUMMARY_REPORTS": {
     "INBOX": "Inbox",
+    "SYSTEM_REPLIES": "Replies in AlvoChat",
+    "PHONE_REPLIES": "Replies on the phone",
     "AGENT": "Agent",
     "TEAM": "Team",
     "LABEL": "Label",

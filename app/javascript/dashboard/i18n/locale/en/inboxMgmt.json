@@ -265,6 +265,30 @@
             "STATUS_WITH_VALUE": "Connection status: {status}",
             "QR_ALT": "QR Code to connect WhatsApp",
             "ERROR": "Unable to connect to the Baileys bridge. Confirm that the service is running and the token is correct."
+          },
+          "WPPCONNECT": {
+            "TITLE": "WhatsApp session (WPPConnect)",
+            "CARD_DESCRIPTION": "Connect a number with WPPConnect and a QR Code",
+            "DESCRIPTION": "Connect a number through the WPPConnect WhatsApp Web service.",
+            "WARNING": "Warning: this is an unofficial WhatsApp Web integration. It may cause number blocks or restrictions. Use authorized numbers and requested messages only.",
+            "CONNECT": "Generate QR Code",
+            "REPLACE": "Replace number",
+            "REPLACE_TITLE": "Replace the connected number?",
+            "REPLACE_DESCRIPTION": "The current WhatsApp session will be disconnected and a new QR Code will be generated.",
+            "STATUS_WITH_VALUE": "Connection status: {status}",
+            "QR_ALT": "QR Code to connect WhatsApp",
+            "ERROR": "Unable to connect to WPPConnect. Confirm that the service is running and configured.",
+            "PHONE": "Connected number: {phone}",
+            "PHONE_LABEL": "Connected WhatsApp number",
+            "TEAM": "Default team",
+            "NO_TEAM": "Do not assign a team now",
+            "TEAM_HELP": "New conversations received on this number will be assigned to this team.",
+            "NAME": "WhatsApp name",
+            "NAME_PLACEHOLDER": "E.g. Sales New York",
+            "NAME_HELP": "This name shows in the inbox list and in conversations.",
+            "NAME_REQUIRED": "Enter a name for this WhatsApp.",
+            "SUPERVISOR_NOTE": "Supervisors see this number and its conversations automatically, without being added.",
+            "STEP_3": "On your phone: WhatsApp › Linked devices › Link a device"
           }
         },
         "SELECT_PROVIDER": {

@@ -7,6 +7,7 @@ import ThreeSixtyDialogWhatsapp from './360DialogWhatsapp.vue';
 import CloudWhatsapp from './CloudWhatsapp.vue';
 import WhatsappEmbeddedSignup from './WhatsappEmbeddedSignup.vue';
 import BaileysWhatsapp from './BaileysWhatsapp.vue';
+import WppconnectWhatsapp from './WppconnectWhatsapp.vue';
 import ChannelSelector from 'dashboard/components/ChannelSelector.vue';
 import { useAccount } from 'dashboard/composables/useAccount';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
@@ -24,6 +25,7 @@ const PROVIDER_TYPES = {
   WHATSAPP_MANUAL: 'whatsapp_manual',
   THREE_SIXTY_DIALOG: '360dialog',
   BAILEYS: 'baileys',
+  WPPCONNECT: 'wppconnect',
 };
 
 const hasWhatsappAppId = computed(() => {
@@ -67,6 +69,12 @@ const availableProviders = computed(() => [
     description: t(
       'INBOX_MGMT.ADD.WHATSAPP.PROVIDERS.BAILEYS.CARD_DESCRIPTION'
     ),
+    icon: 'i-woot-whatsapp',
+  },
+  {
+    key: PROVIDER_TYPES.WPPCONNECT,
+    title: t('INBOX_MGMT.ADD.WHATSAPP.PROVIDERS.WPPCONNECT.TITLE'),
+    description: t('INBOX_MGMT.ADD.WHATSAPP.PROVIDERS.WPPCONNECT.CARD_DESCRIPTION'),
     icon: 'i-woot-whatsapp',
   },
 ]);
@@ -158,6 +166,9 @@ const handleManualLinkClick = () => {
         />
         <BaileysWhatsapp
           v-else-if="selectedProvider === PROVIDER_TYPES.BAILEYS"
+        />
+        <WppconnectWhatsapp
+          v-else-if="selectedProvider === PROVIDER_TYPES.WPPCONNECT"
         />
         <CloudWhatsapp v-else />
       </div>

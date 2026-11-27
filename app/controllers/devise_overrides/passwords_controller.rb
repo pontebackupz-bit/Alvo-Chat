@@ -31,6 +31,8 @@ class DeviseOverrides::PasswordsController < Devise::PasswordsController
     recoverable.reset_password_token = nil
     recoverable.confirmation_token = nil
     recoverable.reset_password_sent_at = nil
+    # The person chose this password themselves: no forced change on next login.
+    recoverable.force_password_change = false if recoverable.has_attribute?(:force_password_change)
     recoverable.save!
   end
 

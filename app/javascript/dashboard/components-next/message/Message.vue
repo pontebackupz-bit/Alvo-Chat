@@ -6,6 +6,7 @@ import { useTrack } from 'dashboard/composables';
 import { useMapGetter } from 'dashboard/composables/store';
 import { emitter } from 'shared/helpers/mitt';
 import { useI18n } from 'vue-i18n';
+import Icon from 'next/icon/Icon.vue';
 import { useRoute } from 'vue-router';
 import { LocalStorage } from 'shared/helpers/localStorage';
 import { ACCOUNT_EVENTS } from 'dashboard/helper/AnalyticsHelper/events';
@@ -552,6 +553,9 @@ provideMessageContext({
         gridClass,
         {
           'gap-y-2': contentAttributes.externalError,
+          'gap-y-1':
+            contentAttributes.whatsappRevoked ||
+            contentAttributes.whatsappEdited,
           'w-full': variant === MESSAGE_VARIANTS.EMAIL,
         },
       ]"
@@ -584,6 +588,44 @@ provideMessageContext({
         :error="contentAttributes.externalError"
         @retry="emit('retry')"
       />
+      <div
+        v-else-if="
+          contentAttributes.whatsappRevoked || contentAttributes.whatsappEdited
+        "
+        class="[grid-area:meta] flex flex-col gap-1 text-xs text-n-slate-11"
+        :class="orientation === ORIENTATION.RIGHT ? 'items-end' : 'items-start'"
+      >
+        <span
+          v-if="contentAttributes.whatsappEdited"
+          class="flex items-start gap-1 max-w-md"
+        >
+          <Icon icon="i-lucide-pencil" class="size-3.5 mt-px shrink-0" />
+          <span class="break-words">
+            {{
+              contentAttributes.whatsappEditedText
+                ? t('CONVERSATION.WHATSAPP_EDITED.NEW_TEXT')
+                : t('CONVERSATION.WHATSAPP_EDITED.LABEL')
+            }}
+            <span
+              v-if="contentAttributes.whatsappEditedText"
+              class="text-n-slate-12"
+            >
+              {{ contentAttributes.whatsappEditedText }}
+            </span>
+          </span>
+        </span>
+        <span
+          v-if="contentAttributes.whatsappRevoked"
+          class="flex items-center gap-1"
+        >
+          <Icon icon="i-lucide-ban" class="size-3.5" />
+          {{
+            orientation === ORIENTATION.RIGHT
+              ? t('CONVERSATION.WHATSAPP_REVOKED.MINE')
+              : t('CONVERSATION.WHATSAPP_REVOKED.CONTACT')
+          }}
+        </span>
+      </div>
     </div>
     <div v-if="shouldShowContextMenu" class="context-menu-wrap">
       <ContextMenu

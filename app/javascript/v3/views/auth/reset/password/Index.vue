@@ -2,62 +2,46 @@
 import { useVuelidate } from '@vuelidate/core';
 import { useAlert } from 'dashboard/composables';
 import { required, minLength, email } from '@vuelidate/validators';
-import { useBranding } from 'shared/composables/useBranding';
-import { useMapGetter } from 'dashboard/composables/store';
-import FormInput from '../../../../components/Form/Input.vue';
 import { resetPassword } from '../../../../api/auth';
-import NextButton from 'dashboard/components-next/button/Button.vue';
+import AuthLayout from '../../../../components/AuthLayout.vue';
+import Spinner from 'shared/components/Spinner.vue';
 
 export default {
-  components: { FormInput, NextButton },
+  components: { AuthLayout, Spinner },
   setup() {
-    const { replaceInstallationName } = useBranding();
-    const globalConfig = useMapGetter('globalConfig/get');
-    return { v$: useVuelidate(), replaceInstallationName, globalConfig };
+    return { v$: useVuelidate() };
   },
   data() {
     return {
       credentials: { email: '' },
-      resetPassword: {
-        message: '',
-        showLoading: false,
-      },
-      error: '',
+      isLoading: false,
+      // Shown in place of the form once the link was requested.
+      sent: false,
     };
   },
   validations() {
     return {
       credentials: {
-        email: {
-          required,
-          email,
-          minLength: minLength(4),
-        },
+        email: { required, email, minLength: minLength(4) },
       },
     };
   },
   methods: {
-    showAlertMessage(message) {
-      // Reset loading, current selected agent
-      this.resetPassword.showLoading = false;
-      useAlert(message);
-    },
     submit() {
-      this.resetPassword.showLoading = true;
+      this.isLoading = true;
       resetPassword(this.credentials)
-        .then(res => {
-          let successMessage = this.$t('RESET_PASSWORD.API.SUCCESS_MESSAGE');
-          if (res.data && res.data.message) {
-            successMessage = res.data.message;
-          }
-          this.showAlertMessage(successMessage);
+        .then(() => {
+          this.sent = true;
         })
         .catch(error => {
-          let errorMessage = this.$t('RESET_PASSWORD.API.ERROR_MESSAGE');
-          if (error?.response?.data?.message) {
-            errorMessage = error.response.data.message;
-          }
-          this.showAlertMessage(errorMessage);
+          useAlert(
+            error?.response?.data?.message ||
+              this.$t('RESET_PASSWORD.API.ERROR_MESSAGE'),
+            { status: 'error' }
+          );
+        })
+        .finally(() => {
+          this.isLoading = false;
         });
     },
   },
@@ -65,61 +49,67 @@ export default {
 </script>
 
 <template>
-  <div
-    class="flex flex-col justify-center w-full min-h-screen py-12 bg-n-brand/5 dark:bg-n-background sm:px-6 lg:px-8"
-  >
-    <div class="mb-6 text-center">
-      <img
-        :src="globalConfig.logo"
-        :alt="globalConfig.installationName"
-        class="inline-block w-auto h-8 dark:hidden"
-      />
-      <img
-        v-if="globalConfig.logoDark"
-        :src="globalConfig.logoDark"
-        :alt="globalConfig.installationName"
-        class="hidden w-auto h-8 dark:inline-block"
-      />
-    </div>
-    <form
-      class="bg-white shadow sm:mx-auto sm:w-full sm:max-w-lg dark:bg-n-solid-2 p-11 sm:shadow-lg sm:rounded-lg"
-      @submit.prevent="submit"
-    >
-      <h1
-        class="mb-1 text-2xl font-medium tracking-tight text-left text-n-slate-12"
+  <AuthLayout>
+    <template v-if="sent">
+      <span
+        class="flex items-center justify-center rounded-lg size-11 bg-[#2563eb]/15 text-[#60a5fa]"
       >
-        {{ $t('RESET_PASSWORD.TITLE') }}
-      </h1>
-      <p
-        class="mb-4 text-sm font-normal leading-6 tracking-normal text-n-slate-11"
-      >
-        {{ replaceInstallationName($t('RESET_PASSWORD.DESCRIPTION')) }}
+        <span class="i-lucide-mail-check size-5" />
+      </span>
+      <h1 class="mt-6 auth-title">{{ $t('RESET_PASSWORD.SENT_TITLE') }}</h1>
+      <p class="auth-description">
+        {{
+          $t('RESET_PASSWORD.SENT_DESCRIPTION', { email: credentials.email })
+        }}
       </p>
-      <div class="space-y-5">
-        <FormInput
-          v-model="credentials.email"
-          name="email_address"
-          :has-error="v$.credentials.email.$error"
-          :error-message="$t('RESET_PASSWORD.EMAIL.ERROR')"
-          :placeholder="$t('RESET_PASSWORD.EMAIL.PLACEHOLDER')"
-          @input="v$.credentials.email.$touch"
-        />
-        <NextButton
-          lg
+      <button type="button" class="mt-8 auth-button" @click="sent = false">
+        {{ $t('RESET_PASSWORD.SEND_AGAIN') }}
+      </button>
+    </template>
+
+    <template v-else>
+      <h1 class="auth-title">{{ $t('RESET_PASSWORD.TITLE') }}</h1>
+      <p class="auth-description">{{ $t('RESET_PASSWORD.DESCRIPTION') }}</p>
+
+      <form class="mt-8 space-y-6" @submit.prevent="submit">
+        <label class="block">
+          <span class="auth-label">{{ $t('RESET_PASSWORD.EMAIL.LABEL') }}</span>
+          <span class="relative block">
+            <span class="auth-input-icon i-lucide-mail" />
+            <input
+              v-model.trim="credentials.email"
+              name="email_address"
+              type="email"
+              autocomplete="username"
+              required
+              class="auth-input"
+              :class="{ '!border-[#f87171]': v$.credentials.email.$error }"
+              :placeholder="$t('RESET_PASSWORD.EMAIL.PLACEHOLDER')"
+              @blur="v$.credentials.email.$touch"
+            />
+          </span>
+          <span v-if="v$.credentials.email.$error" class="block auth-error">
+            {{ $t('RESET_PASSWORD.EMAIL.ERROR') }}
+          </span>
+        </label>
+        <button
           type="submit"
           data-testid="submit_button"
-          class="w-full"
-          :label="$t('RESET_PASSWORD.SUBMIT')"
-          :disabled="v$.credentials.email.$invalid || resetPassword.showLoading"
-          :is-loading="resetPassword.showLoading"
-        />
-      </div>
-      <p class="mt-4 -mb-1 text-sm text-n-slate-11">
-        {{ $t('RESET_PASSWORD.GO_BACK_TO_LOGIN') }}
-        <router-link to="/auth/login" class="text-link text-n-brand">
-          {{ $t('COMMON.CLICK_HERE') }}.
-        </router-link>
-      </p>
-    </form>
-  </div>
+          class="auth-button"
+          :disabled="v$.credentials.email.$invalid || isLoading"
+        >
+          <Spinner v-if="isLoading" size="small" />
+          <template v-else>{{ $t('RESET_PASSWORD.SUBMIT') }}</template>
+        </button>
+      </form>
+    </template>
+
+    <router-link
+      to="/app/login"
+      class="inline-flex items-center gap-2 mt-8 text-sm auth-link"
+    >
+      <span class="i-lucide-arrow-left size-4" />
+      {{ $t('RESET_PASSWORD.BACK_TO_LOGIN') }}
+    </router-link>
+  </AuthLayout>
 </template>

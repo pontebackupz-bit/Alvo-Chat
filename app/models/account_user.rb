@@ -46,7 +46,9 @@ class AccountUser < ApplicationRecord
 
   def create_notification_setting
     setting = user.notification_settings.new(account_id: account.id)
-    setting.selected_email_flags = [:email_conversation_assignment]
+    # AlvoChat: no e-mail by default (agents are notified in the app and by
+    # push); each person can turn e-mails on in Perfil > Notificações.
+    setting.selected_email_flags = []
     setting.selected_push_flags = [:push_conversation_assignment]
     setting.save!
   end

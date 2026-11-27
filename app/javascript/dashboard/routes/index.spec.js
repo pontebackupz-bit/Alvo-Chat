@@ -75,6 +75,30 @@ describe('#validateAuthenticateRoutePermission', () => {
       });
     });
 
+    describe('when a password change is required', () => {
+      it('redirects every route to the password-change screen', async () => {
+        store.getters.getCurrentUser.force_password_change = true;
+
+        await validateAuthenticateRoutePermission(
+          { name: 'dashboard', params: { accountId: 1 } },
+          next
+        );
+
+        expect(next).toHaveBeenCalledWith('/app/accounts/1/change-password');
+      });
+
+      it('allows only the password-change screen', async () => {
+        store.getters.getCurrentUser.force_password_change = true;
+
+        await validateAuthenticateRoutePermission(
+          { name: 'force_password_change', params: { accountId: 1 } },
+          next
+        );
+
+        expect(next).toHaveBeenCalledWith();
+      });
+    });
+
     describe('when route is accessible to current user', () => {
       beforeEach(() => {
         // Adjust store getters to reflect the user has admin permissions

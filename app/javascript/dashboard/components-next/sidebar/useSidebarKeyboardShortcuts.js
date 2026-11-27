@@ -31,7 +31,7 @@ export function useSidebarKeyboardShortcuts(toggleShortcutModalFn) {
       action: () => navigateToRoute('account_overview_reports'),
     },
     'Alt+KeyS': {
-      action: () => navigateToRoute('agent_list'),
+      action: () => navigateToRoute('general_settings_index'),
     },
   };
 

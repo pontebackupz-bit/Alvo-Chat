@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue';
 import { useCaptain } from 'dashboard/composables/useCaptain';
-import { useUISettings } from 'dashboard/composables/useUISettings';
+import { emitter } from 'shared/helpers/mitt';
+import { BUS_EVENTS } from 'shared/constants/busEvents';
 import { useTrack } from 'dashboard/composables';
 import { CAPTAIN_EVENTS } from 'dashboard/helper/AnalyticsHelper/events';
 import {
@@ -78,7 +79,6 @@ function trackGenerationFailure({
  */
 export function useCopilotReply() {
   const { processEvent, followUp, currentChat } = useCaptain();
-  const { updateUISettings } = useUISettings();
 
   const showEditor = ref(false);
   const isGenerating = ref(false);
@@ -154,11 +154,9 @@ export function useCopilotReply() {
    * @param {string} data - The content to process
    */
   async function execute(action, data) {
+    // AlvoChat's own copilot (Groq), see AskCopilotButton.vue.
     if (action === 'ask_copilot') {
-      updateUISettings({
-        is_contact_sidebar_open: false,
-        is_copilot_panel_open: true,
-      });
+      emitter.emit(BUS_EVENTS.OPEN_CRM_COPILOT);
       return;
     }
 

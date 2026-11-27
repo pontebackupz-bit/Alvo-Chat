@@ -53,6 +53,14 @@ const CUSTOM_SNOOZE = wootConstants.SNOOZE_OPTIONS.UNTIL_CUSTOM_TIME;
 const dynamicSnoozeActions = ref([]);
 const currentCommandRoot = ref(null);
 
+// Footer of the command bar, in the user's language.
+const footerHints = computed(() => [
+  { keys: ['↵'], label: t('COMMAND_BAR.FOOTER.SELECT') },
+  { keys: ['↑', '↓'], label: t('COMMAND_BAR.FOOTER.NAVIGATE') },
+  { keys: ['esc'], label: t('COMMAND_BAR.FOOTER.CLOSE') },
+  { keys: ['⌫'], label: t('COMMAND_BAR.FOOTER.BACK') },
+]);
+
 const placeholder = computed(() =>
   SNOOZE_PARENT_IDS.includes(currentCommandRoot.value)
     ? t('COMMAND_BAR.SNOOZE_PLACEHOLDER')
@@ -227,28 +235,70 @@ onMounted(() => {
     @change="onCommandBarChange"
     @selected="onSelected"
     @closed="onClosed"
-  />
+  >
+    <!-- eslint-disable-next-line vue/no-deprecated-slot-attribute -- native web component slot -->
+    <div slot="footer" class="alvo-cmd-footer">
+      <span v-for="hint in footerHints" :key="hint.label">
+        <kbd v-for="key in hint.keys" :key="key">{{ key }}</kbd>
+        {{ hint.label }}
+      </span>
+    </div>
+  </ninja-keys>
 </template>
 
 <style lang="scss">
 ninja-keys {
-  --ninja-accent-color: rgba(39, 129, 246, 1);
+  --ninja-accent-color: #2370ff;
   --ninja-font-family: 'Inter';
+  --ninja-key-border-radius: 6px;
+  --ninja-backdrop-filter: blur(6px);
   z-index: 9999;
 }
 
 // Wrapped with body.dark to avoid overriding the default theme
 // If OS is in dark theme and app is in light mode, It will prevent showing dark theme in command bar
 body.dark {
+  // AlvoChat: the same near-black, thin borders and blue selection as the app.
   ninja-keys {
-    --ninja-overflow-background: rgba(26, 29, 30, 0.5);
-    --ninja-modal-background: #151718;
-    --ninja-secondary-background-color: #26292b;
-    --ninja-selected-background: #26292b;
-    --ninja-footer-background: #2b2f31;
-    --ninja-text-color: #f8faf9;
-    --ninja-icon-color: #f8faf9;
-    --ninja-secondary-text-color: #c2c9c6;
+    --ninja-overflow-background: rgba(0, 0, 0, 0.6);
+    --ninja-modal-background: #0e0e10;
+    --ninja-modal-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+    --ninja-separate-border: 1px solid rgba(255, 255, 255, 0.08);
+    --ninja-secondary-background-color: #1a1a1f;
+    --ninja-selected-background: rgba(35, 112, 255, 0.15);
+    --ninja-selected-text-color: #ffffff;
+    --ninja-footer-background: #0a0a0b;
+    --ninja-text-color: #f4f4f5;
+    --ninja-icon-color: #a1a1aa;
+    --ninja-secondary-text-color: #a1a1aa;
+    --ninja-group-text-color: #71717a;
+    --ninja-placeholder-color: #71717a;
+  }
+}
+
+.alvo-cmd-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 0.625rem 1rem;
+  font-size: 0.75rem;
+  color: var(--ninja-secondary-text-color, #71717a);
+
+  span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  kbd {
+    min-width: 1.25rem;
+    padding: 0.0625rem 0.3125rem;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 0.6875rem;
+    text-align: center;
+    background: var(--ninja-secondary-background-color, #eee);
+    color: var(--ninja-text-color, inherit);
   }
 }
 </style>

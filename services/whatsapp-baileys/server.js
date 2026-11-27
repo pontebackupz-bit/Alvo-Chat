@@ -20,6 +20,13 @@ const sessions = new Map();
 const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
 const maxCachedMessages = 1000;
 
+// Baileys can leave a retry receipt pending while a session is deliberately
+// logged out. That retry rejects after the socket closes; logging it keeps the
+// bridge alive so the replacement QR session can start normally.
+process.on('unhandledRejection', error => {
+  logger.error({ err: error }, 'Unhandled Baileys promise rejection');
+});
+
 if (!apiToken) throw new Error('BAILEYS_API_TOKEN must be configured');
 
 const app = express();
@@ -127,6 +134,11 @@ const mediaDetails = message => {
   if (!messageKey) return null;
 
   const media = content[messageKey];
+  // History synchronisation may contain a partial media object alongside the
+  // original text. It is not downloadable and must not replace that text with
+  // the fallback message in Chatwoot.
+  if (!media.mediaKey || !media.directPath) return null;
+
   return {
     content,
     fileType,
@@ -150,10 +162,24 @@ const rememberMessage = (session, message) => {
 const contactDetails = (session, message) => {
   const remoteJid = message.key.remoteJid;
   const sourceId = jidUser(remoteJid);
-  const phoneNumber = jidUser(message.key.senderPn) || session.phoneNumbers?.[sourceId] ||
-    (remoteJid?.endsWith('@s.whatsapp.net') ? sourceId : null);
+  // On messages sent from the connected phone, senderPn/participantPn point to
+  // our own number, so only the chat JID (or a known LID mapping) identifies
+  // the contact.
+  const senderPhoneNumber = message.key.fromMe ? null : jidUser(message.key.senderPn || message.key.participantPn);
+  const isLid = remoteJid?.endsWith('@lid') || sourceId?.length > 15;
+  const phoneNumber = senderPhoneNumber || session.phoneNumbers?.[sourceId] ||
+    (isLid ? null : sourceId);
 
-  return { sourceId, phoneNumber, isLid: remoteJid?.endsWith('@lid') || false };
+  return { sourceId, phoneNumber, isLid };
+};
+
+const rememberPhoneNumber = (session, sourceId, phoneNumber) => {
+  if (!sourceId || !phoneNumber || session.phoneNumbers?.[sourceId] === phoneNumber) return;
+
+  session.phoneNumbers ||= {};
+  session.phoneNumbers[sourceId] = phoneNumber;
+  persistSessions().catch(error => logger.warn(error));
+  publishPhoneNumber(session, sourceId, phoneNumber).catch(error => logger.warn(error));
 };
 
 const outgoingMediaMessage = (media, text) => {
@@ -199,7 +225,7 @@ const publishPhoneNumber = async (session, sourceId, phoneNumber) => {
   }
 };
 
-const publishIncomingMessage = async (session, message) => {
+const publishMessage = async (session, message) => {
   if (!session.webhookUrl) return;
 
   const { sourceId, phoneNumber, isLid } = contactDetails(session, message);
@@ -207,41 +233,71 @@ const publishIncomingMessage = async (session, message) => {
   const media = mediaDetails(message.message || {});
   if (!sourceId || (!content && !media)) return;
 
+  if (!phoneNumber) {
+    logger.warn(
+      {
+        session: session.id,
+        messageId: message.key.id,
+        hasSenderPn: Boolean(message.key.senderPn),
+        hasParticipantPn: Boolean(message.key.participantPn),
+      },
+      'Ignoring WhatsApp message without a phone-number mapping'
+    );
+    return;
+  }
+
+  if (isLid) rememberPhoneNumber(session, sourceId, phoneNumber);
+
   const payload = {
     event: 'message.received',
     session_id: session.id,
     message_id: message.key.id,
-    from: phoneNumber || sourceId,
-    source_id: sourceId,
+    from: phoneNumber,
+    source_id: phoneNumber,
     phone_number: phoneNumber,
-    is_lid: isLid,
-    name: message.pushName,
+    // pushName is our own profile name on messages sent from the phone.
+    name: message.key.fromMe ? undefined : message.pushName,
+    from_me: Boolean(message.key.fromMe),
     content,
     timestamp: message.messageTimestamp,
   };
   if (media) {
-    const mediaMessage = media.content === message.message ? message : { ...message, message: media.content };
-    const buffer = await downloadMediaMessage(mediaMessage, 'buffer', {}, {
-      logger,
-      // Keep the socket context. Passing the method directly may break media
-      // re-upload requests for expired audio/sticker URLs.
-      reuploadRequest: mediaToReupload => session.socket.updateMediaMessage(mediaToReupload),
-    });
-    if (!Buffer.isBuffer(buffer) || !buffer.length) {
-      throw new Error('WhatsApp returned an empty media payload');
+    try {
+      const mediaMessage = media.content === message.message ? message : { ...message, message: media.content };
+      const buffer = await downloadMediaMessage(mediaMessage, 'buffer', {}, {
+        logger,
+        // Keep the socket context. Passing the method directly may break media
+        // re-upload requests for expired audio/sticker URLs.
+        reuploadRequest: mediaToReupload => session.socket.updateMediaMessage(mediaToReupload),
+      });
+      if (!Buffer.isBuffer(buffer) || !buffer.length) {
+        throw new Error('WhatsApp returned an empty media payload');
+      }
+      if (buffer.length > maxMediaBytes) {
+        throw new Error(`Incoming media exceeds the ${maxMediaBytes / 1024 / 1024} MB limit`);
+      }
+      payload.media = {
+        data: buffer.toString('base64'),
+        file_type: media.fileType,
+        mime_type: media.mimeType,
+        file_name: media.fileName,
+        is_sticker: media.isSticker,
+        is_animated_sticker: media.isAnimatedSticker,
+        is_voice_message: media.isVoiceMessage,
+      };
+    } catch (error) {
+      logger.warn(
+        {
+          err: error,
+          session: session.id,
+          messageId: message.key.id,
+          messageTypes: Object.keys(media.content),
+          mediaType: media.fileType,
+        },
+        'Could not download incoming WhatsApp media; delivering its text instead'
+      );
+      payload.content ||= '[Mídia recebida sem anexo disponível]';
     }
-    if (buffer.length > maxMediaBytes) {
-      throw new Error(`Incoming media exceeds the ${maxMediaBytes / 1024 / 1024} MB limit`);
-    }
-    payload.media = {
-      data: buffer.toString('base64'),
-      file_type: media.fileType,
-      mime_type: media.mimeType,
-      file_name: media.fileName,
-      is_sticker: media.isSticker,
-      is_animated_sticker: media.isAnimatedSticker,
-      is_voice_message: media.isVoiceMessage,
-    };
   }
 
   const response = await fetch(session.webhookUrl, {
@@ -281,10 +337,16 @@ const startSession = async session => {
   const { state, saveCreds } = await useMultiFileAuthState(sessionDirectory(session.id));
   session.phoneNumbers ||= {};
   session.messages ||= new Map();
-  const { version } = await fetchLatestBaileysVersion();
+  const latestVersion = await Promise.race([
+    fetchLatestBaileysVersion(),
+    new Promise(resolve => setTimeout(() => resolve({}), 10_000)),
+  ]).catch(error => {
+    logger.warn({ err: error, session: session.id }, 'Could not fetch the latest Baileys version');
+    return {};
+  });
   const socket = makeWASocket({
     auth: state,
-    version,
+    ...(latestVersion.version && { version: latestVersion.version }),
     browser: Browsers.ubuntu('Comercial Alvorada'),
     printQRInTerminal: false,
     logger: logger.child({ session: session.id, level: 'warn' }),
@@ -302,10 +364,7 @@ const startSession = async session => {
     const phoneNumber = jidUser(jid);
     if (!sourceId || !phoneNumber) return;
 
-    session.phoneNumbers ||= {};
-    session.phoneNumbers[sourceId] = phoneNumber;
-    persistSessions().catch(error => logger.warn(error));
-    publishPhoneNumber(session, sourceId, phoneNumber).catch(error => logger.warn(error));
+    rememberPhoneNumber(session, sourceId, phoneNumber);
   });
   socket.ev.on('connection.update', async update => {
     if (session.isDestroyed || !sessions.has(session.id)) return;
@@ -339,10 +398,14 @@ const startSession = async session => {
     messages
       .filter(message => !message.key.remoteJid?.endsWith('@g.us'))
       .forEach(message => rememberMessage(session, message));
-    if (!['notify', 'append'].includes(type)) return;
+    // `append` is WhatsApp history synchronisation and the echo of messages
+    // this bridge sends itself. Replaying it produces stale or duplicated
+    // messages. `notify` covers both received messages and messages typed on
+    // the connected phone (or another linked device).
+    if (type !== 'notify') return;
     messages
-      .filter(message => !message.key.fromMe && !message.key.remoteJid?.endsWith('@g.us'))
-      .forEach(message => publishIncomingMessage(session, message).catch(error => logger.warn(error)));
+      .filter(message => /@(s\.whatsapp\.net|lid)$/.test(message.key.remoteJid || ''))
+      .forEach(message => publishMessage(session, message).catch(error => logger.warn(error)));
   });
 };
 
@@ -414,8 +477,11 @@ app.delete('/sessions/:sessionId', async (request, response, next) => {
     if (session.socket) {
       try {
         session.socket.ev.removeAllListeners();
+        await session.socket.logout();
         session.socket.end(undefined);
-      } catch (_) {}
+      } catch (error) {
+        logger.warn({ err: error, session: session.id }, 'Could not log out the WhatsApp linked device');
+      }
       session.socket = null;
     }
     sessions.delete(session.id);

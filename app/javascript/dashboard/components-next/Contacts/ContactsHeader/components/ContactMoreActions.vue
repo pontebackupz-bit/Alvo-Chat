@@ -4,12 +4,10 @@ import { useI18n } from 'vue-i18n';
 
 import Button from 'dashboard/components-next/button/Button.vue';
 import DropdownMenu from 'dashboard/components-next/dropdown-menu/DropdownMenu.vue';
-import { usePolicy } from 'dashboard/composables/usePolicy';
 
-const emit = defineEmits(['add', 'import', 'export']);
+const emit = defineEmits(['add']);
 
 const { t } = useI18n();
-const { checkPermissions } = usePolicy();
 
 const contactMenuItems = computed(() => [
   {
@@ -18,41 +16,11 @@ const contactMenuItems = computed(() => [
     value: 'add',
     icon: 'i-lucide-plus',
   },
-  ...(checkPermissions(['administrator', 'contact_manage'])
-    ? [
-        {
-          label: t(
-            'CONTACTS_LAYOUT.HEADER.ACTIONS.CONTACT_CREATION.EXPORT_CONTACT'
-          ),
-          action: 'export',
-          value: 'export',
-          icon: 'i-lucide-upload',
-        },
-      ]
-    : []),
-  ...(checkPermissions(['administrator', 'contact_manage'])
-    ? [
-        {
-          label: t(
-            'CONTACTS_LAYOUT.HEADER.ACTIONS.CONTACT_CREATION.IMPORT_CONTACT'
-          ),
-          action: 'import',
-          value: 'import',
-          icon: 'i-lucide-download',
-        },
-      ]
-    : []),
 ]);
 const showActionsDropdown = ref(false);
 
 const handleContactAction = ({ action }) => {
-  if (action === 'add') {
-    emit('add');
-  } else if (action === 'import') {
-    emit('import');
-  } else if (action === 'export') {
-    emit('export');
-  }
+  if (action === 'add') emit('add');
 };
 </script>
 

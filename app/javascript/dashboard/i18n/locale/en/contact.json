@@ -328,14 +328,14 @@
           "CHANGE": "Change",
           "CANCEL": "Cancel",
           "IMPORT": "Import",
-          "SUCCESS_MESSAGE": "You will be notified via email when the import is complete.",
+          "SUCCESS_MESSAGE": "Import started. Contacts will appear in the list in a few moments.",
           "ERROR_MESSAGE": "There was an error, please try again"
         },
         "EXPORT_CONTACT": {
           "TITLE": "Export contacts",
-          "DESCRIPTION": "Quickly export a csv file with comprehensive details of your contacts",
-          "CONFIRM": "Export",
-          "SUCCESS_MESSAGE": "Export is in progress. You will be notified on email when the export file is ready to download.",
+          "DESCRIPTION": "Download a CSV file with the contacts in the current view (filters, segment or label applied).",
+          "CONFIRM": "Download CSV",
+          "SUCCESS_MESSAGE": "Contacts exported. The CSV file was downloaded.",
           "ERROR_MESSAGE": "There was an error, please try again"
         },
         "SORT_BY": {
@@ -415,6 +415,7 @@
     },
     "CARD": {
       "OF": "of",
+      "START_CONVERSATION": "Message",
       "VIEW_DETAILS": "View details",
       "EDIT_DETAILS_FORM": {
         "TITLE": "Edit contact details",

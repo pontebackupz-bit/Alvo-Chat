@@ -74,3 +74,16 @@ remove_orphan_conversations_job:
   cron: '0 */12 * * *'
   class: 'Internal::RemoveOrphanConversationsJob'
   queue: housekeeping
+
+# every 2 minutes
+# reconnects WPPConnect numbers that dropped, using the saved session token
+wppconnect_session_watchdog_job:
+  cron: '*/2 * * * *'
+  class: 'OmnichannelCrm::WppconnectSessionWatchdogJob'
+  queue: low
+
+# AlvoChat: send scheduled messages when they are due
+crm_scheduled_message_dispatch_job:
+  cron: '* * * * *'
+  class: 'OmnichannelCrm::ScheduledMessageDispatchJob'
+  queue: default
